@@ -1,6 +1,7 @@
 # Copyright (c) 2023, Frappe and contributors
 # For license information, please see license.txt
 import frappe
+from frappe import _
 from frappe.model.document import Document
 
 _CHILD_ROW_META_FIELDS = {
@@ -147,19 +148,19 @@ class WikiSpace(Document):
 		new_route = new_route.strip().strip("/")
 
 		if not new_route:
-			frappe.throw("Route cannot be empty")
+			frappe.throw(_("Route cannot be empty"))
 
 		old_route = self.route
 		if old_route == new_route:
-			frappe.throw("New route is the same as current route")
+			frappe.throw(_("New route is the same as current route"))
 
 		if not self.root_group:
-			frappe.throw("This Wiki Space has no root group. Migrate to Version 3 first.")
+			frappe.throw(_("This Wiki Space has no root group. Migrate to Version 3 first."))
 
 		# Check for conflicts
 		existing = frappe.db.get_value("Wiki Space", {"route": new_route, "name": ("!=", self.name)})
 		if existing:
-			frappe.throw(f"Route '{new_route}' is already used by another Wiki Space")
+			frappe.throw(_("Route '{0}' is already used by another Wiki Space").format(new_route))
 
 		# Get all documents under this space
 		descendants = get_descendants_of("Wiki Document", self.root_group, ignore_permissions=True)
@@ -216,17 +217,17 @@ class WikiSpace(Document):
 
 		new_route = (new_space_route or "").strip().strip("/")
 		if not new_route:
-			frappe.throw("Route cannot be empty")
+			frappe.throw(_("Route cannot be empty"))
 
 		if new_route == self.route:
-			frappe.throw("New route is the same as current route")
+			frappe.throw(_("New route is the same as current route"))
 
 		existing = frappe.db.get_value("Wiki Space", {"route": new_route}, "name")
 		if existing:
-			frappe.throw(f"Route '{new_route}' is already used by another Wiki Space")
+			frappe.throw(_("Route '{0}' is already used by another Wiki Space").format(new_route))
 
 		if not self.root_group:
-			frappe.throw("This Wiki Space has no root group. Migrate to Version 3 first.")
+			frappe.throw(_("This Wiki Space has no root group. Migrate to Version 3 first."))
 
 		frappe.enqueue(
 			"wiki.wiki.doctype.wiki_space.wiki_space.clone_wiki_space",
@@ -242,15 +243,15 @@ class WikiSpace(Document):
 
 def clone_wiki_space(wiki_space: str, new_space_route: str, user: str | None = None) -> str:
 	if user:
-		frappe.set_user(user)
+		frappe.set_user(user)  # nosemgrep: frappe-setuser - restoring user context in background job
 
 	space = frappe.get_doc("Wiki Space", wiki_space)
 	if not space.root_group:
-		frappe.throw("This Wiki Space has no root group. Migrate to Version 3 first.")
+		frappe.throw(_("This Wiki Space has no root group. Migrate to Version 3 first."))
 
 	new_route = (new_space_route or "").strip().strip("/")
 	if not new_route:
-		frappe.throw("Route cannot be empty")
+		frappe.throw(_("Route cannot be empty"))
 
 	new_space = _create_space_copy(space, new_route)
 	_clone_wiki_documents(space, new_space)

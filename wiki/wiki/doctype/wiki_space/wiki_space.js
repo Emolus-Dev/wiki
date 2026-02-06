@@ -5,7 +5,7 @@ frappe.ui.form.on("Wiki Space", {
   refresh(frm) {
     frm.add_web_link(`/${frm.doc.route}`, __("See on website"));
 
-    frm.add_custom_button("Clone Wiki Space", () => {
+    frm.add_custom_button(__("Clone Wiki Space"), () => {
       frappe.prompt(
         [
           {
