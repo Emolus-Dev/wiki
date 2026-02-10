@@ -277,7 +277,7 @@ test.describe('Public Sidebar', () => {
 			await expect(lastUpdated).toContainText('Last updated');
 
 			// Get initial edit link href
-			const editLinks = publicPage.locator('#wiki-edit-link');
+			const editLinks = publicPage.locator('.wiki-edit-link, #wiki-edit-link');
 			const initialEditHref = await editLinks.first().getAttribute('href');
 
 			// Click the second page link in sidebar

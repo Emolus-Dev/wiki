@@ -170,9 +170,11 @@
                     Alpine.store('pageContent').markdown = data.raw_markdown;
                 }
 
-                // Update edit link
-                const editLink = document.getElementById('wiki-edit-link');
-                if (editLink) editLink.setAttribute('href', data.edit_link);
+                // Update edit links
+                const editLinks = document.querySelectorAll('.wiki-edit-link');
+                if (editLinks) {
+                    editLinks.forEach(link => link.setAttribute('href', data.edit_link));
+                }
 
                 // Update last updated
                 const lastUpdatedEl = document.getElementById('wiki-last-updated');
