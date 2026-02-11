@@ -435,7 +435,7 @@ function initEditor() {
 			handleDrop,
 			attributes: {
 				class:
-					'prose prose-sm max-w-none prose-code:before:content-none prose-code:after:content-none prose-code:bg-transparent prose-code:p-0 prose-code:font-normal prose-table:table-fixed prose-td:p-2 prose-th:p-2 prose-td:border prose-th:border prose-td:border-outline-gray-2 prose-th:border-outline-gray-2 prose-td:relative prose-th:relative prose-th:bg-surface-gray-2 wiki-editor-content',
+					'prose prose-sm max-w-none prose-code:before:content-none prose-code:after:content-none prose-code:bg-transparent prose-code:p-0 prose-code:font-normal prose-table:table-fixed prose-td:p-2 prose-th:p-2 prose-td:border prose-th:border prose-td:border-outline-gray-2 prose-th:border-outline-gray-2 prose-td:relative prose-th:relative prose-th:bg-surface-gray-2 prose-a:underline prose-a:[text-underline-offset:2px] prose-a:[word-break:break-all] hover:prose-a:text-ink-gray-7 wiki-editor-content',
 			},
 		},
 		onUpdate: () => {
@@ -663,17 +663,6 @@ onUnmounted(() => {
     margin: 1rem 0;
     color: var(--ink-gray-6, #4b5563);
     font-style: italic;
-}
-
-/* Link styling */
-.wiki-editor-content a {
-    color: var(--primary, #171717);
-    text-decoration: underline;
-    text-underline-offset: 2px;
-}
-
-.wiki-editor-content a:hover {
-    text-decoration-thickness: 2px;
 }
 
 /* Table styling */
