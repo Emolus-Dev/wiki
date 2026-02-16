@@ -14,6 +14,7 @@ from wiki.frappe_wiki.doctype.wiki_change_request.wiki_change_request import (
 	diff_change_request,
 	get_change_request,
 	get_cr_tree,
+	get_or_create_draft_change_request,
 	list_change_requests,
 	merge_change_request,
 	merge_content_three_way,
@@ -603,6 +604,55 @@ class TestWikiChangeRequest(FrappeTestCase):
 		cr_doc = frappe.get_doc("Wiki Change Request", cr.name)
 		current_main = frappe.db.get_value("Wiki Space", space.name, "main_revision")
 		self.assertEqual(current_main, cr_doc.merge_revision)
+
+	def test_stale_empty_draft_is_auto_archived(self):
+		"""Phase 6: An outdated draft with no changes should be archived and replaced."""
+		space = create_test_wiki_space()
+		create_test_wiki_document(space.root_group, title="Page A", content="v1")
+
+		# Create a draft CR (this also initializes main_revision)
+		cr = create_change_request(space.name, "Stale Draft")
+		old_cr_name = cr.name
+
+		# Advance main_revision so the draft becomes outdated
+		new_main = create_revision_from_live_tree(space.name, message="advance main")
+		frappe.db.set_value("Wiki Space", space.name, "main_revision", new_main.name)
+
+		# The draft has no changes (head == base hashes), so it should be archived
+		result = get_or_create_draft_change_request(space.name)
+
+		old_cr = frappe.get_doc("Wiki Change Request", old_cr_name)
+		self.assertEqual(old_cr.status, "Archived")
+		self.assertIsNotNone(old_cr.archived_at)
+
+		# A new CR should have been created
+		self.assertNotEqual(result.get("name"), old_cr_name)
+		new_cr = frappe.get_doc("Wiki Change Request", result.get("name"))
+		self.assertEqual(new_cr.status, "Draft")
+
+	def test_stale_draft_with_changes_is_kept(self):
+		"""Phase 6: An outdated draft that has actual changes should NOT be archived."""
+		space = create_test_wiki_space()
+		page = create_test_wiki_document(space.root_group, title="Page A", content="v1")
+
+		cr = create_change_request(space.name, "Draft With Changes")
+		cr_name = cr.name
+
+		# Make an edit in the CR so it has real changes
+		page_key = frappe.get_value("Wiki Document", page.name, "doc_key")
+		update_cr_page(cr.name, page_key, {"content": "v2-from-cr"})
+
+		# Advance main_revision so the draft becomes outdated
+		new_main = create_revision_from_live_tree(space.name, message="advance main")
+		frappe.db.set_value("Wiki Space", space.name, "main_revision", new_main.name)
+
+		# The draft has changes, so it should be kept (not archived)
+		result = get_or_create_draft_change_request(space.name)
+
+		self.assertEqual(result.get("name"), cr_name)
+		kept_cr = frappe.get_doc("Wiki Change Request", cr_name)
+		self.assertNotEqual(kept_cr.status, "Archived")
+		self.assertEqual(kept_cr.outdated, 1)
 
 	def test_archive_change_request_sets_status(self):
 		space = create_test_wiki_space()

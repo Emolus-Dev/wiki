@@ -425,11 +425,13 @@ Note: The merge revision still needs to be a full snapshot (it becomes `main_rev
 
 ---
 
-### Phase 6: Simplify Draft CR Logic
+### Phase 6: Simplify Draft CR Logic ✅ DONE
 
 **Goal**: Make `get_or_create_draft_change_request()` readable.
 
 **Priority**: Low — UX improvement, not a bug.
+
+**Status**: Completed. Extracted the 60-line `get_or_create_draft_change_request()` into 3 focused helpers: `_find_existing_draft()`, `_is_stale_empty_draft()`, `_archive_stale_draft()`. Replaced duplicated inline hash comparison with a call to `has_revision_changes()`. Two new tests added and all 35 tests pass.
 
 **Changes**:
 

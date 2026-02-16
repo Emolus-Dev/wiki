@@ -155,6 +155,20 @@ def has_revision_changes(base_revision: str | None, head_revision: str | None) -
 
 @frappe.whitelist()
 def get_or_create_draft_change_request(wiki_space: str, title: str | None = None) -> dict[str, Any]:
+	cr = _find_existing_draft(wiki_space)
+	if cr:
+		if _is_stale_empty_draft(cr, wiki_space):
+			_archive_stale_draft(cr)
+		else:
+			return cr.as_dict()
+
+	space = frappe.get_doc("Wiki Space", wiki_space)
+	default_title = title or f"Draft Changes - {space.space_name}"
+	return create_change_request(wiki_space, default_title).as_dict()
+
+
+def _find_existing_draft(wiki_space: str) -> Document | None:
+	"""Find user's most relevant draft: prefer one with actual changes."""
 	existing = frappe.get_all(
 		"Wiki Change Request",
 		filters={
@@ -165,55 +179,38 @@ def get_or_create_draft_change_request(wiki_space: str, title: str | None = None
 		fields=["name", "base_revision", "head_revision", "modified"],
 		order_by="modified desc",
 	)
-	if existing:
-		selected = None
-		for row in existing:
-			if has_revision_changes(row.get("base_revision"), row.get("head_revision")):
-				selected = row
-				break
-		if not selected:
-			selected = existing[0]
-		cr = frappe.get_doc("Wiki Change Request", selected["name"])
-		cr.check_permission("read")
-		main_revision = frappe.get_value("Wiki Space", wiki_space, "main_revision")
-		if main_revision and cr.base_revision and cr.base_revision != main_revision:
-			frappe.db.set_value("Wiki Change Request", cr.name, "outdated", 1)
-			base_hash = (
-				frappe.get_value(
-					"Wiki Revision",
-					cr.base_revision,
-					["tree_hash", "content_hash"],
-					as_dict=True,
-				)
-				or {}
-			)
-			head_hash = (
-				frappe.get_value(
-					"Wiki Revision",
-					cr.head_revision,
-					["tree_hash", "content_hash"],
-					as_dict=True,
-				)
-				or {}
-			)
-			if base_hash.get("tree_hash") == head_hash.get("tree_hash") and base_hash.get(
-				"content_hash"
-			) == head_hash.get("content_hash"):
-				frappe.db.set_value(
-					"Wiki Change Request",
-					cr.name,
-					{"status": "Archived", "archived_at": now_datetime()},
-				)
-				space = frappe.get_doc("Wiki Space", wiki_space)
-				default_title = title or f"Draft Changes - {space.space_name}"
-				new_cr = create_change_request(wiki_space, default_title)
-				return new_cr.as_dict()
-		return cr.as_dict()
+	if not existing:
+		return None
 
-	space = frappe.get_doc("Wiki Space", wiki_space)
-	default_title = title or f"Draft Changes - {space.space_name}"
-	cr = create_change_request(wiki_space, default_title)
-	return cr.as_dict()
+	selected = None
+	for row in existing:
+		if has_revision_changes(row.get("base_revision"), row.get("head_revision")):
+			selected = row
+			break
+	if not selected:
+		selected = existing[0]
+
+	cr = frappe.get_doc("Wiki Change Request", selected["name"])
+	cr.check_permission("read")
+	return cr
+
+
+def _is_stale_empty_draft(cr: Document, wiki_space: str) -> bool:
+	"""True if the draft is outdated AND has no changes."""
+	main_revision = frappe.get_value("Wiki Space", wiki_space, "main_revision")
+	if not main_revision or not cr.base_revision or cr.base_revision == main_revision:
+		return False
+	frappe.db.set_value("Wiki Change Request", cr.name, "outdated", 1)
+	return not has_revision_changes(cr.base_revision, cr.head_revision)
+
+
+def _archive_stale_draft(cr: Document) -> None:
+	"""Archive a stale empty draft."""
+	frappe.db.set_value(
+		"Wiki Change Request",
+		cr.name,
+		{"status": "Archived", "archived_at": now_datetime()},
+	)
 
 
 @frappe.whitelist()
