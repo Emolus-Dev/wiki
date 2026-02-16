@@ -14,10 +14,14 @@ from frappe.website.utils import cleanup_page_name
 
 from wiki.frappe_wiki.doctype.wiki_revision.wiki_revision import (
 	build_tree_order,
-	clone_revision,
+	create_overlay_revision,
 	create_revision_from_live_tree,
+	ensure_overlay_item,
+	ensure_revision_hashes,
+	get_effective_revision_item_map,
 	get_or_create_content_blob,
 	get_revision_item_map,
+	mark_hashes_stale,
 	recompute_revision_hashes,
 )
 
@@ -67,6 +71,7 @@ def _validate_unique_leaf_slug_in_revision(
 	# Treat empty parent_key and None as equivalent.
 	parent_key = parent_key or None
 
+	# Check in the current revision
 	existing = frappe.db.get_value(
 		"Wiki Revision Item",
 		{
@@ -88,6 +93,37 @@ def _validate_unique_leaf_slug_in_revision(
 			).format(slug, existing.doc_key, (existing.title or "").strip() or existing.name),
 			frappe.ValidationError,
 		)
+		return
+
+	# For overlay revisions, also check base items not overridden by the overlay
+	rev_info = frappe.db.get_value("Wiki Revision", revision, ["is_overlay", "parent_revision"], as_dict=True)
+	if not (rev_info and rev_info.is_overlay and rev_info.parent_revision):
+		return
+
+	overlay_keys = set(frappe.get_all("Wiki Revision Item", filters={"revision": revision}, pluck="doc_key"))
+
+	base_matches = frappe.get_all(
+		"Wiki Revision Item",
+		filters={
+			"revision": rev_info.parent_revision,
+			"parent_key": parent_key,
+			"slug": slug,
+			"is_group": 0,
+			"is_deleted": 0,
+		},
+		fields=["name", "doc_key", "title"],
+	)
+	for match in base_matches:
+		if match["doc_key"] == doc_key or match["doc_key"] in overlay_keys:
+			continue
+		frappe.throw(
+			_(
+				"Duplicate page slug '{0}' under the same parent in this change request. "
+				"Existing doc_key: {1} ({2})"
+			).format(slug, match["doc_key"], (match.get("title") or "").strip() or match["name"]),
+			frappe.ValidationError,
+		)
+		return
 
 
 def _validate_no_duplicate_leaf_slugs(items: dict[str, dict[str, Any]]) -> None:
@@ -129,6 +165,8 @@ def _validate_no_duplicate_leaf_slugs(items: dict[str, dict[str, Any]]) -> None:
 def has_revision_changes(base_revision: str | None, head_revision: str | None) -> bool:
 	if not base_revision or not head_revision:
 		return False
+	ensure_revision_hashes(base_revision)
+	ensure_revision_hashes(head_revision)
 	base_hash = (
 		frappe.get_value(
 			"Wiki Revision",
@@ -271,25 +309,10 @@ def get_cr_tree(name: str) -> dict[str, Any]:
 		return {"children": [], "root_group": None}
 
 	root_key = frappe.get_value("Wiki Document", root_group, "doc_key")
-	items = frappe.get_all(
-		"Wiki Revision Item",
-		fields=[
-			"doc_key",
-			"title",
-			"slug",
-			"is_group",
-			"is_published",
-			"is_external_link",
-			"external_url",
-			"parent_key",
-			"order_index",
-			"is_deleted",
-		],
-		filters={"revision": cr.head_revision},
-	)
+	effective_items = get_effective_revision_item_map(cr.head_revision)
 
 	doc_map: dict[str, dict[str, Any]] = {}
-	for item in items:
+	for item in effective_items.values():
 		if item.get("is_deleted"):
 			continue
 		doc_map[item["doc_key"]] = {
@@ -361,24 +384,38 @@ def get_cr_tree(name: str) -> dict[str, Any]:
 def get_cr_page(name: str, doc_key: str) -> dict[str, Any]:
 	cr = frappe.get_doc("Wiki Change Request", name)
 	cr.check_permission("read")
+
+	_item_fields = [
+		"doc_key",
+		"title",
+		"slug",
+		"is_group",
+		"is_published",
+		"is_external_link",
+		"external_url",
+		"parent_key",
+		"order_index",
+		"content_blob",
+		"is_deleted",
+	]
 	item = frappe.db.get_value(
 		"Wiki Revision Item",
 		{"revision": cr.head_revision, "doc_key": doc_key},
-		[
-			"doc_key",
-			"title",
-			"slug",
-			"is_group",
-			"is_published",
-			"is_external_link",
-			"external_url",
-			"parent_key",
-			"order_index",
-			"content_blob",
-			"is_deleted",
-		],
+		_item_fields,
 		as_dict=True,
 	)
+	# For overlay revisions, fall back to base if item isn't in the overlay
+	if not item:
+		rev_info = frappe.db.get_value(
+			"Wiki Revision", cr.head_revision, ["is_overlay", "parent_revision"], as_dict=True
+		)
+		if rev_info and rev_info.is_overlay and rev_info.parent_revision:
+			item = frappe.db.get_value(
+				"Wiki Revision Item",
+				{"revision": rev_info.parent_revision, "doc_key": doc_key},
+				_item_fields,
+				as_dict=True,
+			)
 	if not item or item.get("is_deleted"):
 		frappe.throw(_("Document not found in change request"))
 
@@ -412,7 +449,7 @@ def create_change_request(wiki_space: str, title: str, description: str | None =
 		space.main_revision = main_revision.name
 
 	base_revision = space.main_revision
-	head_revision = clone_revision(base_revision, is_working=1)
+	head_revision = create_overlay_revision(base_revision, is_working=1)
 
 	cr = frappe.new_doc("Wiki Change Request")
 	cr.title = title
@@ -443,7 +480,7 @@ def create_cr_page(
 	cr = frappe.get_doc("Wiki Change Request", name)
 	head_revision = cr.head_revision
 
-	item_map = get_revision_item_map(head_revision)
+	item_map = get_effective_revision_item_map(head_revision)
 	max_order = max(
 		[item.get("order_index") or 0 for item in item_map.values() if item.get("parent_key") == parent_key]
 		or [0]
@@ -472,7 +509,7 @@ def create_cr_page(
 	item.is_deleted = 0
 	item.insert()
 
-	recompute_revision_hashes(head_revision)
+	mark_hashes_stale(head_revision)
 	touch_change_request(cr.name)
 	return item.doc_key
 
@@ -480,9 +517,7 @@ def create_cr_page(
 @frappe.whitelist()
 def update_cr_page(name: str, doc_key: str, fields: dict[str, Any]) -> None:
 	cr = frappe.get_doc("Wiki Change Request", name)
-	item_name = frappe.get_value(
-		"Wiki Revision Item", {"revision": cr.head_revision, "doc_key": doc_key}, "name"
-	)
+	item_name = ensure_overlay_item(cr.head_revision, doc_key)
 	if not item_name:
 		frappe.throw(_("Document not found in change request"))
 
@@ -514,16 +549,14 @@ def update_cr_page(name: str, doc_key: str, fields: dict[str, Any]) -> None:
 	)
 	item.save()
 
-	recompute_revision_hashes(cr.head_revision)
+	mark_hashes_stale(cr.head_revision)
 	touch_change_request(cr.name)
 
 
 @frappe.whitelist()
 def move_cr_page(name: str, doc_key: str, new_parent_key: str, new_order_index: int | None = None) -> None:
 	cr = frappe.get_doc("Wiki Change Request", name)
-	item_name = frappe.get_value(
-		"Wiki Revision Item", {"revision": cr.head_revision, "doc_key": doc_key}, "name"
-	)
+	item_name = ensure_overlay_item(cr.head_revision, doc_key)
 	if not item_name:
 		frappe.throw(_("Document not found in change request"))
 
@@ -541,7 +574,7 @@ def move_cr_page(name: str, doc_key: str, new_parent_key: str, new_order_index: 
 		item.order_index = new_order_index
 	item.save()
 
-	recompute_revision_hashes(cr.head_revision)
+	mark_hashes_stale(cr.head_revision)
 	touch_change_request(cr.name)
 
 
@@ -549,25 +582,22 @@ def move_cr_page(name: str, doc_key: str, new_parent_key: str, new_order_index: 
 def reorder_cr_children(name: str, parent_key: str, ordered_doc_keys: list[str]) -> None:
 	cr = frappe.get_doc("Wiki Change Request", name)
 	for index, doc_key in enumerate(ordered_doc_keys):
-		item_name = frappe.get_value(
-			"Wiki Revision Item",
-			{"revision": cr.head_revision, "doc_key": doc_key, "parent_key": parent_key},
-			"name",
-		)
+		item_name = ensure_overlay_item(cr.head_revision, doc_key)
 		if not item_name:
+			continue
+		actual_parent = frappe.db.get_value("Wiki Revision Item", item_name, "parent_key")
+		if actual_parent != parent_key:
 			continue
 		frappe.db.set_value("Wiki Revision Item", item_name, "order_index", index)
 
-	recompute_revision_hashes(cr.head_revision)
+	mark_hashes_stale(cr.head_revision)
 	touch_change_request(cr.name)
 
 
 @frappe.whitelist()
 def delete_cr_page(name: str, doc_key: str) -> None:
 	cr = frappe.get_doc("Wiki Change Request", name)
-	item_name = frappe.get_value(
-		"Wiki Revision Item", {"revision": cr.head_revision, "doc_key": doc_key}, "name"
-	)
+	item_name = ensure_overlay_item(cr.head_revision, doc_key)
 	if not item_name:
 		frappe.throw(_("Document not found in change request"))
 
@@ -575,28 +605,26 @@ def delete_cr_page(name: str, doc_key: str) -> None:
 	item.is_deleted = 1
 	item.save()
 
-	items = frappe.get_all(
-		"Wiki Revision Item",
-		fields=["name", "doc_key", "parent_key"],
-		filters={"revision": cr.head_revision},
-	)
-	children: dict[str | None, list[dict[str, str]]] = {}
-	for row in items:
-		children.setdefault(row.get("parent_key"), []).append(row)
+	# Use effective items to find all descendants (overlay + base)
+	effective_items = get_effective_revision_item_map(cr.head_revision)
+	children: dict[str | None, list[str]] = {}
+	for key, item_data in effective_items.items():
+		children.setdefault(item_data.get("parent_key"), []).append(key)
 
 	to_visit = [doc_key]
 	seen = {doc_key}
 	while to_visit:
 		current = to_visit.pop()
-		for child in children.get(current, []):
-			child_key = child.get("doc_key")
-			if not child_key or child_key in seen:
+		for child_key in children.get(current, []):
+			if child_key in seen:
 				continue
 			seen.add(child_key)
-			frappe.db.set_value("Wiki Revision Item", child.get("name"), "is_deleted", 1)
+			child_item_name = ensure_overlay_item(cr.head_revision, child_key)
+			if child_item_name:
+				frappe.db.set_value("Wiki Revision Item", child_item_name, "is_deleted", 1)
 			to_visit.append(child_key)
 
-	recompute_revision_hashes(cr.head_revision)
+	mark_hashes_stale(cr.head_revision)
 	touch_change_request(cr.name)
 
 
@@ -604,7 +632,7 @@ def delete_cr_page(name: str, doc_key: str) -> None:
 def diff_change_request(name: str, scope: str = "summary", doc_key: str | None = None):
 	cr = frappe.get_doc("Wiki Change Request", name)
 	base_items = get_revision_item_map(cr.base_revision)
-	head_items = get_revision_item_map(cr.head_revision)
+	head_items = get_effective_revision_item_map(cr.head_revision)
 	base_contents: dict[str, str] = {}
 	head_contents: dict[str, str] = {}
 
@@ -788,7 +816,7 @@ def merge_change_request(name: str) -> str:
 
 	base_items = get_revision_item_map(cr.base_revision)
 	ours_items = get_revision_item_map(space.main_revision)
-	theirs_items = get_revision_item_map(cr.head_revision)
+	theirs_items = get_effective_revision_item_map(cr.head_revision)
 	base_contents = get_contents_for_items(base_items)
 	ours_contents = get_contents_for_items(ours_items)
 	theirs_contents = get_contents_for_items(theirs_items)

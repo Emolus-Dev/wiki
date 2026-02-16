@@ -13,6 +13,8 @@
 		"message",
 		"is_merge",
 		"is_working",
+		"is_overlay",
+		"hashes_stale",
 		"section_break_meta",
 		"created_by",
 		"created_at",
@@ -60,6 +62,19 @@
 			"fieldname": "is_working",
 			"fieldtype": "Check",
 			"label": "Is Working"
+		},
+		{
+			"default": "0",
+			"fieldname": "is_overlay",
+			"fieldtype": "Check",
+			"label": "Is Overlay"
+		},
+		{
+			"default": "0",
+			"fieldname": "hashes_stale",
+			"fieldtype": "Check",
+			"hidden": 1,
+			"label": "Hashes Stale"
 		},
 		{
 			"fieldname": "section_break_meta",

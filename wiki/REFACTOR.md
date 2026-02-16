@@ -308,11 +308,13 @@ All existing merge tests must continue to pass (they test the end-to-end flow, n
 
 ---
 
-### Phase 4: Delta-Based "Overlay" Revisions
+### Phase 4: Delta-Based "Overlay" Revisions ✅ DONE
 
 **Goal**: CR working revisions only store items that differ from the base. CR creation goes from O(N) to O(1).
 
 **Priority**: High impact on performance, but larger change — do after Phases 1-3 are stable.
+
+**Status**: Completed. CR creation now produces an empty overlay revision (0 items) instead of cloning all N items. Copy-on-write via `ensure_overlay_item()` promotes items to the overlay only when mutated. All read functions (`get_cr_tree`, `get_cr_page`, `diff_change_request`) use `get_effective_revision_item_map()` to merge base + overlay. Lazy hash computation defers `recompute_revision_hashes()` until needed (before merge/diff checks). Data migration patch converts existing open CRs. Five new tests added and all 40 tests pass.
 
 **Design: Overlay Revisions**
 

@@ -48,9 +48,17 @@ class TestWikiChangeRequest(FrappeTestCase):
 
 		head_revision = frappe.get_doc("Wiki Revision", cr.head_revision)
 		self.assertEqual(head_revision.is_working, 1)
+		self.assertEqual(head_revision.is_overlay, 1)
 
-		item_count = frappe.db.count("Wiki Revision Item", {"revision": cr.head_revision})
-		self.assertEqual(item_count, 2)  # root + page
+		# Overlay has 0 items (inherits from base)
+		overlay_count = frappe.db.count("Wiki Revision Item", {"revision": cr.head_revision})
+		self.assertEqual(overlay_count, 0)
+
+		# But the effective tree has all items (root + page)
+		from wiki.frappe_wiki.doctype.wiki_revision.wiki_revision import get_effective_revision_item_map
+
+		effective = get_effective_revision_item_map(cr.head_revision)
+		self.assertEqual(len(effective), 2)
 
 	def test_create_update_page_in_cr(self):
 		space = create_test_wiki_space()
@@ -565,6 +573,7 @@ class TestWikiChangeRequest(FrappeTestCase):
 
 		from wiki.frappe_wiki.doctype.wiki_revision.wiki_revision import (
 			create_revision_from_live_tree,
+			get_effective_revision_item_map,
 		)
 
 		main_rev = create_revision_from_live_tree(space.name, message="Initial")
@@ -577,14 +586,13 @@ class TestWikiChangeRequest(FrappeTestCase):
 		# Create a CR after the desk edit
 		cr = create_change_request(space.name, "CR after desk edit")
 
-		# The CR's head_revision should contain the desk-edited content
+		# The CR's effective tree should contain the desk-edited content
 		page_key = frappe.db.get_value("Wiki Document", page.name, "doc_key")
-		page_data = frappe.db.get_value(
-			"Wiki Revision Item",
-			{"revision": cr.head_revision, "doc_key": page_key},
-			"content_blob",
-		)
-		content = frappe.db.get_value("Wiki Content Blob", page_data, "content") or ""
+		effective = get_effective_revision_item_map(cr.head_revision)
+		item = effective.get(page_key)
+		self.assertIsNotNone(item)
+		content_blob = item.get("content_blob")
+		content = frappe.db.get_value("Wiki Content Blob", content_blob, "content") or ""
 		self.assertEqual(content, "desk-edit-content")
 
 	def test_merge_does_not_double_sync(self):
@@ -713,6 +721,112 @@ class TestWikiChangeRequest(FrappeTestCase):
 		result, conflict = merge_content_three_way(base, ours, theirs)
 		self.assertFalse(conflict)
 		self.assertIn("line3-theirs", result)
+
+	# --- Phase 4: Overlay revision tests ---
+
+	def test_create_cr_creates_empty_overlay(self):
+		"""Phase 4: CR creation should produce an overlay revision with 0 items."""
+		space = create_test_wiki_space()
+		create_test_wiki_document(space.root_group, title="Page A")
+		create_test_wiki_document(space.root_group, title="Page B")
+
+		cr = create_change_request(space.name, "CR overlay")
+
+		head_revision = frappe.get_doc("Wiki Revision", cr.head_revision)
+		self.assertEqual(head_revision.is_overlay, 1)
+		self.assertEqual(head_revision.parent_revision, cr.base_revision)
+
+		# Zero items in the overlay itself
+		overlay_item_count = frappe.db.count("Wiki Revision Item", {"revision": cr.head_revision})
+		self.assertEqual(overlay_item_count, 0)
+
+		# Base still has all items
+		base_item_count = frappe.db.count("Wiki Revision Item", {"revision": cr.base_revision})
+		self.assertGreater(base_item_count, 0)
+
+	def test_editing_promotes_item_to_overlay(self):
+		"""Phase 4: Editing 1 page should copy-on-write only that item into the overlay."""
+		space = create_test_wiki_space()
+		page_a = create_test_wiki_document(space.root_group, title="Page A", content="v1")
+		create_test_wiki_document(space.root_group, title="Page B", content="other")
+
+		cr = create_change_request(space.name, "CR promote")
+
+		page_a_key = frappe.get_value("Wiki Document", page_a.name, "doc_key")
+		update_cr_page(cr.name, page_a_key, {"content": "v2"})
+
+		# Only 1 item promoted to overlay
+		overlay_count = frappe.db.count("Wiki Revision Item", {"revision": cr.head_revision})
+		self.assertEqual(overlay_count, 1)
+
+		# And it's the right one
+		overlay_item = frappe.get_all(
+			"Wiki Revision Item",
+			filters={"revision": cr.head_revision},
+			fields=["doc_key"],
+		)
+		self.assertEqual(overlay_item[0]["doc_key"], page_a_key)
+
+	def test_overlay_tree_shows_all_pages(self):
+		"""Phase 4: get_cr_tree should return full tree despite empty overlay."""
+		space = create_test_wiki_space()
+		page_a = create_test_wiki_document(space.root_group, title="Page A")
+		group = create_test_wiki_document(space.root_group, title="Group", is_group=1)
+		child = create_test_wiki_document(group.name, title="Child")
+
+		cr = create_change_request(space.name, "CR tree")
+
+		tree = get_cr_tree(cr.name)
+		children = tree.get("children") or []
+
+		# Should show all pages even though overlay is empty
+		page_a_key = frappe.get_value("Wiki Document", page_a.name, "doc_key")
+		group_key = frappe.get_value("Wiki Document", group.name, "doc_key")
+		child_key = frappe.get_value("Wiki Document", child.name, "doc_key")
+
+		child_keys = {node["doc_key"] for node in children}
+		self.assertSetEqual(child_keys, {page_a_key, group_key})
+
+		group_node = next(n for n in children if n["doc_key"] == group_key)
+		grandchild_keys = {n["doc_key"] for n in group_node.get("children") or []}
+		self.assertSetEqual(grandchild_keys, {child_key})
+
+	def test_overlay_diff_shows_only_changes(self):
+		"""Phase 4: diff_change_request should only show edited pages."""
+		space = create_test_wiki_space()
+		page_a = create_test_wiki_document(space.root_group, title="Page A", content="v1")
+		create_test_wiki_document(space.root_group, title="Page B", content="other")
+
+		cr = create_change_request(space.name, "CR diff")
+
+		page_a_key = frappe.get_value("Wiki Document", page_a.name, "doc_key")
+		update_cr_page(cr.name, page_a_key, {"content": "v2"})
+
+		summary = diff_change_request(cr.name, scope="summary")
+		changed_keys = {row["doc_key"] for row in summary}
+
+		# Only page_a should show as changed
+		self.assertEqual(changed_keys, {page_a_key})
+
+	def test_overlay_merge_works(self):
+		"""Phase 4: Full merge lifecycle with overlay revisions."""
+		space = create_test_wiki_space()
+		page = create_test_wiki_document(space.root_group, title="Page A", content="original")
+
+		cr = create_change_request(space.name, "CR merge overlay")
+
+		page_key = frappe.get_value("Wiki Document", page.name, "doc_key")
+		update_cr_page(cr.name, page_key, {"content": "updated via cr"})
+
+		merge_change_request(cr.name)
+
+		# Live tree should be updated
+		updated = frappe.get_doc("Wiki Document", page.name)
+		self.assertEqual(updated.content, "updated via cr")
+
+		cr_doc = frappe.get_doc("Wiki Change Request", cr.name)
+		self.assertEqual(cr_doc.status, "Merged")
+		self.assertIsNotNone(cr_doc.merge_revision)
 
 
 # Helpers
