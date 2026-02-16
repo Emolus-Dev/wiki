@@ -828,6 +828,109 @@ class TestWikiChangeRequest(FrappeTestCase):
 		self.assertEqual(cr_doc.status, "Merged")
 		self.assertIsNotNone(cr_doc.merge_revision)
 
+	# --- Phase 5: Optimized merge tests ---
+
+	def test_fast_forward_merge_only_updates_changed_docs(self):
+		"""Phase 5: Fast-forward merge only touches documents that changed."""
+		space = create_test_wiki_space()
+		pages = []
+		for i in range(5):
+			pages.append(
+				create_test_wiki_document(space.root_group, title=f"Page {i}", content=f"content-{i}")
+			)
+
+		cr = create_change_request(space.name, "CR fast-forward")
+
+		# Only edit page 2
+		target_key = frappe.get_value("Wiki Document", pages[2].name, "doc_key")
+		update_cr_page(cr.name, target_key, {"content": "updated-content"})
+
+		# Snapshot state before merge
+		snapshot = {}
+		for page in pages:
+			page.reload()
+			snapshot[page.name] = {
+				"title": page.title,
+				"content": page.content,
+				"route": page.route,
+				"modified": page.modified,
+			}
+
+		merge_change_request(cr.name)
+
+		# Only page 2 should have new content; others should be completely untouched
+		for page in pages:
+			page.reload()
+			if page.name == pages[2].name:
+				self.assertEqual(page.content, "updated-content")
+			else:
+				self.assertEqual(page.content, snapshot[page.name]["content"])
+				self.assertEqual(page.route, snapshot[page.name]["route"])
+				self.assertEqual(page.title, snapshot[page.name]["title"])
+				self.assertEqual(
+					page.modified,
+					snapshot[page.name]["modified"],
+					f"Unchanged doc '{page.title}' should not have been modified",
+				)
+
+	def test_optimized_three_way_merge_produces_correct_result(self):
+		"""Phase 5: Three-way merge with concurrent changes produces correct results."""
+		space = create_test_wiki_space()
+		pages = []
+		for i in range(5):
+			pages.append(
+				create_test_wiki_document(
+					space.root_group, title=f"Page {i}", content="line1\nline2\nline3\n"
+				)
+			)
+
+		cr = create_change_request(space.name, "CR three-way")
+
+		# CR edits page 0
+		page0_key = frappe.get_value("Wiki Document", pages[0].name, "doc_key")
+		update_cr_page(cr.name, page0_key, {"content": "line1-cr\nline2\nline3\n"})
+
+		# Main edits page 1 (advance main_revision)
+		pages[1].content = "page1-main-edit"
+		pages[1].save()
+		new_main = create_revision_from_live_tree(space.name, message="main update")
+		frappe.db.set_value("Wiki Space", space.name, "main_revision", new_main.name)
+
+		merge_change_request(cr.name)
+
+		# Page 0 should have CR's changes
+		pages[0].reload()
+		self.assertEqual(pages[0].content, "line1-cr\nline2\nline3\n")
+
+		# Page 1 should retain main's changes
+		pages[1].reload()
+		self.assertEqual(pages[1].content, "page1-main-edit")
+
+		# Pages 2-4 should be untouched
+		for i in range(2, 5):
+			pages[i].reload()
+			self.assertEqual(pages[i].content, "line1\nline2\nline3\n")
+
+	def test_content_only_change_preserves_route(self):
+		"""Phase 5: Content-only changes use fast path and don't affect routes."""
+		space = create_test_wiki_space()
+		group = create_test_wiki_document(space.root_group, title="Guide", is_group=1)
+		page = create_test_wiki_document(group.name, title="Installation", content="v1")
+
+		page.reload()
+		route_before = page.route
+		self.assertTrue(route_before)
+
+		cr = create_change_request(space.name, "CR content only")
+		page_key = frappe.get_value("Wiki Document", page.name, "doc_key")
+		update_cr_page(cr.name, page_key, {"content": "v2 - updated content"})
+
+		merge_change_request(cr.name)
+
+		page.reload()
+		self.assertEqual(page.content, "v2 - updated content")
+		self.assertEqual(page.route, route_before, "Route should not change for content-only edit")
+
 
 # Helpers
 

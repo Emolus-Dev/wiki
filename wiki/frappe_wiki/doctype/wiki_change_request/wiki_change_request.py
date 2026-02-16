@@ -814,19 +814,72 @@ def merge_change_request(name: str) -> str:
 	cr = frappe.get_doc("Wiki Change Request", name)
 	space = frappe.get_doc("Wiki Space", cr.wiki_space)
 
+	if cr.base_revision == space.main_revision:
+		return _fast_forward_merge(cr, space)
+	return _three_way_merge(cr, space)
+
+
+@frappe.whitelist()
+def check_outdated(name: str) -> int:
+	cr = frappe.get_doc("Wiki Change Request", name)
+	main_revision = frappe.get_value("Wiki Space", cr.wiki_space, "main_revision")
+	outdated = 1 if main_revision and main_revision != cr.base_revision else 0
+	frappe.db.set_value("Wiki Change Request", cr.name, "outdated", outdated)
+	return outdated
+
+
+def _fast_forward_merge(cr: Document, space: Document) -> str:
+	"""Fast-forward merge: no concurrent changes since CR was created."""
+	base_items = get_revision_item_map(cr.base_revision)
+	effective_items = get_effective_revision_item_map(cr.head_revision)
+
+	merged_items: dict[str, dict[str, Any]] = {}
+	for key, item in effective_items.items():
+		normalized = normalize_item(item)
+		if normalized:
+			merged_items[key] = normalized
+
+	_validate_no_duplicate_leaf_slugs(merged_items)
+	merge_revision = create_merge_revision(cr, merged_items)
+
+	frappe.flags.in_apply_merge_revision = True
+	try:
+		_apply_merge_changes_only(space, merge_revision, base_items)
+	finally:
+		frappe.flags.in_apply_merge_revision = False
+
+	_finalize_merge(cr, merge_revision)
+	return merge_revision.name
+
+
+def _three_way_merge(cr: Document, space: Document) -> str:
+	"""Three-way merge: concurrent changes require conflict resolution."""
 	base_items = get_revision_item_map(cr.base_revision)
 	ours_items = get_revision_item_map(space.main_revision)
 	theirs_items = get_effective_revision_item_map(cr.head_revision)
-	base_contents = get_contents_for_items(base_items)
-	ours_contents = get_contents_for_items(ours_items)
-	theirs_contents = get_contents_for_items(theirs_items)
+
+	# Only load content for keys that actually changed in either branch
+	main_changed = _find_changed_keys(base_items, ours_items)
+	head_changed = _find_changed_keys(base_items, theirs_items)
+	changed_keys = main_changed | head_changed
+
+	base_subset = {k: base_items[k] for k in changed_keys if k in base_items}
+	ours_subset = {k: ours_items[k] for k in changed_keys if k in ours_items}
+	theirs_subset = {k: theirs_items[k] for k in changed_keys if k in theirs_items}
+
+	base_contents = get_contents_for_items(base_subset)
+	ours_contents = get_contents_for_items(ours_subset)
+	theirs_contents = get_contents_for_items(theirs_subset)
+
+	# Start with current main state as baseline for merged result
+	merged_items: dict[str, dict[str, Any]] = {}
+	for key, item in ours_items.items():
+		normalized = normalize_item(item)
+		if normalized:
+			merged_items[key] = normalized
 
 	conflicts = []
-	merged_items: dict[str, dict[str, Any]] = {}
-
-	all_keys = set(base_items) | set(ours_items) | set(theirs_items)
-
-	for key in all_keys:
+	for key in changed_keys:
 		base = normalize_item(base_items.get(key))
 		ours = normalize_item(ours_items.get(key))
 		theirs = normalize_item(theirs_items.get(key))
@@ -842,6 +895,8 @@ def merge_change_request(name: str) -> str:
 			continue
 		if result:
 			merged_items[key] = result
+		else:
+			merged_items.pop(key, None)
 
 	if conflicts:
 		for conflict in conflicts:
@@ -855,34 +910,235 @@ def merge_change_request(name: str) -> str:
 			conflict_doc.status = "Open"
 			conflict_doc.insert(ignore_permissions=True)
 
-		# In web requests, an exception triggers a rollback which would erase the
-		# inserted conflict rows. Persist them so the UI can show details.
 		if not frappe.flags.in_test:
 			frappe.db.commit()
 
 		frappe.throw(_("Merge conflicts detected"), frappe.ValidationError)
 
 	_validate_no_duplicate_leaf_slugs(merged_items)
-
 	merge_revision = create_merge_revision(cr, merged_items)
-	apply_merge_revision(space, merge_revision)
 
+	frappe.flags.in_apply_merge_revision = True
+	try:
+		_apply_merge_changes_only(space, merge_revision, ours_items)
+	finally:
+		frappe.flags.in_apply_merge_revision = False
+
+	_finalize_merge(cr, merge_revision)
+	return merge_revision.name
+
+
+def _find_changed_keys(
+	base_items: dict[str, dict[str, Any]], other_items: dict[str, dict[str, Any]]
+) -> set[str]:
+	"""Find doc_keys that differ between two revision item maps.
+
+	Compares metadata and content_blob without loading actual content text.
+	"""
+	changed: set[str] = set()
+	all_keys = set(base_items) | set(other_items)
+	compare_fields = [
+		"title",
+		"slug",
+		"parent_key",
+		"order_index",
+		"is_group",
+		"is_published",
+		"is_external_link",
+		"external_url",
+		"content_blob",
+		"is_deleted",
+	]
+
+	for key in all_keys:
+		base = base_items.get(key)
+		other = other_items.get(key)
+		if base is None or other is None:
+			changed.add(key)
+			continue
+
+		for field in compare_fields:
+			if base.get(field) != other.get(field):
+				changed.add(key)
+				break
+
+	return changed
+
+
+def _classify_changes(
+	prev_items: dict[str, dict[str, Any]],
+	new_items: dict[str, dict[str, Any]],
+	changed_keys: set[str],
+) -> tuple[set[str], set[str], set[str], set[str]]:
+	"""Classify changed keys into (content_only, structural, added, deleted)."""
+	content_only: set[str] = set()
+	structural: set[str] = set()
+	added: set[str] = set()
+	deleted: set[str] = set()
+	metadata_fields = [
+		"title",
+		"slug",
+		"parent_key",
+		"order_index",
+		"is_group",
+		"is_published",
+		"is_external_link",
+		"external_url",
+	]
+
+	for key in changed_keys:
+		prev = prev_items.get(key)
+		new = new_items.get(key)
+
+		prev_exists = prev is not None and not prev.get("is_deleted")
+		new_exists = new is not None and not new.get("is_deleted")
+
+		if not prev_exists and new_exists:
+			added.add(key)
+		elif prev_exists and not new_exists:
+			deleted.add(key)
+		elif prev_exists and new_exists:
+			if all(prev.get(f) == new.get(f) for f in metadata_fields):
+				content_only.add(key)
+			else:
+				structural.add(key)
+
+	return content_only, structural, added, deleted
+
+
+def _apply_merge_changes_only(
+	space: Document,
+	merge_revision: Document,
+	prev_items: dict[str, dict[str, Any]],
+) -> None:
+	"""Apply only changed documents to the live tree.
+
+	Instead of loading and saving every document, finds the delta between
+	prev_items (the old main_revision state) and the merge_revision, then:
+	- Deletes removed docs
+	- Uses frappe.db.set_value for content-only changes (skips validation)
+	- Does full doc.save() only for structural changes and additions
+	"""
+	new_items = get_revision_item_map(merge_revision.name)
+	changed_keys = _find_changed_keys(prev_items, new_items)
+
+	if not changed_keys:
+		frappe.db.set_value("Wiki Space", space.name, "main_revision", merge_revision.name)
+		return
+
+	root_doc_key = frappe.get_value("Wiki Document", space.root_group, "doc_key")
+
+	root_lft, root_rgt = frappe.get_value("Wiki Document", space.root_group, ["lft", "rgt"])
+	space_docs = frappe.get_all(
+		"Wiki Document",
+		fields=["name", "doc_key"],
+		filters=[
+			["lft", ">=", root_lft],
+			["rgt", "<=", root_rgt],
+			["doc_key", "is", "set"],
+		],
+	)
+	key_to_name = {doc["doc_key"]: doc["name"] for doc in space_docs}
+
+	content_only_keys, structural_keys, added_keys, deleted_keys = _classify_changes(
+		prev_items, new_items, changed_keys
+	)
+
+	# Handle deletions
+	for doc_key in deleted_keys:
+		if doc_key == root_doc_key:
+			continue
+		if doc_key in key_to_name:
+			frappe.delete_doc("Wiki Document", key_to_name[doc_key], force=True)
+			del key_to_name[doc_key]
+
+	# Batch-load content blobs for all non-deleted changed items (1 query)
+	need_content_keys = content_only_keys | structural_keys | added_keys
+	blob_names: set[str] = set()
+	for k in need_content_keys:
+		item = new_items.get(k)
+		if item and item.get("content_blob"):
+			blob_names.add(item["content_blob"])
+
+	blob_contents: dict[str, str] = {}
+	if blob_names:
+		blobs = frappe.get_all(
+			"Wiki Content Blob",
+			fields=["name", "content"],
+			filters={"name": ("in", list(blob_names))},
+		)
+		blob_contents = {blob["name"]: blob.get("content") or "" for blob in blobs}
+
+	# Content-only fast path: direct DB update, skip doc.save() validation
+	for doc_key in content_only_keys:
+		if doc_key not in key_to_name:
+			continue
+		item = new_items[doc_key]
+		content_blob = item.get("content_blob")
+		content = blob_contents.get(content_blob, "") if content_blob else ""
+		frappe.db.set_value("Wiki Document", key_to_name[doc_key], "content", content)
+
+	# Structural changes and additions need full save (process in tree order)
+	full_save_keys = structural_keys | added_keys
+	if full_save_keys:
+		ordered_keys = build_tree_order(new_items)
+		for doc_key in ordered_keys:
+			if doc_key not in full_save_keys:
+				continue
+
+			item = new_items[doc_key]
+			if item.get("is_deleted"):
+				continue
+
+			parent_name = None
+			if doc_key == root_doc_key:
+				parent_name = None
+			elif item.get("parent_key"):
+				parent_name = key_to_name.get(item.get("parent_key"))
+			elif space.root_group:
+				parent_name = space.root_group
+
+			if doc_key in key_to_name:
+				doc = frappe.get_doc("Wiki Document", key_to_name[doc_key])
+			else:
+				existing_name = frappe.db.get_value("Wiki Document", {"doc_key": doc_key}, "name")
+				if existing_name:
+					doc = frappe.get_doc("Wiki Document", existing_name)
+				else:
+					doc = frappe.new_doc("Wiki Document")
+					doc.doc_key = doc_key
+
+			doc.title = item.get("title")
+			doc.slug = item.get("slug") or cleanup_page_name(item.get("title") or "")
+			doc.is_group = item.get("is_group")
+			doc.is_published = item.get("is_published")
+			doc.is_external_link = item.get("is_external_link")
+			doc.external_url = item.get("external_url")
+			if doc_key == root_doc_key:
+				doc.parent_wiki_document = None
+			else:
+				doc.parent_wiki_document = parent_name or space.root_group
+			doc.sort_order = item.get("order_index") or 0
+
+			content_blob = item.get("content_blob")
+			doc.content = blob_contents.get(content_blob, "") if content_blob else ""
+
+			if doc.is_new():
+				doc.insert()
+				key_to_name[doc_key] = doc.name
+			else:
+				doc.save()
+
+	frappe.db.set_value("Wiki Space", space.name, "main_revision", merge_revision.name)
+
+
+def _finalize_merge(cr: Document, merge_revision: Document) -> None:
+	"""Update CR status after successful merge."""
 	cr.status = "Merged"
 	cr.merge_revision = merge_revision.name
 	cr.merged_by = frappe.session.user
 	cr.merged_at = now_datetime()
 	cr.save()
-
-	return merge_revision.name
-
-
-@frappe.whitelist()
-def check_outdated(name: str) -> int:
-	cr = frappe.get_doc("Wiki Change Request", name)
-	main_revision = frappe.get_value("Wiki Space", cr.wiki_space, "main_revision")
-	outdated = 1 if main_revision and main_revision != cr.base_revision else 0
-	frappe.db.set_value("Wiki Change Request", cr.name, "outdated", outdated)
-	return outdated
 
 
 def normalize_item(item: dict[str, Any] | None) -> dict[str, Any] | None:

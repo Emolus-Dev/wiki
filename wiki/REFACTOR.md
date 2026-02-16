@@ -371,11 +371,13 @@ Add patch to `patches.txt`.
 
 ---
 
-### Phase 5: Optimized Merge
+### Phase 5: Optimized Merge ✅ DONE
 
 **Goal**: Merge only processes changed doc_keys. `apply_merge_revision` only touches changed documents.
 
 **Depends on**: Phase 4 (overlay revisions make changed-key detection trivial).
+
+**Status**: Completed. Added fast-forward merge path (`_fast_forward_merge`) for when no concurrent changes exist. Added optimized three-way merge (`_three_way_merge`) that only loads content for changed keys. Added `_find_changed_keys()` for O(1) metadata comparison without loading content. Added `_classify_changes()` to separate content-only, structural, added, and deleted changes. Replaced `apply_merge_revision` with `_apply_merge_changes_only()` that only touches changed documents and uses `frappe.db.set_value()` for content-only changes. Three new tests added and all 43 tests pass.
 
 **Changes**:
 
