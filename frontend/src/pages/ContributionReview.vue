@@ -112,7 +112,7 @@
 						</div>
 
 						<div v-if="expandedChanges.has(change.doc_key)" class="border-t border-outline-gray-2">
-							<div class="p-4">
+							<div class="p-4 relative z-0 isolate">
 								<DiffViewer
 									v-if="diffsByDocKey[change.doc_key]"
 									:old-content="diffsByDocKey[change.doc_key]?.base?.content || ''"
