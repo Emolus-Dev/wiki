@@ -16,6 +16,7 @@ from wiki.frappe_wiki.doctype.wiki_change_request.wiki_change_request import (
 	get_cr_tree,
 	list_change_requests,
 	merge_change_request,
+	merge_content_three_way,
 	move_cr_page,
 	reorder_cr_children,
 	request_review,
@@ -612,6 +613,56 @@ class TestWikiChangeRequest(FrappeTestCase):
 		archived = frappe.get_doc("Wiki Change Request", cr.name)
 		self.assertEqual(archived.status, "Archived")
 		self.assertIsNotNone(archived.archived_at)
+
+	# --- Phase 2: merge_content_three_way unit tests ---
+
+	def test_merge_content_three_way_trivial_cases(self):
+		# ours == theirs
+		result, conflict = merge_content_three_way("base", "same", "same")
+		self.assertFalse(conflict)
+		self.assertEqual(result, "same")
+
+		# ours == base (theirs changed)
+		result, conflict = merge_content_three_way("base", "base", "theirs")
+		self.assertFalse(conflict)
+		self.assertEqual(result, "theirs")
+
+		# theirs == base (ours changed)
+		result, conflict = merge_content_three_way("base", "ours", "base")
+		self.assertFalse(conflict)
+		self.assertEqual(result, "ours")
+
+	def test_merge_content_three_way_same_length_lines(self):
+		base = "line1\nline2\nline3\n"
+		ours = "line1-ours\nline2\nline3\n"
+		theirs = "line1\nline2\nline3-theirs\n"
+		result, conflict = merge_content_three_way(base, ours, theirs)
+		self.assertFalse(conflict)
+		self.assertEqual(result, "line1-ours\nline2\nline3-theirs\n")
+
+	def test_merge_content_three_way_different_length_disjoint(self):
+		base = "line1\nline2\nline3\n"
+		ours = "line1-ours\nline2\nline3\n"
+		theirs = "line1\nline2\nline3\nnew-line\n"
+		result, conflict = merge_content_three_way(base, ours, theirs)
+		self.assertFalse(conflict)
+		self.assertIn("line1-ours", result)
+		self.assertIn("new-line", result)
+
+	def test_merge_content_three_way_overlapping_conflict(self):
+		base = "line1\nline2\nline3\n"
+		ours = "line1-ours\nline2\nline3\n"
+		theirs = "line1-theirs\nline2\nline3\n"
+		result, conflict = merge_content_three_way(base, ours, theirs)
+		self.assertTrue(conflict)
+
+	def test_merge_content_three_way_whitespace_tolerance(self):
+		base = "line1\nline2\nline3\n"
+		ours = "line1  \nline2\nline3\n"
+		theirs = "line1\nline2\nline3-theirs\n"
+		result, conflict = merge_content_three_way(base, ours, theirs)
+		self.assertFalse(conflict)
+		self.assertIn("line3-theirs", result)
 
 
 # Helpers

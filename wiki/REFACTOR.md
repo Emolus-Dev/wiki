@@ -238,11 +238,13 @@ This function is called **every time the editor opens**.
 
 ---
 
-### Phase 2: Consolidate Merge Strategies
+### Phase 2: Consolidate Merge Strategies ✅ DONE
 
 **Goal**: Replace 4 overlapping merge functions + duplicated retry block with 1 clean function.
 
 **Priority**: High — simplifies the hardest-to-understand part of the codebase, makes Phase 5 easier.
+
+**Status**: Completed. Replaced `line_merge_fallback`, `merge_content_linewise`, `merge_content_disjoint`, and `merge_content` with a single `merge_content_three_way()` function. Deleted the duplicated retry block in `merge_change_request()`. Removed unused helpers `edits_conflict` and `ranges_overlap`. Five new unit tests added and all 33 tests pass.
 
 **Changes**:
 

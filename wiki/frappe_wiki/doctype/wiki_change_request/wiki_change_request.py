@@ -810,42 +810,6 @@ def merge_change_request(name: str) -> str:
 		theirs_content = theirs_contents.get(key, "")
 
 		result, conflict_type = merge_items(base, ours, theirs, base_content, ours_content, theirs_content)
-		if conflict_type == "content" and base and ours and theirs:
-			normalized_base = normalize_merge_text(base_content)
-			normalized_ours = normalize_merge_text(ours_content)
-			normalized_theirs = normalize_merge_text(theirs_content)
-			merged_content, line_ok = line_merge_fallback(normalized_base, normalized_ours, normalized_theirs)
-			if not line_ok:
-				merged_content, conflict = merge_content_linewise(
-					normalized_base, normalized_ours, normalized_theirs
-				)
-				line_ok = not conflict
-				if not line_ok:
-					merged_content = merge_content_disjoint(
-						normalized_base, normalized_ours, normalized_theirs
-					)
-					line_ok = merged_content is not None
-					if not line_ok:
-						merged_content, conflict = merge_content(
-							normalized_base, normalized_ours, normalized_theirs
-						)
-						line_ok = not conflict
-			if line_ok:
-				merged = {
-					"doc_key": ours.get("doc_key"),
-					"title": resolve_field(base.get("title"), ours.get("title"), theirs.get("title")),
-					"slug": resolve_field(base.get("slug"), ours.get("slug"), theirs.get("slug")),
-					"is_group": resolve_field(
-						base.get("is_group"), ours.get("is_group"), theirs.get("is_group")
-					),
-					"is_published": resolve_field(
-						base.get("is_published"), ours.get("is_published"), theirs.get("is_published")
-					),
-					"parent_key": ours.get("parent_key"),
-					"order_index": ours.get("order_index"),
-				}
-				merged_items[key] = with_content_blob(merged, merged_content)
-				continue
 		if conflict_type:
 			conflicts.append(
 				{"doc_key": key, "type": conflict_type, "base": base, "ours": ours, "theirs": theirs}
@@ -966,15 +930,9 @@ def merge_items(
 	normalized_base = normalize_merge_text(base_content)
 	normalized_ours = normalize_merge_text(ours_content)
 	normalized_theirs = normalize_merge_text(theirs_content)
-	merged_content, line_ok = line_merge_fallback(normalized_base, normalized_ours, normalized_theirs)
-	if not line_ok:
-		merged_content, conflict = merge_content_linewise(normalized_base, normalized_ours, normalized_theirs)
-		if conflict:
-			merged_content = merge_content_disjoint(normalized_base, normalized_ours, normalized_theirs)
-			if merged_content is None:
-				merged_content, conflict = merge_content(normalized_base, normalized_ours, normalized_theirs)
-				if conflict:
-					return None, "content"
+	merged_content, conflict = merge_content_three_way(normalized_base, normalized_ours, normalized_theirs)
+	if conflict:
+		return None, "content"
 
 	merged = {
 		"doc_key": ours.get("doc_key"),
@@ -1031,7 +989,16 @@ def resolve_field(base_value: Any, ours_value: Any, theirs_value: Any) -> Any:
 	return ours_value
 
 
-def merge_content(base: str, ours: str, theirs: str) -> tuple[str, bool]:
+def merge_content_three_way(base: str, ours: str, theirs: str) -> tuple[str, bool]:
+	"""Three-way content merge.  Returns (merged_content, has_conflict).
+
+	Strategies tried in order:
+	1. Trivial: ours == theirs, or one side == base
+	2. Same-length line-by-line merge (rstrip for whitespace tolerance)
+	3. Diff-based merge with disjoint-edit detection
+	4. If edits overlap -> conflict
+	"""
+	# 1. Trivial cases
 	if ours == theirs:
 		return ours, False
 	if ours == base:
@@ -1039,90 +1006,41 @@ def merge_content(base: str, ours: str, theirs: str) -> tuple[str, bool]:
 	if theirs == base:
 		return ours, False
 
-	base_lines = base.splitlines(keepends=True)
-	ours_lines = ours.splitlines(keepends=True)
-	theirs_lines = theirs.splitlines(keepends=True)
+	# 2. Same-length line-by-line merge with rstrip tolerance
+	base_lines = base.splitlines()
+	ours_lines = ours.splitlines()
+	theirs_lines = theirs.splitlines()
 
 	if len(base_lines) == len(ours_lines) == len(theirs_lines):
-		merged_lines: list[str] = []
-		for base_line, ours_line, theirs_line in zip(base_lines, ours_lines, theirs_lines, strict=False):
-			if ours_line == theirs_line:
-				merged_lines.append(ours_line)
-			elif ours_line == base_line:
-				merged_lines.append(theirs_line)
-			elif theirs_line == base_line:
-				merged_lines.append(ours_line)
+		merged: list[str] = []
+		for b, o, t in zip(base_lines, ours_lines, theirs_lines, strict=False):
+			if o.rstrip() == t.rstrip():
+				merged.append(o)
+			elif o.rstrip() == b.rstrip():
+				merged.append(t)
+			elif t.rstrip() == b.rstrip():
+				merged.append(o)
 			else:
-				merged_lines = []
+				merged = []
 				break
-		if merged_lines:
-			return "".join(merged_lines), False
+		if merged:
+			ending = "\n" if base.endswith("\n") or ours.endswith("\n") or theirs.endswith("\n") else ""
+			return "\n".join(merged) + ending, False
 
-	ours_edits = diff_edits(base_lines, ours_lines)
-	theirs_edits = diff_edits(base_lines, theirs_lines)
+	# 3. Diff-based merge with disjoint-edit check
+	base_lines_ke = base.splitlines(keepends=True)
+	ours_lines_ke = ours.splitlines(keepends=True)
+	theirs_lines_ke = theirs.splitlines(keepends=True)
 
-	if edits_conflict(ours_edits, theirs_edits) and not edits_disjoint(ours_edits, theirs_edits):
-		return "", True
+	ours_edits = diff_edits(base_lines_ke, ours_lines_ke)
+	theirs_edits = diff_edits(base_lines_ke, theirs_lines_ke)
 
-	merged_lines = apply_edits(base_lines, combine_edits(ours_edits, theirs_edits))
-	return "".join(merged_lines), False
+	if edits_disjoint(ours_edits, theirs_edits):
+		merged_lines = apply_edits(base_lines_ke, combine_edits(ours_edits, theirs_edits))
+		return "".join(merged_lines), False
 
-
-def merge_content_linewise(base: str, ours: str, theirs: str) -> tuple[str, bool]:
-	base_lines = base.splitlines()
-	ours_lines = ours.splitlines()
-	theirs_lines = theirs.splitlines()
-
-	ours_edits = diff_edits(base_lines, ours_lines)
-	theirs_edits = diff_edits(base_lines, theirs_lines)
-
-	if not edits_disjoint(ours_edits, theirs_edits):
-		return "", True
-
-	merged_lines = apply_edits(base_lines, combine_edits(ours_edits, theirs_edits))
-	ending = "\n" if base.endswith("\n") or ours.endswith("\n") or theirs.endswith("\n") else ""
-	return "\n".join(merged_lines) + ending, False
-
-
-def merge_content_disjoint(base: str, ours: str, theirs: str) -> str | None:
-	base_lines = base.splitlines(keepends=True)
-	ours_lines = ours.splitlines(keepends=True)
-	theirs_lines = theirs.splitlines(keepends=True)
-
-	ours_edits = diff_edits(base_lines, ours_lines)
-	theirs_edits = diff_edits(base_lines, theirs_lines)
-
-	if not edits_disjoint(ours_edits, theirs_edits):
-		return None
-
-	merged_lines = apply_edits(base_lines, combine_edits(ours_edits, theirs_edits))
-	return "".join(merged_lines)
-
-
-def line_merge_fallback(base: str, ours: str, theirs: str) -> tuple[str, bool]:
-	base_lines = base.splitlines()
-	ours_lines = ours.splitlines()
-	theirs_lines = theirs.splitlines()
-
-	if len(base_lines) != len(ours_lines) or len(base_lines) != len(theirs_lines):
-		return "", False
-
-	merged: list[str] = []
-	for base_line, ours_line, theirs_line in zip(base_lines, ours_lines, theirs_lines, strict=False):
-		base_cmp = base_line.rstrip()
-		ours_cmp = ours_line.rstrip()
-		theirs_cmp = theirs_line.rstrip()
-		if ours_cmp == theirs_cmp:
-			merged.append(ours_line)
-		elif ours_cmp == base_cmp:
-			merged.append(theirs_line)
-		elif theirs_cmp == base_cmp:
-			merged.append(ours_line)
-		else:
-			return "", False
-
-	ending = "\n" if base.endswith("\n") or ours.endswith("\n") or theirs.endswith("\n") else ""
-	return "\n".join(merged) + ending, True
+	# 4. Edits overlap -> conflict
+	return "", True
 
 
 def normalize_merge_text(content: str) -> str:
@@ -1141,29 +1059,6 @@ def diff_edits(base_lines: list[str], new_lines: list[str]) -> list[tuple[int, i
 			continue
 		edits.append((i1, i2, new_lines[j1:j2]))
 	return edits
-
-
-def edits_conflict(
-	ours_edits: list[tuple[int, int, list[str]]],
-	theirs_edits: list[tuple[int, int, list[str]]],
-) -> bool:
-	for i1, i2, o_lines in ours_edits:
-		for j1, j2, t_lines in theirs_edits:
-			if i1 == i2 and j1 == j2 and i1 == j1:
-				if o_lines != t_lines:
-					return True
-				continue
-			if ranges_overlap(i1, i2, j1, j2):
-				return True
-			if i1 == i2 and j1 <= i1 < j2:
-				return True
-			if j1 == j2 and i1 <= j1 < i2:
-				return True
-	return False
-
-
-def ranges_overlap(a_start: int, a_end: int, b_start: int, b_end: int) -> bool:
-	return max(a_start, b_start) < min(a_end, b_end)
 
 
 def edits_disjoint(
