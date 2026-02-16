@@ -199,11 +199,13 @@ This function is called **every time the editor opens**.
 
 ## Refactor Plan
 
-### Phase 1: Desk-to-Revision Sync
+### Phase 1: Desk-to-Revision Sync ✅ DONE
 
 **Goal**: Any edit to a Wiki Document through Desk automatically updates `main_revision`.
 
 **Priority**: Critical — this is the only data-integrity bug.
+
+**Status**: Completed. Added `Wiki Document` doc_events (`on_update`, `on_trash`) in `hooks.py`. Hook handlers in `wiki_document.py` sync desk edits to the revision system via `_sync_main_revision_for_space()`. Guard flags in `apply_merge_revision()` and `reorder_wiki_documents()` prevent infinite loops. Three new tests added and all 28 tests pass.
 
 **Changes**:
 

@@ -1265,6 +1265,14 @@ def create_merge_revision(cr: Document, merged_items: dict[str, dict[str, Any]])
 
 
 def apply_merge_revision(space: Document, revision: Document) -> None:
+	frappe.flags.in_apply_merge_revision = True
+	try:
+		_apply_merge_revision(space, revision)
+	finally:
+		frappe.flags.in_apply_merge_revision = False
+
+
+def _apply_merge_revision(space: Document, revision: Document) -> None:
 	items = get_revision_item_map(revision.name)
 	ordered_keys = build_tree_order(items)
 	root_doc_key = frappe.get_value("Wiki Document", space.root_group, "doc_key")

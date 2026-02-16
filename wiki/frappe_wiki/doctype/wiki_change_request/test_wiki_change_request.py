@@ -528,6 +528,81 @@ class TestWikiChangeRequest(FrappeTestCase):
 				f"Route of {doc_name} changed after CR merge: {old_route!r} -> {current_route!r}",
 			)
 
+	def test_desk_edit_syncs_to_revision_system(self):
+		"""Phase 1: Editing a Wiki Document via desk should update main_revision."""
+		space = create_test_wiki_space()
+		page = create_test_wiki_document(space.root_group, title="Page A", content="v1")
+
+		# Ensure main_revision exists
+		from wiki.frappe_wiki.doctype.wiki_revision.wiki_revision import (
+			create_revision_from_live_tree,
+			get_revision_item_map,
+		)
+
+		main_rev = create_revision_from_live_tree(space.name, message="Initial")
+		frappe.db.set_value("Wiki Space", space.name, "main_revision", main_rev.name)
+		old_main = main_rev.name
+
+		# Edit via desk (direct save)
+		page.content = "v2-desk-edit"
+		page.save()
+
+		# main_revision should have advanced
+		new_main = frappe.db.get_value("Wiki Space", space.name, "main_revision")
+		self.assertNotEqual(new_main, old_main, "main_revision should advance after desk edit")
+
+		# The new revision should reflect the desk edit
+		items = get_revision_item_map(new_main)
+		page_key = frappe.db.get_value("Wiki Document", page.name, "doc_key")
+		self.assertIn(page_key, items)
+
+	def test_desk_edit_visible_in_new_cr(self):
+		"""Phase 1: A desk edit should be visible when a new CR is created afterwards."""
+		space = create_test_wiki_space()
+		page = create_test_wiki_document(space.root_group, title="Page A", content="original")
+
+		from wiki.frappe_wiki.doctype.wiki_revision.wiki_revision import (
+			create_revision_from_live_tree,
+		)
+
+		main_rev = create_revision_from_live_tree(space.name, message="Initial")
+		frappe.db.set_value("Wiki Space", space.name, "main_revision", main_rev.name)
+
+		# Desk edit
+		page.content = "desk-edit-content"
+		page.save()
+
+		# Create a CR after the desk edit
+		cr = create_change_request(space.name, "CR after desk edit")
+
+		# The CR's head_revision should contain the desk-edited content
+		page_key = frappe.db.get_value("Wiki Document", page.name, "doc_key")
+		page_data = frappe.db.get_value(
+			"Wiki Revision Item",
+			{"revision": cr.head_revision, "doc_key": page_key},
+			"content_blob",
+		)
+		content = frappe.db.get_value("Wiki Content Blob", page_data, "content") or ""
+		self.assertEqual(content, "desk-edit-content")
+
+	def test_merge_does_not_double_sync(self):
+		"""Phase 1: Merging a CR should not re-trigger revision sync via the on_update hook."""
+		space = create_test_wiki_space()
+		page = create_test_wiki_document(space.root_group, title="Page A", content="v1")
+		cr = create_change_request(space.name, "CR no double sync")
+
+		page_key = frappe.get_value("Wiki Document", page.name, "doc_key")
+		update_cr_page(cr.name, page_key, {"content": "v2"})
+
+		merge_change_request(cr.name)
+
+		# The merge sets main_revision to the merge_revision.
+		# If on_update fired during merge, it would create yet another revision
+		# and overwrite main_revision. Verify main_revision == merge_revision.
+		cr_doc = frappe.get_doc("Wiki Change Request", cr.name)
+		current_main = frappe.db.get_value("Wiki Space", space.name, "main_revision")
+		self.assertEqual(current_main, cr_doc.merge_revision)
+
 	def test_archive_change_request_sets_status(self):
 		space = create_test_wiki_space()
 		create_test_wiki_document(space.root_group, title="Page A")
