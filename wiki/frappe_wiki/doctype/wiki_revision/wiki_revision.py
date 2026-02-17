@@ -169,7 +169,7 @@ def clone_revision(
 		new_item.order_index = item.get("order_index")
 		new_item.content_blob = item.get("content_blob")
 		new_item.is_deleted = item.get("is_deleted")
-		new_item.insert()
+		new_item.insert(ignore_permissions=True)
 
 	recompute_revision_hashes(new_revision.name)
 	return new_revision
