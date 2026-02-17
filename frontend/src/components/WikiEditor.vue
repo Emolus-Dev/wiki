@@ -33,6 +33,8 @@ import {
 import { Placeholder } from '@tiptap/extensions';
 import { Markdown } from '@tiptap/markdown';
 import { StarterKit } from '@tiptap/starter-kit';
+import { Extension } from '@tiptap/core';
+import { Paragraph } from '@tiptap/extension-paragraph';
 import { Editor, EditorContent } from '@tiptap/vue-3';
 import { onKeyStroke } from '@vueuse/core';
 import { toast, useFileUpload } from 'frappe-ui';
@@ -56,6 +58,28 @@ import { VideoBlock } from './tiptap-extensions/video-block.js';
 // Import tippy for slash command popup
 import tippy from 'tippy.js';
 import 'tippy.js/dist/tippy.css';
+
+// Preserve consecutive blank lines in markdown round-trips.
+// Parse: marked's 'space' tokens (ignored by default) become empty paragraphs.
+const PreserveBlankLines = Extension.create({
+	name: 'preserveBlankLines',
+	markdownTokenName: 'space',
+	parseMarkdown(token) {
+		const count = Math.floor(token.raw.length / 2) - 1;
+		if (count <= 0) return null;
+		return Array.from({ length: count }, () => ({ type: 'paragraph' }));
+	},
+});
+
+// Serialize: empty paragraphs render as blank lines instead of &nbsp;.
+const WikiParagraph = Paragraph.extend({
+	renderMarkdown: (node, h) => {
+		if (!node) return '';
+		const content = Array.isArray(node.content) ? node.content : [];
+		if (content.length === 0) return '';
+		return h.renderChildren(content);
+	},
+});
 
 const props = defineProps({
 	content: {
@@ -385,9 +409,10 @@ function initEditor() {
 		extensions: [
 			StarterKit.configure({
 				codeBlock: false, // We use CodeBlockLowlight instead
-				// Disable StarterKit's link - we use our custom WikiLink
-				link: false,
+				link: false, // We use our custom WikiLink
+				paragraph: false, // We use WikiParagraph for blank line support
 			}),
+			WikiParagraph,
 			// Custom link extension with Cmd+K support
 			WikiLink.configure({
 				openOnClick: false,
@@ -396,7 +421,12 @@ function initEditor() {
 				},
 				onOpenLinkEditor: showLinkPopup,
 			}),
-			Markdown,
+			Markdown.configure({
+				markedOptions: {
+					breaks: true,
+				},
+			}),
+			PreserveBlankLines,
 			// Custom image extension with caption support
 			WikiImage.configure({
 				inline: false,
