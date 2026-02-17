@@ -30,15 +30,20 @@
           showTooltip: true,
           resizeColumn: false,
           getRowRoute: (row) => ({ name: 'SpaceDetails', params: { spaceId: row.name } }),
-          emptyState: {
-            title: __('No Wiki Spaces'),
-            description: isManager ? __('Create your first wiki space to get started') : __('No wiki spaces available'),
-            button: isManager ? {
-              label: __('New Space'),
-              variant: 'solid',
-              onClick: () => (showCreateDialog = true),
-            } : undefined,
-          },
+          emptyState: searchQuery
+            ? {
+                title: __('No spaces found'),
+                description: __('No wiki spaces matched your search'),
+              }
+            : {
+                title: __('No Wiki Spaces'),
+                description: isManager ? __('Create your first wiki space to get started') : __('No wiki spaces available'),
+                button: isManager ? {
+                  label: __('New Space'),
+                  variant: 'solid',
+                  onClick: () => (showCreateDialog = true),
+                } : undefined,
+              },
         }"
         row-key="name"
       >
