@@ -215,7 +215,12 @@ const emit = defineEmits(['refresh']);
 const treeKey = computed(() => {
 	const getNodeIds = (nodes) => {
 		if (!nodes) return '';
-		return nodes.map(n => n.doc_key + (n.children ? getNodeIds(n.children) : '')).join(',');
+		const keys = nodes.map(n => n.doc_key).sort();
+		const childKeys = nodes
+			.filter(n => n.children?.length)
+			.map(n => n.doc_key + ':' + getNodeIds(n.children))
+			.sort();
+		return keys.join(',') + '|' + childKeys.join(';');
 	};
 	return getNodeIds(props.treeData?.children);
 });
@@ -262,6 +267,10 @@ const editExternalLinkTitle = ref('');
 const editExternalLinkUrl = ref('');
 const editExternalLinkNode = ref(null);
 
+let reorderTimer = null;
+let pendingReorder = null;
+let reorderInFlight = false;
+
 function handleTreeUpdate(payload) {
 	if (payload.type === 'refresh') {
 		emit('refresh');
@@ -269,11 +278,30 @@ function handleTreeUpdate(payload) {
 	}
 
 	if (payload.type === 'added' || payload.type === 'moved') {
-		applyReorder(payload).catch((error) => {
-			console.error('Error reordering:', error);
-			toast.error(error.messages?.[0] || __('Error reordering documents'));
-			emit('refresh');
-		});
+		pendingReorder = payload;
+		if (reorderTimer) clearTimeout(reorderTimer);
+		reorderTimer = setTimeout(() => {
+			flushReorder();
+		}, 1000);
+	}
+}
+
+async function flushReorder() {
+	if (!pendingReorder || reorderInFlight) return;
+
+	const payload = pendingReorder;
+	pendingReorder = null;
+	reorderInFlight = true;
+
+	try {
+		await applyReorder(payload);
+	} catch (error) {
+		emit('refresh');
+	} finally {
+		reorderInFlight = false;
+		if (pendingReorder) {
+			flushReorder();
+		}
 	}
 }
 
@@ -302,7 +330,6 @@ async function applyReorder(payload) {
 		payload.item._changeType = 'reordered';
 	}
 	toast.success(__('Documents reordered'));
-	await loadChanges();
 	emit('refresh');
 }
 
