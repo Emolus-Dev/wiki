@@ -2,12 +2,23 @@
   <div class="flex flex-col gap-4 p-4 h-full">
     <div class="flex items-center justify-between">
       <h2 class="text-xl font-semibold text-ink-gray-9">{{ __('Wiki Spaces') }}</h2>
-      <Button v-if="isManager" variant="solid" @click="showCreateDialog = true">
-        <template #prefix>
-          <LucidePlus class="h-4 w-4" />
-        </template>
-        {{ __('New Space') }}
-      </Button>
+      <div class="flex items-center gap-2">
+        <FormControl
+          type="text"
+          v-model="searchQuery"
+          :placeholder="__('Search spaces...')"
+        >
+          <template #prefix>
+            <LucideSearch class="h-4 w-4 text-ink-gray-4" />
+          </template>
+        </FormControl>
+        <Button v-if="isManager" variant="solid" @click="showCreateDialog = true">
+          <template #prefix>
+            <LucidePlus class="h-4 w-4" />
+          </template>
+          {{ __('New Space') }}
+        </Button>
+      </div>
     </div>
 
     <div class="flex-1 overflow-auto">
@@ -106,6 +117,7 @@ import {
   toast
 } from "frappe-ui";
 import LucidePlus from "~icons/lucide/plus";
+import LucideSearch from "~icons/lucide/search";
 import { isWikiManager } from "@/composables/useChangeRequest";
 
 const router = useRouter();
@@ -113,6 +125,7 @@ const isManager = computed(() => isWikiManager());
 
 const showCreateDialog = ref(false);
 const routeManuallyEdited = ref(false);
+const searchQuery = ref("");
 
 const newSpace = reactive({
   space_name: "",
@@ -178,6 +191,24 @@ const spaces = createListResource({
       router.push({ name: "SpaceDetails", params: { spaceId: doc.name } });
     },
   },
+});
+
+let searchDebounceTimer = null;
+watch(searchQuery, (value) => {
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => {
+    spaces.update({
+      filters: {},
+      orFilters: value
+        ? [
+            ["space_name", "like", `%${value}%`],
+            ["route", "like", `%${value}%`],
+          ]
+        : [],
+      start: 0,
+    });
+    spaces.reload();
+  }, 300);
 });
 
 const handleCreateSpace = () => {
