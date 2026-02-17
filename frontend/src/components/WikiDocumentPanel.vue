@@ -232,7 +232,6 @@ async function saveContent(content) {
 		});
 		toast.success(__('Draft updated'));
 		await loadChanges();
-		await loadCrPage();
 		emit('refresh');
 	} catch (error) {
 		console.error('Error saving change request:', error);
