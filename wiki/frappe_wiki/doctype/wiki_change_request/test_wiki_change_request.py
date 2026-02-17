@@ -797,6 +797,83 @@ class TestWikiChangeRequest(FrappeTestCase):
 		self.assertEqual(page.content, "v2 - updated content")
 		self.assertEqual(page.route, route_before, "Route should not change for content-only edit")
 
+	def test_merge_with_orphan_group_in_live_tree(self):
+		"""Merge succeeds when live tree has groups not tracked in any revision.
+
+		Reproduces production bug: intermediate group docs inserted directly into
+		the live tree (bypassing revisions) caused NestedSetChildExistsError because
+		apply_merge_revision tried to delete parents before reparenting children.
+		"""
+		space = create_test_wiki_space()
+		stock = create_test_wiki_document(space.root_group, title="Stock", is_group=1)
+		page_a = create_test_wiki_document(stock.name, title="Page A", content="v1")
+		page_b = create_test_wiki_document(stock.name, title="Page B", content="v1")
+
+		# Snapshot the tree into main_revision — pages are children of Stock
+		cr_init = create_change_request(space.name, "Init")
+		merge_change_request(cr_init.name)
+
+		# Now insert an intermediate group directly into the live tree (bypassing revisions),
+		# and reparent the pages under it — simulating the production data inconsistency.
+		orphan_group = frappe.new_doc("Wiki Document")
+		orphan_group.title = "Help Articles"
+		orphan_group.is_group = 1
+		orphan_group.parent_wiki_document = stock.name
+		frappe.flags.in_apply_merge_revision = True
+		try:
+			orphan_group.insert()
+		finally:
+			frappe.flags.in_apply_merge_revision = False
+
+		# Reparent page_a under the orphan group in the live tree
+		page_a.reload()
+		page_a.parent_wiki_document = orphan_group.name
+		frappe.flags.in_apply_merge_revision = True
+		try:
+			page_a.save()
+		finally:
+			frappe.flags.in_apply_merge_revision = False
+
+		# Create a CR that makes a trivial content change — no deletions
+		cr = create_change_request(space.name, "Trivial edit")
+		page_b_key = frappe.get_value("Wiki Document", page_b.name, "doc_key")
+		update_cr_page(cr.name, page_b_key, {"content": "v2"})
+
+		# This should NOT raise NestedSetChildExistsError
+		merge_change_request(cr.name)
+
+		page_b.reload()
+		self.assertEqual(page_b.content, "v2")
+
+	def test_merge_delete_group_with_reparented_children(self):
+		"""Merge deletes a group whose children are reparented in the same CR.
+
+		If deletions ran before saves, the parent would still have children attached
+		and frappe.delete_doc would raise NestedSetChildExistsError.
+		"""
+		space = create_test_wiki_space()
+		group = create_test_wiki_document(space.root_group, title="Old Group", is_group=1)
+		page = create_test_wiki_document(group.name, title="Page Under Group", content="v1")
+
+		cr_init = create_change_request(space.name, "Init")
+		merge_change_request(cr_init.name)
+
+		root_key = frappe.get_value("Wiki Document", space.root_group, "doc_key")
+		page_key = frappe.get_value("Wiki Document", page.name, "doc_key")
+		group_key = frappe.get_value("Wiki Document", group.name, "doc_key")
+
+		# Create a CR that reparents the page to root and deletes the group
+		cr = create_change_request(space.name, "Reparent + delete")
+		move_cr_page(cr.name, page_key, new_parent_key=root_key)
+		delete_cr_page(cr.name, group_key)
+
+		# This should NOT raise NestedSetChildExistsError
+		merge_change_request(cr.name)
+
+		page.reload()
+		self.assertEqual(page.parent_wiki_document, space.root_group)
+		self.assertFalse(frappe.db.exists("Wiki Document", group.name))
+
 
 # Helpers
 

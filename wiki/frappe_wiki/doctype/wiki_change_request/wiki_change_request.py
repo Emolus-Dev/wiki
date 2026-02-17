@@ -827,6 +827,22 @@ def _find_changed_keys(
 	return changed
 
 
+def _delete_wiki_documents(doc_keys: Iterable[str], key_to_name: dict[str, str], root_doc_key: str) -> None:
+	"""Delete Wiki Documents by doc_key, children-first (highest lft first)."""
+	delete_docs = []
+	for doc_key in doc_keys:
+		if doc_key == root_doc_key:
+			continue
+		if doc_key in key_to_name:
+			doc_name = key_to_name[doc_key]
+			lft = frappe.db.get_value("Wiki Document", doc_name, "lft") or 0
+			delete_docs.append((lft, doc_key, doc_name))
+	delete_docs.sort(key=lambda x: x[0], reverse=True)
+	for _lft, doc_key, doc_name in delete_docs:
+		frappe.delete_doc("Wiki Document", doc_name, force=True)
+		del key_to_name[doc_key]
+
+
 def _classify_changes(
 	prev_items: dict[str, dict[str, Any]],
 	new_items: dict[str, dict[str, Any]],
@@ -906,14 +922,6 @@ def _apply_merge_changes_only(
 		prev_items, new_items, changed_keys
 	)
 
-	# Handle deletions
-	for doc_key in deleted_keys:
-		if doc_key == root_doc_key:
-			continue
-		if doc_key in key_to_name:
-			frappe.delete_doc("Wiki Document", key_to_name[doc_key], force=True)
-			del key_to_name[doc_key]
-
 	# Batch-load content blobs for all non-deleted changed items (1 query)
 	need_content_keys = content_only_keys | structural_keys | added_keys
 	blob_names: set[str] = set()
@@ -990,6 +998,9 @@ def _apply_merge_changes_only(
 				key_to_name[doc_key] = doc.name
 			else:
 				doc.save()
+
+	# Delete AFTER saves — children must be reparented before parents are deleted
+	_delete_wiki_documents(deleted_keys, key_to_name, root_doc_key)
 
 	frappe.db.set_value("Wiki Space", space.name, "main_revision", merge_revision.name)
 
@@ -1328,13 +1339,13 @@ def _apply_merge_revision(space: Document, revision: Document) -> None:
 	)
 	key_to_name = {doc["doc_key"]: doc["name"] for doc in space_docs}
 
-	# Handle deletions: docs that exist in space but not in merge revision
-	for doc_key, doc_name in list(key_to_name.items()):
+	# Collect docs to delete (exist in space but not in merge revision)
+	delete_doc_keys: set[str] = set()
+	for doc_key in list(key_to_name):
 		if doc_key == root_doc_key:
 			continue
 		if doc_key not in items:
-			frappe.delete_doc("Wiki Document", doc_name, force=True)
-			del key_to_name[doc_key]
+			delete_doc_keys.add(doc_key)
 
 	for doc_key in ordered_keys:
 		item = items[doc_key]
@@ -1382,5 +1393,8 @@ def _apply_merge_revision(space: Document, revision: Document) -> None:
 			key_to_name[doc_key] = doc.name
 		else:
 			doc.save()
+
+	# Delete AFTER saves — children must be reparented before parents are deleted
+	_delete_wiki_documents(delete_doc_keys, key_to_name, root_doc_key)
 
 	frappe.db.set_value("Wiki Space", space.name, "main_revision", revision.name)
