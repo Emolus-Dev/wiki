@@ -175,6 +175,8 @@ function toggleLink() {
 <style scoped>
 .wiki-bubble-menu {
     display: flex;
+    position: relative;
+    z-index: 50; 
 }
 
 .bubble-menu-buttons {
