@@ -115,7 +115,7 @@ def create_overlay_revision(
 	revision.tree_hash = base.tree_hash
 	revision.content_hash = base.content_hash
 	revision.doc_count = base.doc_count
-	revision.insert()
+	revision.insert(ignore_permissions=True)
 	return revision
 
 
@@ -361,7 +361,7 @@ def ensure_overlay_item(revision: str, doc_key: str) -> str | None:
 	new_item.order_index = base_item.order_index
 	new_item.content_blob = base_item.content_blob
 	new_item.is_deleted = base_item.is_deleted
-	new_item.insert()
+	new_item.insert(ignore_permissions=True)
 	return new_item.name
 
 
