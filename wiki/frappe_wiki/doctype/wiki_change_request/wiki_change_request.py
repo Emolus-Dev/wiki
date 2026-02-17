@@ -27,6 +27,34 @@ from wiki.frappe_wiki.doctype.wiki_revision.wiki_revision import (
 
 
 class WikiChangeRequest(Document):
+	# begin: auto-generated types
+	# This code is auto-generated. Do not modify anything in this block.
+
+	from typing import TYPE_CHECKING
+
+	if TYPE_CHECKING:
+		from frappe.types import DF
+
+		from wiki.frappe_wiki.doctype.wiki_cr_participant.wiki_cr_participant import WikiCRParticipant
+		from wiki.frappe_wiki.doctype.wiki_cr_reviewer.wiki_cr_reviewer import WikiCRReviewer
+
+		archived_at: DF.Datetime | None
+		base_revision: DF.Link
+		description: DF.SmallText | None
+		head_revision: DF.Link
+		merge_revision: DF.Link | None
+		merged_at: DF.Datetime | None
+		merged_by: DF.Link | None
+		outdated: DF.Check
+		participants: DF.Table[WikiCRParticipant]
+		reviewers: DF.Table[WikiCRReviewer]
+		status: DF.Literal[
+			"Draft", "Open", "In Review", "Changes Requested", "Approved", "Merged", "Archived"
+		]
+		title: DF.Data
+		wiki_space: DF.Link
+	# end: auto-generated types
+
 	pass
 
 
