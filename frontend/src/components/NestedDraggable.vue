@@ -10,6 +10,8 @@
         drag-class="dragging-item"
         handle=".drag-handle"
         :animation="150"
+        @start="onDragStart"
+        @end="onDragEnd"
         @change="handleChange"
     >
         <template #item="{ element }">
@@ -171,10 +173,13 @@ const router = useRouter();
 const { updatePage } = useChangeRequest();
 
 const localItems = ref([...props.items]);
+const isDragging = ref(false);
+let dragSettleTimer = null;
 
 watch(() => props.items, (newItems) => {
+    if (isDragging.value) return;
     localItems.value = [...newItems];
-}, { deep: true });
+});
 
 const storageKey = computed(() => `wiki-tree-expanded-nodes-${props.spaceId || 'default'}`);
 const expandedNodes = useStorage(storageKey, {});
@@ -241,6 +246,21 @@ function getTitleClass(element) {
         return 'text-ink-gray-8';
     }
     return 'text-ink-gray-5';
+}
+
+function onDragStart() {
+    isDragging.value = true;
+    if (dragSettleTimer) {
+        clearTimeout(dragSettleTimer);
+        dragSettleTimer = null;
+    }
+}
+
+function onDragEnd() {
+    if (dragSettleTimer) clearTimeout(dragSettleTimer);
+    dragSettleTimer = setTimeout(() => {
+        isDragging.value = false;
+    }, 1000);
 }
 
 function handleChange(evt) {
