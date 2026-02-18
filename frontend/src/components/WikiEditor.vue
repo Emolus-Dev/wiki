@@ -613,6 +613,7 @@ onUnmounted(() => {
     display: flex;
     flex-direction: column;
     height: 100%;
+    isolation: isolate; /* Create new stacking context to contain z-index */
 }
 
 .wiki-editor-loading {
