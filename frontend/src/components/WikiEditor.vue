@@ -22,7 +22,7 @@
 </template>
 
 <script setup>
-import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight';
+import { WikiCodeBlock } from './tiptap-extensions/code-block-extension.js';
 import { TaskItem, TaskList } from '@tiptap/extension-list';
 import {
 	Table,
@@ -444,7 +444,7 @@ function initEditor() {
 			Placeholder.configure({
 				placeholder: 'Type "/" for commands, or start writing...',
 			}),
-			CodeBlockLowlight.configure({
+			WikiCodeBlock.configure({
 				lowlight,
 			}),
 			// Custom extensions
