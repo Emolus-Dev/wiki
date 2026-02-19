@@ -45,6 +45,7 @@
                     :selected-page-id="currentPageId"
                     :selected-draft-key="currentDraftKey"
                     @refresh="refreshTree"
+                    @reorder-state-change="handleReorderStateChange"
                 />
             </div>
 
@@ -65,6 +66,7 @@
                 :archiveChangeRequestResource="archiveChangeRequestResource"
                 :mergeResource="mergeChangeRequestResource"
                 :canMerge="isManager"
+                :mergeDisabled="isTreeReordering"
                 @submit="handleSubmitChangeRequest"
                 @withdraw="handleArchiveChangeRequest"
                 @merge="handleMergeChangeRequest"
@@ -278,6 +280,7 @@ const updatingPublishSetting = ref(false);
 
 const sidebarRef = ref(null);
 const { sidebarWidth, sidebarResizing, startResize } = useSidebarResize(sidebarRef);
+const isTreeReordering = ref(false);
 
 const currentPageId = computed(() => route.params.pageId || null);
 const currentDraftKey = computed(() => route.params.docKey || null);
@@ -438,6 +441,10 @@ async function refreshTree() {
     }
     await crTree.reload();
     await loadChanges();
+}
+
+function handleReorderStateChange(isReordering) {
+    isTreeReordering.value = Boolean(isReordering);
 }
 
 async function handleSubmitChangeRequest() {

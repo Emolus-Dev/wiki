@@ -39,6 +39,7 @@
 				@rename="openRenameDialog"
 				@external-link="openExternalLinkDialog"
 				@edit-external-link="openEditExternalLinkDialog"
+				@drag-state-change="handleDragStateChange"
 				@update="handleTreeUpdate"
 			/>
 		</div>
@@ -178,7 +179,7 @@
 </template>
 
 <script setup>
-import { ref, toRef, computed } from 'vue';
+import { ref, toRef, computed, onBeforeUnmount } from 'vue';
 import { useStorage } from '@vueuse/core';
 import { toast, FormControl } from 'frappe-ui';
 import NestedDraggable from './NestedDraggable.vue';
@@ -211,7 +212,7 @@ const props = defineProps({
 	},
 });
 
-const emit = defineEmits(['refresh']);
+const emit = defineEmits(['refresh', 'reorder-state-change']);
 const treeKey = computed(() => {
 	const getNodeIds = (nodes) => {
 		if (!nodes) return '';
@@ -270,6 +271,24 @@ const editExternalLinkNode = ref(null);
 let reorderTimer = null;
 let pendingReorder = null;
 let reorderInFlight = false;
+const isDragActive = ref(false);
+const isReorderBusy = ref(false);
+
+function emitReorderState() {
+	emit('reorder-state-change', isDragActive.value || isReorderBusy.value);
+}
+
+function setReorderBusy(value) {
+	if (isReorderBusy.value === value) return;
+	isReorderBusy.value = value;
+	emitReorderState();
+}
+
+function handleDragStateChange(isDragging) {
+	if (isDragActive.value === isDragging) return;
+	isDragActive.value = isDragging;
+	emitReorderState();
+}
 
 function handleTreeUpdate(payload) {
 	if (payload.type === 'refresh') {
@@ -278,16 +297,22 @@ function handleTreeUpdate(payload) {
 	}
 
 	if (payload.type === 'added' || payload.type === 'moved') {
+		setReorderBusy(true);
 		pendingReorder = payload;
 		if (reorderTimer) clearTimeout(reorderTimer);
 		reorderTimer = setTimeout(() => {
+			reorderTimer = null;
 			flushReorder();
 		}, 1000);
 	}
 }
 
 async function flushReorder() {
-	if (!pendingReorder || reorderInFlight) return;
+	if (reorderInFlight) return;
+	if (!pendingReorder) {
+		if (!reorderTimer) setReorderBusy(false);
+		return;
+	}
 
 	const payload = pendingReorder;
 	pendingReorder = null;
@@ -301,6 +326,8 @@ async function flushReorder() {
 		reorderInFlight = false;
 		if (pendingReorder) {
 			flushReorder();
+		} else if (!reorderTimer) {
+			setReorderBusy(false);
 		}
 	}
 }
@@ -542,4 +569,16 @@ async function updateExternalLink(close) {
 		toast.error(error.messages?.[0] || __('Error updating external link'));
 	}
 }
+
+onBeforeUnmount(() => {
+	if (reorderTimer) {
+		clearTimeout(reorderTimer);
+		reorderTimer = null;
+	}
+	pendingReorder = null;
+	reorderInFlight = false;
+	isDragActive.value = false;
+	isReorderBusy.value = false;
+	emit('reorder-state-change', false);
+});
 </script>
