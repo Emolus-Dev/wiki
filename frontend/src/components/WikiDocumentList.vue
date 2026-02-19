@@ -179,7 +179,7 @@
 </template>
 
 <script setup>
-import { ref, toRef, computed, onBeforeUnmount } from 'vue';
+import { ref, toRef, computed, watch, onBeforeUnmount } from 'vue';
 import { useStorage } from '@vueuse/core';
 import { toast, FormControl } from 'frappe-ui';
 import NestedDraggable from './NestedDraggable.vue';
@@ -273,21 +273,18 @@ let pendingReorder = null;
 let reorderInFlight = false;
 const isDragActive = ref(false);
 const isReorderBusy = ref(false);
+const isReorderActive = computed(() => isDragActive.value || isReorderBusy.value);
 
-function emitReorderState() {
-	emit('reorder-state-change', isDragActive.value || isReorderBusy.value);
-}
-
-function setReorderBusy(value) {
-	if (isReorderBusy.value === value) return;
-	isReorderBusy.value = value;
-	emitReorderState();
-}
+watch(
+	isReorderActive,
+	(value) => {
+		emit('reorder-state-change', value);
+	},
+	{ immediate: true },
+);
 
 function handleDragStateChange(isDragging) {
-	if (isDragActive.value === isDragging) return;
 	isDragActive.value = isDragging;
-	emitReorderState();
 }
 
 function handleTreeUpdate(payload) {
@@ -297,7 +294,7 @@ function handleTreeUpdate(payload) {
 	}
 
 	if (payload.type === 'added' || payload.type === 'moved') {
-		setReorderBusy(true);
+		isReorderBusy.value = true;
 		pendingReorder = payload;
 		if (reorderTimer) clearTimeout(reorderTimer);
 		reorderTimer = setTimeout(() => {
@@ -310,7 +307,7 @@ function handleTreeUpdate(payload) {
 async function flushReorder() {
 	if (reorderInFlight) return;
 	if (!pendingReorder) {
-		if (!reorderTimer) setReorderBusy(false);
+		if (!reorderTimer) isReorderBusy.value = false;
 		return;
 	}
 
@@ -327,7 +324,7 @@ async function flushReorder() {
 		if (pendingReorder) {
 			flushReorder();
 		} else if (!reorderTimer) {
-			setReorderBusy(false);
+			isReorderBusy.value = false;
 		}
 	}
 }
