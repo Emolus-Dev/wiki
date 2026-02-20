@@ -27,6 +27,8 @@
 					v-if="canShowMerge"
 					size="sm"
 					:loading="mergeResource?.loading"
+					:disabled="mergeDisabled"
+					:title="mergeButtonTitle"
 					@click="$emit('merge')"
 				>
 					{{ __('Merge') }}
@@ -49,6 +51,8 @@
 					v-if="canShowMerge"
 					size="sm"
 					:loading="mergeResource?.loading"
+					:disabled="mergeDisabled"
+					:title="mergeButtonTitle"
 					@click="$emit('merge')"
 				>
 					{{ __('Merge') }}
@@ -211,6 +215,10 @@ const props = defineProps({
 		type: Boolean,
 		default: false,
 	},
+	mergeDisabled: {
+		type: Boolean,
+		default: false,
+	},
 });
 
 const emit = defineEmits(['submit', 'withdraw', 'merge']);
@@ -225,6 +233,13 @@ function confirmSubmit(closeDialog) {
 
 const canShowMerge = computed(() => {
 	return props.canMerge && props.changeCount > 0;
+});
+
+const mergeButtonTitle = computed(() => {
+	if (props.mergeDisabled) {
+		return __('Please wait for reordering to finish before merging');
+	}
+	return '';
 });
 
 const canShowArchive = computed(() => {

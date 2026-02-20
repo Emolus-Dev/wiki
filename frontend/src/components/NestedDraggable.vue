@@ -92,6 +92,7 @@
                         @rename="(n) => emit('rename', n)"
                         @external-link="(parent) => emit('external-link', parent)"
                         @edit-external-link="(el) => emit('edit-external-link', el)"
+                        @drag-state-change="handleNestedDragStateChange"
                         @update="handleNestedUpdate"
                     />
                     <!-- Empty group actions -->
@@ -122,7 +123,7 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import { useStorage } from '@vueuse/core';
 import { Dropdown, Badge, Button, toast } from 'frappe-ui';
@@ -168,7 +169,15 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['create', 'delete', 'update', 'rename', 'external-link', 'edit-external-link']);
+const emit = defineEmits([
+    'create',
+    'delete',
+    'update',
+    'rename',
+    'external-link',
+    'edit-external-link',
+    'drag-state-change',
+]);
 const router = useRouter();
 const { updatePage } = useChangeRequest();
 
@@ -250,6 +259,7 @@ function getTitleClass(element) {
 
 function onDragStart() {
     isDragging.value = true;
+    emit('drag-state-change', true);
     if (dragSettleTimer) {
         clearTimeout(dragSettleTimer);
         dragSettleTimer = null;
@@ -260,6 +270,8 @@ function onDragEnd() {
     if (dragSettleTimer) clearTimeout(dragSettleTimer);
     dragSettleTimer = setTimeout(() => {
         isDragging.value = false;
+        emit('drag-state-change', false);
+        dragSettleTimer = null;
     }, 1000);
 }
 
@@ -280,6 +292,10 @@ function handleChange(evt) {
 
 function handleNestedUpdate(payload) {
     emit('update', payload);
+}
+
+function handleNestedDragStateChange(state) {
+    emit('drag-state-change', state);
 }
 
 async function togglePublish(element) {
@@ -358,6 +374,14 @@ function getDropdownOptions(element) {
 
     return options;
 }
+
+onBeforeUnmount(() => {
+    if (dragSettleTimer) {
+        clearTimeout(dragSettleTimer);
+        dragSettleTimer = null;
+    }
+    emit('drag-state-change', false);
+});
 </script>
 
 <style scoped>
