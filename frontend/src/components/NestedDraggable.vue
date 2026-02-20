@@ -47,7 +47,7 @@
                         <LucideFileText v-else class="size-4 text-ink-gray-5 flex-shrink-0" />
 
                         <span
-                            class="text-sm truncate"
+                            class="text-sm truncate flex-1 min-w-0"
                             :class="getTitleClass(element)"
                         >
                             {{ element.title }}
