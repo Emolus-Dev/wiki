@@ -438,8 +438,11 @@ async function handleApprove() {
 		await changes.submit({ name: props.changeRequestId, scope: 'summary' });
 	} catch (error) {
 		const msg = error.messages?.[0] || '';
-		if (msg.includes('Merge conflicts detected')) {
+		if (error.exc_type === 'ValidationError') {
 			await fetchConflicts();
+			if (!hasConflicts.value) {
+				toast.error(msg || __('Error merging change request'));
+			}
 		} else {
 			toast.error(msg || __('Error merging change request'));
 		}
@@ -450,10 +453,18 @@ async function handleResolveAndMerge() {
 	resolvingMerge.value = true;
 	try {
 		for (const conflict of conflicts.value) {
-			await resolveResource.submit({
-				conflict_name: conflict.name,
-				resolution: resolutions[conflict.name],
-			});
+			try {
+				await resolveResource.submit({
+					conflict_name: conflict.name,
+					resolution: resolutions[conflict.name],
+				});
+			} catch (e) {
+				const errMsg = e.messages?.[0] || '';
+				if (errMsg.includes('already resolved')) {
+					continue;
+				}
+				throw e;
+			}
 		}
 		await retryResource.submit({ name: props.changeRequestId });
 		toast.success(__('Conflicts resolved and change request merged'));

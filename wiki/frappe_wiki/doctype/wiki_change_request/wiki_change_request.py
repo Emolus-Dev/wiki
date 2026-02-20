@@ -756,6 +756,12 @@ def resolve_merge_conflict(conflict_name: str, resolution: str) -> None:
 		frappe.throw(_("Resolution must be 'ours' or 'theirs'."), frappe.ValidationError)
 
 	conflict = frappe.get_doc("Wiki Merge Conflict", conflict_name)
+
+	# Validate the parent change request is in an allowed state
+	cr = frappe.get_doc("Wiki Change Request", conflict.change_request)
+	if cr.status in ("Merged", "Archived"):
+		frappe.throw(_("Cannot resolve conflicts for a finalized Change Request."), frappe.ValidationError)
+
 	if conflict.status == "Resolved":
 		frappe.throw(_("Conflict is already resolved."), frappe.ValidationError)
 
@@ -791,14 +797,16 @@ def retry_merge_after_resolution(name: str) -> str:
 	resolved_conflicts = frappe.get_all(
 		"Wiki Merge Conflict",
 		filters={"change_request": name, "status": "Resolved"},
-		fields=["doc_key", "resolved_payload"],
+		fields=["doc_key", "resolved_payload", "resolution"],
 	)
 	resolved_map: dict[str, dict[str, Any]] = {}
+	resolution_side: dict[str, str] = {}
 	for rc in resolved_conflicts:
 		payload = rc.get("resolved_payload")
 		if isinstance(payload, str):
 			payload = frappe.parse_json(payload)
 		resolved_map[rc["doc_key"]] = payload
+		resolution_side[rc["doc_key"]] = rc.get("resolution", "")
 
 	# Rebuild the merge: start from current main, apply non-conflicting + resolved
 	base_items = get_revision_item_map(cr.base_revision)
@@ -824,6 +832,7 @@ def retry_merge_after_resolution(name: str) -> str:
 		if normalized:
 			merged_items[key] = normalized
 
+	new_conflicts = []
 	for key in changed_keys:
 		if key in resolved_map:
 			# Use the resolved payload (with content_blob already set)
@@ -832,13 +841,8 @@ def retry_merge_after_resolution(name: str) -> str:
 				# Ensure content_blob exists — resolve from the chosen side's payload
 				if not resolved.get("content_blob"):
 					# Re-derive content blob from ours/theirs content
-					conflict_doc = frappe.get_all(
-						"Wiki Merge Conflict",
-						filters={"change_request": name, "doc_key": key, "status": "Resolved"},
-						fields=["resolution"],
-					)
-					if conflict_doc:
-						res = conflict_doc[0].get("resolution")
+					res = resolution_side.get(key)
+					if res:
 						content = (
 							ours_contents.get(key, "") if res == "ours" else theirs_contents.get(key, "")
 						)
@@ -855,11 +859,42 @@ def retry_merge_after_resolution(name: str) -> str:
 		ours_content = ours_contents.get(key, "")
 		theirs_content = theirs_contents.get(key, "")
 
-		result, conflict_type = merge_items(base, ours, theirs, base_content, ours_content, theirs_content)
+		result, _conflict_type = merge_items(base, ours, theirs, base_content, ours_content, theirs_content)
+		if _conflict_type:
+			new_conflicts.append(
+				{
+					"doc_key": key,
+					"type": _conflict_type,
+					"base": base,
+					"ours": ours,
+					"theirs": theirs,
+				}
+			)
+			continue
 		if result:
 			merged_items[key] = result
 		else:
 			merged_items.pop(key, None)
+
+	if new_conflicts:
+		for conflict_data in new_conflicts:
+			conflict_doc = frappe.new_doc("Wiki Merge Conflict")
+			conflict_doc.change_request = cr.name
+			conflict_doc.doc_key = conflict_data["doc_key"]
+			conflict_doc.conflict_type = conflict_data["type"]
+			conflict_doc.base_payload = conflict_data["base"]
+			conflict_doc.ours_payload = conflict_data["ours"]
+			conflict_doc.theirs_payload = conflict_data["theirs"]
+			conflict_doc.status = "Open"
+			conflict_doc.insert(ignore_permissions=True)
+
+		if not frappe.flags.in_test:
+			frappe.db.commit()
+
+		frappe.throw(
+			_("{0} new conflict(s) detected during merge retry.").format(len(new_conflicts)),
+			frappe.ValidationError,
+		)
 
 	merge_revision = create_merge_revision(cr, merged_items)
 
