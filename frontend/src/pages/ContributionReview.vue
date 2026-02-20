@@ -135,15 +135,7 @@
 							</div>
 
 							<div v-if="expandedConflicts.has(conflict.name)" class="border-t border-outline-gray-2">
-								<div class="p-4 relative z-0 isolate">
-									<DiffViewer
-										:old-content="conflict.ours_content || ''"
-										:new-content="conflict.theirs_content || ''"
-										:file-name="conflict.ours_title || conflict.theirs_title || conflict.doc_key"
-										language="markdown"
-									/>
-								</div>
-								<div class="px-4 pb-4 flex items-center gap-4">
+								<div class="grid grid-cols-2 gap-4 px-4 pt-4">
 									<FormControl
 										type="checkbox"
 										:label="__('Keep Main')"
@@ -155,6 +147,14 @@
 										:label="__('Keep Your Changes')"
 										:modelValue="resolutions[conflict.name] === 'theirs'"
 										@update:modelValue="setResolution(conflict.name, 'theirs')"
+									/>
+								</div>
+								<div class="p-4 relative z-0 isolate">
+									<DiffViewer
+										:old-content="conflict.ours_content || ''"
+										:new-content="conflict.theirs_content || ''"
+										:file-name="conflict.ours_title || conflict.theirs_title || conflict.doc_key"
+										language="markdown"
 									/>
 								</div>
 							</div>
