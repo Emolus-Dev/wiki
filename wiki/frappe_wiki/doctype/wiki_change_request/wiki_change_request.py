@@ -712,6 +712,203 @@ def merge_change_request(name: str) -> str:
 
 
 @frappe.whitelist()
+def get_merge_conflicts(name: str) -> list[dict[str, Any]]:
+	"""Return open merge conflicts for a change request."""
+	if not _is_manager_or_approver():
+		frappe.throw(_("Only Wiki Managers or Approvers can view merge conflicts."), frappe.PermissionError)
+
+	conflicts = frappe.get_all(
+		"Wiki Merge Conflict",
+		filters={"change_request": name, "status": "Open"},
+		fields=["name", "doc_key", "conflict_type", "ours_payload", "theirs_payload"],
+	)
+
+	for conflict in conflicts:
+		ours = conflict.get("ours_payload")
+		theirs = conflict.get("theirs_payload")
+		if isinstance(ours, str):
+			ours = frappe.parse_json(ours)
+		if isinstance(theirs, str):
+			theirs = frappe.parse_json(theirs)
+		conflict["ours_title"] = (ours or {}).get("title", "")
+		conflict["theirs_title"] = (theirs or {}).get("title", "")
+
+		# Resolve content from content_blob references
+		ours_blob = (ours or {}).get("content_blob")
+		theirs_blob = (theirs or {}).get("content_blob")
+		conflict["ours_content"] = (
+			(frappe.get_value("Wiki Content Blob", ours_blob, "content") or "") if ours_blob else ""
+		)
+		conflict["theirs_content"] = (
+			(frappe.get_value("Wiki Content Blob", theirs_blob, "content") or "") if theirs_blob else ""
+		)
+
+	return conflicts
+
+
+@frappe.whitelist()
+def resolve_merge_conflict(conflict_name: str, resolution: str) -> None:
+	"""Resolve a single merge conflict by choosing 'ours' or 'theirs'."""
+	if not _is_manager_or_approver():
+		frappe.throw(_("Only Wiki Managers or Approvers can resolve conflicts."), frappe.PermissionError)
+
+	if resolution not in ("ours", "theirs"):
+		frappe.throw(_("Resolution must be 'ours' or 'theirs'."), frappe.ValidationError)
+
+	conflict = frappe.get_doc("Wiki Merge Conflict", conflict_name)
+
+	# Validate the parent change request is in an allowed state
+	cr = frappe.get_doc("Wiki Change Request", conflict.change_request)
+	if cr.status in ("Merged", "Archived"):
+		frappe.throw(_("Cannot resolve conflicts for a finalized Change Request."), frappe.ValidationError)
+
+	if conflict.status == "Resolved":
+		frappe.throw(_("Conflict is already resolved."), frappe.ValidationError)
+
+	payload = conflict.ours_payload if resolution == "ours" else conflict.theirs_payload
+	if isinstance(payload, str):
+		payload = frappe.parse_json(payload)
+
+	conflict.resolution = resolution
+	conflict.resolved_payload = payload
+	conflict.resolved_by = frappe.session.user
+	conflict.resolved_at = now_datetime()
+	conflict.status = "Resolved"
+	conflict.save(ignore_permissions=True)
+
+
+@frappe.whitelist()
+def retry_merge_after_resolution(name: str) -> str:
+	"""Retry a merge after all conflicts have been resolved."""
+	if not _is_manager_or_approver():
+		frappe.throw(_("Only Wiki Managers or Approvers can merge."), frappe.PermissionError)
+
+	cr = frappe.get_doc("Wiki Change Request", name)
+	space = frappe.get_doc("Wiki Space", cr.wiki_space)
+
+	# Verify all conflicts are resolved
+	open_conflicts = frappe.db.count("Wiki Merge Conflict", {"change_request": name, "status": "Open"})
+	if open_conflicts:
+		frappe.throw(
+			_("{0} conflict(s) still unresolved.").format(open_conflicts),
+			frappe.ValidationError,
+		)
+
+	resolved_conflicts = frappe.get_all(
+		"Wiki Merge Conflict",
+		filters={"change_request": name, "status": "Resolved"},
+		fields=["doc_key", "resolved_payload", "resolution"],
+	)
+	resolved_map: dict[str, dict[str, Any]] = {}
+	resolution_side: dict[str, str] = {}
+	for rc in resolved_conflicts:
+		payload = rc.get("resolved_payload")
+		if isinstance(payload, str):
+			payload = frappe.parse_json(payload)
+		resolved_map[rc["doc_key"]] = payload
+		resolution_side[rc["doc_key"]] = rc.get("resolution", "")
+
+	# Rebuild the merge: start from current main, apply non-conflicting + resolved
+	base_items = get_revision_item_map(cr.base_revision)
+	ours_items = get_revision_item_map(space.main_revision)
+	theirs_items = get_effective_revision_item_map(cr.head_revision)
+
+	main_changed = _find_changed_keys(base_items, ours_items)
+	head_changed = _find_changed_keys(base_items, theirs_items)
+	changed_keys = main_changed | head_changed
+
+	base_subset = {k: base_items[k] for k in changed_keys if k in base_items}
+	ours_subset = {k: ours_items[k] for k in changed_keys if k in ours_items}
+	theirs_subset = {k: theirs_items[k] for k in changed_keys if k in theirs_items}
+
+	base_contents = get_contents_for_items(base_subset)
+	ours_contents = get_contents_for_items(ours_subset)
+	theirs_contents = get_contents_for_items(theirs_subset)
+
+	# Start with current main state
+	merged_items: dict[str, dict[str, Any]] = {}
+	for key, item in ours_items.items():
+		normalized = normalize_item(item)
+		if normalized:
+			merged_items[key] = normalized
+
+	new_conflicts = []
+	for key in changed_keys:
+		if key in resolved_map:
+			# Use the resolved payload (with content_blob already set)
+			resolved = resolved_map[key]
+			if resolved:
+				# Ensure content_blob exists — resolve from the chosen side's payload
+				if not resolved.get("content_blob"):
+					# Re-derive content blob from ours/theirs content
+					res = resolution_side.get(key)
+					if res:
+						content = (
+							ours_contents.get(key, "") if res == "ours" else theirs_contents.get(key, "")
+						)
+						resolved = with_content_blob(resolved, content)
+				merged_items[key] = resolved
+			else:
+				merged_items.pop(key, None)
+			continue
+
+		base = normalize_item(base_items.get(key))
+		ours = normalize_item(ours_items.get(key))
+		theirs = normalize_item(theirs_items.get(key))
+		base_content = base_contents.get(key, "")
+		ours_content = ours_contents.get(key, "")
+		theirs_content = theirs_contents.get(key, "")
+
+		result, _conflict_type = merge_items(base, ours, theirs, base_content, ours_content, theirs_content)
+		if _conflict_type:
+			new_conflicts.append(
+				{
+					"doc_key": key,
+					"type": _conflict_type,
+					"base": base,
+					"ours": ours,
+					"theirs": theirs,
+				}
+			)
+			continue
+		if result:
+			merged_items[key] = result
+		else:
+			merged_items.pop(key, None)
+
+	if new_conflicts:
+		for conflict_data in new_conflicts:
+			conflict_doc = frappe.new_doc("Wiki Merge Conflict")
+			conflict_doc.change_request = cr.name
+			conflict_doc.doc_key = conflict_data["doc_key"]
+			conflict_doc.conflict_type = conflict_data["type"]
+			conflict_doc.base_payload = conflict_data["base"]
+			conflict_doc.ours_payload = conflict_data["ours"]
+			conflict_doc.theirs_payload = conflict_data["theirs"]
+			conflict_doc.status = "Open"
+			conflict_doc.insert(ignore_permissions=True)
+
+		if not frappe.flags.in_test:
+			frappe.db.commit()
+
+		frappe.throw(
+			_("{0} new conflict(s) detected during merge retry.").format(len(new_conflicts)),
+			frappe.ValidationError,
+		)
+
+	merge_revision = create_merge_revision(cr, merged_items)
+
+	frappe.flags.in_apply_merge_revision = True
+	try:
+		_apply_merge_changes_only(space, merge_revision, ours_items)
+	finally:
+		frappe.flags.in_apply_merge_revision = False
+
+	_finalize_merge(cr, merge_revision)
+	return merge_revision.name
+
+
+@frappe.whitelist()
 def check_outdated(name: str) -> int:
 	cr = frappe.get_doc("Wiki Change Request", name)
 	main_revision = frappe.get_value("Wiki Space", cr.wiki_space, "main_revision")
