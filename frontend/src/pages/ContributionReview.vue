@@ -22,16 +22,24 @@
 			</div>
 
 			<div v-if="canReview" class="flex items-center gap-2">
-				<Button variant="outline" theme="red" @click="showRejectDialog = true">
-					<template #prefix>
-						<LucideX class="size-4" />
-					</template>
+				<Button @click="showRejectDialog = true">
 					{{ __('Request Changes') }}
 				</Button>
-				<Button variant="solid" theme="green" :loading="mergeResource.loading" @click="handleApprove">
-					<template #prefix>
-						<LucideCheck class="size-4" />
-					</template>
+				<Button
+					v-if="hasConflicts"
+					variant="solid"
+					:disabled="!allResolved"
+					:loading="resolvingMerge"
+					@click="handleResolveAndMerge"
+				>
+					{{ __('Resolve & Merge') }}
+				</Button>
+				<Button
+					v-else
+					variant="solid"
+					:loading="mergeResource.loading"
+					@click="handleApprove"
+				>
 					{{ __('Merge') }}
 				</Button>
 			</div>
@@ -60,77 +68,173 @@
 				</div>
 			</div>
 
-			<div class="space-y-4">
-				<h3 class="text-lg font-medium text-ink-gray-8">
-					{{ __('Changes') }} ({{ changes.data?.length || 0 }})
-				</h3>
-
-				<div v-if="changes.loading" class="flex items-center justify-center py-8">
-					<LoadingIndicator class="size-8" />
+			<!-- Conflict resolution banner -->
+			<div
+				v-if="hasConflicts"
+				class="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg"
+			>
+				<div class="flex items-start gap-3">
+					<LucideAlertTriangle class="size-5 text-amber-500 shrink-0 mt-0.5" />
+					<div>
+						<p class="font-medium text-amber-800">{{ __('Merge Conflicts') }}</p>
+						<p class="text-sm text-amber-700 mt-1">
+							{{ __('The following documents have conflicting changes. Choose which version to keep for each conflict.') }}
+						</p>
+						<p class="text-sm text-amber-600 mt-2 font-medium">
+							{{ resolvedCount }}/{{ conflicts.length }} {{ __('resolved') }}
+						</p>
+					</div>
 				</div>
+			</div>
 
-				<div v-else-if="changes.data?.length" class="space-y-3">
-					<div
-						v-for="change in changes.data"
-						:key="change.doc_key"
-						class="border border-outline-gray-2 rounded-lg overflow-hidden"
-					>
+			<div class="space-y-4">
+				<!-- Conflict list (replaces changes list when conflicts exist) -->
+				<template v-if="hasConflicts">
+					<h3 class="text-lg font-medium text-ink-gray-8">
+						{{ __('Conflicts') }} ({{ conflicts.length }})
+					</h3>
+
+					<div class="space-y-3">
 						<div
-							class="flex items-center justify-between p-4 bg-surface-gray-1 cursor-pointer"
-							@click="toggleChange(change.doc_key)"
+							v-for="conflict in conflicts"
+							:key="conflict.name"
+							class="border border-outline-gray-2 rounded-lg overflow-hidden"
+							:class="{ 'border-amber-300': !resolutions[conflict.name] }"
 						>
-							<div class="flex items-center gap-3">
-								<div
-									class="flex items-center justify-center size-8 rounded-full shrink-0"
-									:class="getChangeIconClass(change.change_type)"
-								>
-									<component :is="getChangeIcon(change.change_type)" class="size-4" />
-								</div>
-								<div>
-									<div class="flex items-center gap-2">
-										<span class="font-medium text-ink-gray-9">
-											{{ change.title || __('Untitled') }}
-										</span>
-										<Badge variant="subtle" :theme="getChangeTheme(change.change_type)" size="sm">
-											{{ getChangeLabel(change.change_type) }}
-										</Badge>
+							<div
+								class="flex items-center justify-between p-4 bg-surface-gray-1 cursor-pointer"
+								@click="toggleConflict(conflict.name)"
+							>
+								<div class="flex items-center gap-3">
+									<div class="flex items-center justify-center size-8 rounded-full shrink-0 bg-amber-100 text-amber-600">
+										<LucideAlertTriangle class="size-4" />
 									</div>
-									<p class="text-sm text-ink-gray-5">
-										{{ getChangeDescription(change.change_type, change.is_group, change.is_external_link) }}
-									</p>
-									<p v-if="change.is_external_link && change.external_url" class="text-sm text-ink-gray-5 mt-0.5">
-										<a :href="change.external_url" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">
-											{{ change.external_url }}
-										</a>
-									</p>
+									<div>
+										<div class="flex items-center gap-2">
+											<span class="font-medium text-ink-gray-9">
+												{{ conflict.ours_title || conflict.theirs_title || conflict.doc_key }}
+											</span>
+											<Badge variant="subtle" :theme="getConflictTheme(conflict.conflict_type)" size="sm">
+												{{ conflict.conflict_type }}
+											</Badge>
+											<Badge
+												v-if="resolutions[conflict.name]"
+												variant="subtle"
+												theme="green"
+												size="sm"
+											>
+												{{ resolutions[conflict.name] === 'ours' ? __('Keep Main') : __('Keep Your Changes') }}
+											</Badge>
+										</div>
+									</div>
 								</div>
-							</div>
-							<LucideChevronDown
-								class="size-5 text-ink-gray-4 transition-transform"
-								:class="{ 'rotate-180': expandedChanges.has(change.doc_key) }"
-							/>
-						</div>
-
-						<div v-if="expandedChanges.has(change.doc_key)" class="border-t border-outline-gray-2">
-							<div class="p-4 relative z-0 isolate">
-								<DiffViewer
-									v-if="diffsByDocKey[change.doc_key]"
-									:old-content="diffsByDocKey[change.doc_key]?.base?.content || ''"
-									:new-content="diffsByDocKey[change.doc_key]?.head?.content || ''"
-									:file-name="change.title || change.doc_key"
-									language="markdown"
+								<LucideChevronDown
+									class="size-5 text-ink-gray-4 transition-transform"
+									:class="{ 'rotate-180': expandedConflicts.has(conflict.name) }"
 								/>
-								<div v-else class="flex items-center justify-center py-8">
-									<LoadingIndicator class="size-6" />
+							</div>
+
+							<div v-if="expandedConflicts.has(conflict.name)" class="border-t border-outline-gray-2">
+								<div class="p-4 relative z-0 isolate">
+									<DiffViewer
+										:old-content="conflict.ours_content || ''"
+										:new-content="conflict.theirs_content || ''"
+										:file-name="conflict.ours_title || conflict.theirs_title || conflict.doc_key"
+										language="markdown"
+									/>
+								</div>
+								<div class="px-4 pb-4 flex items-center gap-4">
+									<FormControl
+										type="checkbox"
+										:label="__('Keep Main')"
+										:modelValue="resolutions[conflict.name] === 'ours'"
+										@update:modelValue="setResolution(conflict.name, 'ours')"
+									/>
+									<FormControl
+										type="checkbox"
+										:label="__('Keep Your Changes')"
+										:modelValue="resolutions[conflict.name] === 'theirs'"
+										@update:modelValue="setResolution(conflict.name, 'theirs')"
+									/>
 								</div>
 							</div>
 						</div>
 					</div>
-				</div>
+				</template>
 
-				<div v-else class="text-center py-8 text-ink-gray-5">
-					{{ __('No changes in this change request.') }}
-				</div>
+				<!-- Normal changes list -->
+				<template v-else>
+					<h3 class="text-lg font-medium text-ink-gray-8">
+						{{ __('Changes') }} ({{ changes.data?.length || 0 }})
+					</h3>
+
+					<div v-if="changes.loading" class="flex items-center justify-center py-8">
+						<LoadingIndicator class="size-8" />
+					</div>
+
+					<div v-else-if="changes.data?.length" class="space-y-3">
+						<div
+							v-for="change in changes.data"
+							:key="change.doc_key"
+							class="border border-outline-gray-2 rounded-lg overflow-hidden"
+						>
+							<div
+								class="flex items-center justify-between p-4 bg-surface-gray-1 cursor-pointer"
+								@click="toggleChange(change.doc_key)"
+							>
+								<div class="flex items-center gap-3">
+									<div
+										class="flex items-center justify-center size-8 rounded-full shrink-0"
+										:class="getChangeIconClass(change.change_type)"
+									>
+										<component :is="getChangeIcon(change.change_type)" class="size-4" />
+									</div>
+									<div>
+										<div class="flex items-center gap-2">
+											<span class="font-medium text-ink-gray-9">
+												{{ change.title || __('Untitled') }}
+											</span>
+											<Badge variant="subtle" :theme="getChangeTheme(change.change_type)" size="sm">
+												{{ getChangeLabel(change.change_type) }}
+											</Badge>
+										</div>
+										<p class="text-sm text-ink-gray-5">
+											{{ getChangeDescription(change.change_type, change.is_group, change.is_external_link) }}
+										</p>
+										<p v-if="change.is_external_link && change.external_url" class="text-sm text-ink-gray-5 mt-0.5">
+											<a :href="change.external_url" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">
+												{{ change.external_url }}
+											</a>
+										</p>
+									</div>
+								</div>
+								<LucideChevronDown
+									class="size-5 text-ink-gray-4 transition-transform"
+									:class="{ 'rotate-180': expandedChanges.has(change.doc_key) }"
+								/>
+							</div>
+
+							<div v-if="expandedChanges.has(change.doc_key)" class="border-t border-outline-gray-2">
+								<div class="p-4 relative z-0 isolate">
+									<DiffViewer
+										v-if="diffsByDocKey[change.doc_key]"
+										:old-content="diffsByDocKey[change.doc_key]?.base?.content || ''"
+										:new-content="diffsByDocKey[change.doc_key]?.head?.content || ''"
+										:file-name="change.title || change.doc_key"
+										language="markdown"
+									/>
+									<div v-else class="flex items-center justify-center py-8">
+										<LoadingIndicator class="size-6" />
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div v-else class="text-center py-8 text-ink-gray-5">
+						{{ __('No changes in this change request.') }}
+					</div>
+				</template>
 			</div>
 		</div>
 
@@ -176,15 +280,13 @@ import { userResource } from '@/data/user';
 import { isWikiManager, currentChangeRequest } from '@/composables/useChangeRequest';
 import DiffViewer from '@/components/DiffViewer.vue';
 import LucideChevronDown from '~icons/lucide/chevron-down';
-import LucideCheck from '~icons/lucide/check';
-import LucideX from '~icons/lucide/x';
 import LucideAlertCircle from '~icons/lucide/alert-circle';
+import LucideAlertTriangle from '~icons/lucide/alert-triangle';
 import LucideArrowUpDown from '~icons/lucide/arrow-up-down';
 import LucidePlus from '~icons/lucide/plus';
 import LucidePencil from '~icons/lucide/pencil';
 import LucideTrash2 from '~icons/lucide/trash-2';
 import LucideFileText from '~icons/lucide/file-text';
-import LucideLink from '~icons/lucide/link';
 
 const props = defineProps({
 	changeRequestId: {
@@ -197,6 +299,18 @@ const showRejectDialog = ref(false);
 const rejectComment = ref('');
 const expandedChanges = reactive(new Set());
 const diffsByDocKey = reactive({});
+
+// Conflict resolution state
+const hasConflicts = ref(false);
+const conflicts = ref([]);
+const resolutions = reactive({});
+const expandedConflicts = reactive(new Set());
+const resolvingMerge = ref(false);
+
+const resolvedCount = computed(() =>
+	Object.values(resolutions).filter((v) => v === 'ours' || v === 'theirs').length,
+);
+const allResolved = computed(() => conflicts.value.length > 0 && resolvedCount.value === conflicts.value.length);
 
 const changeRequest = createDocumentResource({
 	doctype: 'Wiki Change Request',
@@ -216,6 +330,18 @@ const diffResource = createResource({
 
 const mergeResource = createResource({
 	url: 'wiki.frappe_wiki.doctype.wiki_change_request.wiki_change_request.merge_change_request',
+});
+
+const conflictsResource = createResource({
+	url: 'wiki.frappe_wiki.doctype.wiki_change_request.wiki_change_request.get_merge_conflicts',
+});
+
+const resolveResource = createResource({
+	url: 'wiki.frappe_wiki.doctype.wiki_change_request.wiki_change_request.resolve_merge_conflict',
+});
+
+const retryResource = createResource({
+	url: 'wiki.frappe_wiki.doctype.wiki_change_request.wiki_change_request.retry_merge_after_resolution',
 });
 
 const rejectResource = createResource({
@@ -250,6 +376,37 @@ const reviewNote = computed(() => {
 	};
 });
 
+function setResolution(conflictName, value) {
+	if (resolutions[conflictName] === value) {
+		delete resolutions[conflictName];
+	} else {
+		resolutions[conflictName] = value;
+	}
+}
+
+function toggleConflict(conflictName) {
+	if (expandedConflicts.has(conflictName)) {
+		expandedConflicts.delete(conflictName);
+	} else {
+		expandedConflicts.add(conflictName);
+	}
+}
+
+async function fetchConflicts() {
+	try {
+		const result = await conflictsResource.submit({ name: props.changeRequestId });
+		conflicts.value = result || [];
+		// Default all resolutions to 'theirs' (Keep Your Changes)
+		for (const key in resolutions) delete resolutions[key];
+		for (const conflict of conflicts.value) {
+			resolutions[conflict.name] = 'theirs';
+		}
+		hasConflicts.value = conflicts.value.length > 0;
+	} catch (error) {
+		toast.error(error.messages?.[0] || __('Error loading conflicts'));
+	}
+}
+
 async function toggleChange(docKey) {
 	if (expandedChanges.has(docKey)) {
 		expandedChanges.delete(docKey);
@@ -280,7 +437,37 @@ async function handleApprove() {
 		changeRequest.reload();
 		await changes.submit({ name: props.changeRequestId, scope: 'summary' });
 	} catch (error) {
-		toast.error(error.messages?.[0] || __('Error merging change request'));
+		const msg = error.messages?.[0] || '';
+		if (msg.includes('Merge conflicts detected')) {
+			await fetchConflicts();
+		} else {
+			toast.error(msg || __('Error merging change request'));
+		}
+	}
+}
+
+async function handleResolveAndMerge() {
+	resolvingMerge.value = true;
+	try {
+		for (const conflict of conflicts.value) {
+			await resolveResource.submit({
+				conflict_name: conflict.name,
+				resolution: resolutions[conflict.name],
+			});
+		}
+		await retryResource.submit({ name: props.changeRequestId });
+		toast.success(__('Conflicts resolved and change request merged'));
+		hasConflicts.value = false;
+		conflicts.value = [];
+		if (currentChangeRequest.value?.name === props.changeRequestId) {
+			currentChangeRequest.value = null;
+		}
+		changeRequest.reload();
+		await changes.submit({ name: props.changeRequestId, scope: 'summary' });
+	} catch (error) {
+		toast.error(error.messages?.[0] || __('Error resolving conflicts'));
+	} finally {
+		resolvingMerge.value = false;
 	}
 }
 
@@ -382,6 +569,15 @@ function getChangeDescription(changeType, isGroup, isExternalLink) {
 			return __('Order updated');
 		default:
 			return '';
+	}
+}
+
+function getConflictTheme(type) {
+	switch (type) {
+		case 'content': return 'blue';
+		case 'meta': return 'orange';
+		case 'tree': return 'red';
+		default: return 'gray';
 	}
 }
 

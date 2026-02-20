@@ -14,6 +14,7 @@ from wiki.frappe_wiki.doctype.wiki_change_request.wiki_change_request import (
 	diff_change_request,
 	get_change_request,
 	get_cr_tree,
+	get_merge_conflicts,
 	get_or_create_draft_change_request,
 	list_change_requests,
 	merge_change_request,
@@ -21,6 +22,8 @@ from wiki.frappe_wiki.doctype.wiki_change_request.wiki_change_request import (
 	move_cr_page,
 	reorder_cr_children,
 	request_review,
+	resolve_merge_conflict,
+	retry_merge_after_resolution,
 	review_action,
 	update_change_request,
 	update_cr_page,
@@ -873,6 +876,47 @@ class TestWikiChangeRequest(FrappeTestCase):
 		page.reload()
 		self.assertEqual(page.parent_wiki_document, space.root_group)
 		self.assertFalse(frappe.db.exists("Wiki Document", group.name))
+
+	def test_resolve_and_retry_merge_end_to_end(self):
+		"""Phase 1 tracer bullet: detect conflict, resolve it, retry merge successfully."""
+		space = create_test_wiki_space()
+		page = create_test_wiki_document(space.root_group, title="Page A", content="v1")
+		cr = create_change_request(space.name, "CR conflict resolve")
+
+		page_key = frappe.get_value("Wiki Document", page.name, "doc_key")
+		update_cr_page(cr.name, page_key, {"content": "cr-change"})
+
+		# Advance main so three-way merge is needed
+		page.content = "main-change"
+		page.save()
+		new_main = create_revision_from_live_tree(space.name, message="main update")
+		frappe.db.set_value("Wiki Space", space.name, "main_revision", new_main.name)
+
+		# Merge should fail with conflict
+		with self.assertRaises(frappe.ValidationError):
+			merge_change_request(cr.name)
+
+		# get_merge_conflicts should return the conflict
+		conflicts = get_merge_conflicts(cr.name)
+		self.assertEqual(len(conflicts), 1)
+		conflict = conflicts[0]
+		self.assertEqual(conflict["doc_key"], page_key)
+
+		# Resolve with "theirs" (CR's version)
+		resolve_merge_conflict(conflict["name"], "theirs")
+
+		resolved = frappe.get_doc("Wiki Merge Conflict", conflict["name"])
+		self.assertEqual(resolved.status, "Resolved")
+		self.assertEqual(resolved.resolution, "theirs")
+
+		# Retry merge
+		retry_merge_after_resolution(cr.name)
+
+		cr_doc = frappe.get_doc("Wiki Change Request", cr.name)
+		self.assertEqual(cr_doc.status, "Merged")
+
+		page.reload()
+		self.assertEqual(page.content, "cr-change")
 
 
 # Helpers
