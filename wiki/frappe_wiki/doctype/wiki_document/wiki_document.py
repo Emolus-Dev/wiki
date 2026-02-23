@@ -131,6 +131,10 @@ class WikiDocument(NestedSet):
 		if not self.parent_wiki_document:
 			return
 
+		# During merge, sort_order is explicitly set from the revision's order_index
+		if getattr(frappe.flags, "in_apply_merge_revision", False):
+			return
+
 		# Only auto-assign if sort_order is 0 (the default) or None
 		# This means the user didn't explicitly set a sort_order
 		if self.sort_order not in (None, 0):
