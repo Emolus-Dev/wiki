@@ -896,6 +896,7 @@ def retry_merge_after_resolution(name: str) -> str:
 			frappe.ValidationError,
 		)
 
+	_fix_orphaned_items(merged_items, ours_items)
 	merge_revision = create_merge_revision(cr, merged_items)
 
 	frappe.flags.in_apply_merge_revision = True
@@ -928,6 +929,7 @@ def _fast_forward_merge(cr: Document, space: Document) -> str:
 		if normalized:
 			merged_items[key] = normalized
 
+	_fix_orphaned_items(merged_items, effective_items)
 	merge_revision = create_merge_revision(cr, merged_items)
 
 	frappe.flags.in_apply_merge_revision = True
@@ -1003,6 +1005,7 @@ def _three_way_merge(cr: Document, space: Document) -> str:
 
 		frappe.throw(_("Merge conflicts detected"), frappe.ValidationError)
 
+	_fix_orphaned_items(merged_items, ours_items)
 	merge_revision = create_merge_revision(cr, merged_items)
 
 	frappe.flags.in_apply_merge_revision = True
@@ -1052,6 +1055,30 @@ def _find_changed_keys(
 	return changed
 
 
+def _fix_orphaned_items(
+	merged_items: dict[str, dict[str, Any]],
+	reference_items: dict[str, dict[str, Any]],
+) -> None:
+	"""Reparent items whose parent_key points to a doc not in merged_items.
+
+	When a parent is deleted but a child is kept (e.g. conflict resolved as
+	'ours'), the child's parent_key still references the deleted doc.  Walk up
+	the ancestry chain via *reference_items* until we find a living ancestor
+	that exists in merged_items, then update the child's parent_key.
+	"""
+	existing_keys = set(merged_items)
+	for item in merged_items.values():
+		parent_key = item.get("parent_key")
+		if not parent_key or parent_key in existing_keys:
+			continue
+		# Walk up ancestry until we find a key present in merged_items
+		ancestor = parent_key
+		while ancestor and ancestor not in existing_keys:
+			ref = reference_items.get(ancestor)
+			ancestor = ref.get("parent_key") if ref else None
+		item["parent_key"] = ancestor
+
+
 def _delete_wiki_documents(doc_keys: Iterable[str], key_to_name: dict[str, str], root_doc_key: str) -> None:
 	"""Delete Wiki Documents by doc_key, children-first (highest lft first)."""
 	delete_docs = []
@@ -1066,6 +1093,48 @@ def _delete_wiki_documents(doc_keys: Iterable[str], key_to_name: dict[str, str],
 	for _lft, doc_key, doc_name in delete_docs:
 		frappe.delete_doc("Wiki Document", doc_name, force=True)
 		del key_to_name[doc_key]
+
+
+def _reconcile_sort_order(
+	new_items: dict[str, dict[str, Any]],
+	key_to_name: dict[str, str],
+	changed_keys: set[str],
+) -> None:
+	"""Fix sort_order on unchanged docs that are out of sync with the revision.
+
+	The merge only updates changed items. If sort_order drifted earlier (e.g.
+	set_sort_order_for_new_document overriding order_index=0 during a prior
+	merge), unchanged items would stay wrong forever. This does a batch fix
+	for any remaining mismatches.
+	"""
+	unchanged_keys = set(new_items) - changed_keys
+	if not unchanged_keys:
+		return
+
+	doc_names = [key_to_name[k] for k in unchanged_keys if k in key_to_name]
+	if not doc_names:
+		return
+
+	live_docs = frappe.get_all(
+		"Wiki Document",
+		fields=["name", "doc_key", "sort_order"],
+		filters={"name": ("in", doc_names)},
+	)
+	live_sort = {doc["doc_key"]: doc for doc in live_docs}
+
+	for doc_key in unchanged_keys:
+		if doc_key not in live_sort:
+			continue
+		expected = new_items[doc_key].get("order_index") or 0
+		actual = live_sort[doc_key].get("sort_order") or 0
+		if expected != actual:
+			frappe.db.set_value(
+				"Wiki Document",
+				live_sort[doc_key]["name"],
+				"sort_order",
+				expected,
+				update_modified=False,
+			)
 
 
 def _classify_changes(
@@ -1226,6 +1295,9 @@ def _apply_merge_changes_only(
 
 	# Delete AFTER saves — children must be reparented before parents are deleted
 	_delete_wiki_documents(deleted_keys, key_to_name, root_doc_key)
+
+	# Reconcile sort_order for unchanged items whose live value drifted
+	_reconcile_sort_order(new_items, key_to_name, changed_keys)
 
 	frappe.db.set_value("Wiki Space", space.name, "main_revision", merge_revision.name)
 

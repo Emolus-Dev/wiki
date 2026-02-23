@@ -877,6 +877,186 @@ class TestWikiChangeRequest(FrappeTestCase):
 		self.assertEqual(page.parent_wiki_document, space.root_group)
 		self.assertFalse(frappe.db.exists("Wiki Document", group.name))
 
+	def test_merge_preserves_sort_order_for_new_docs_with_order_index_zero(self):
+		"""Merge must honour order_index=0 from revision when inserting new Wiki Documents.
+
+		Reproduces production bug: set_sort_order_for_new_document treats
+		sort_order=0 as "unset" and overrides it with max(sibling sort_order)+1.
+		When a CR adds a new page that should be first among siblings
+		(order_index=0), the merge creates the Wiki Document with sort_order=0,
+		but the validation hook bumps it to the end.
+
+		The public-facing sidebar sorts by sort_order, so the page appears last
+		instead of first, while the editor (which reads order_index from the
+		revision) shows it correctly in first position.
+		"""
+		space = create_test_wiki_space()
+		group = create_test_wiki_document(space.root_group, title="Buying", is_group=1)
+		# Create existing sibling pages so there are items with sort_order > 0
+		setup_page = create_test_wiki_document(group.name, title="Setup", content="Setup content")
+		features_page = create_test_wiki_document(group.name, title="Features", content="Features content")
+
+		# Snapshot into main_revision
+		cr_init = create_change_request(space.name, "Init")
+		merge_change_request(cr_init.name)
+
+		group_key = frappe.get_value("Wiki Document", group.name, "doc_key")
+
+		# Create a CR that adds a new "Introduction" page as the first child
+		cr = create_change_request(space.name, "Add Introduction first")
+		intro_key = create_cr_page(
+			cr.name,
+			group_key,
+			"Introduction",
+			"Intro content",
+		)
+
+		# Reorder so Introduction is first (order_index=0)
+		setup_key = frappe.get_value("Wiki Document", setup_page.name, "doc_key")
+		features_key = frappe.get_value("Wiki Document", features_page.name, "doc_key")
+		reorder_cr_children(cr.name, group_key, [intro_key, setup_key, features_key])
+
+		# Verify the CR tree shows correct order
+		tree = get_cr_tree(cr.name)
+		buying_node = next(n for n in tree["children"] if n["doc_key"] == group_key)
+		child_titles = [c["title"] for c in buying_node["children"]]
+		self.assertEqual(child_titles, ["Introduction", "Setup", "Features"])
+
+		# Merge the CR
+		merge_change_request(cr.name)
+
+		# The new Introduction document must have sort_order=0 (first)
+		intro_doc_name = frappe.get_value("Wiki Document", {"doc_key": intro_key})
+		intro_sort_order = frappe.get_value("Wiki Document", intro_doc_name, "sort_order")
+		self.assertEqual(
+			intro_sort_order,
+			0,
+			f"Introduction should have sort_order=0 but got {intro_sort_order}. "
+			"set_sort_order_for_new_document likely overrode order_index=0 during merge.",
+		)
+
+		# Verify all siblings have correct sort_order matching their order_index
+		setup_sort = frappe.get_value("Wiki Document", setup_page.name, "sort_order")
+		features_sort = frappe.get_value("Wiki Document", features_page.name, "sort_order")
+		self.assertLess(
+			intro_sort_order,
+			setup_sort,
+			"Introduction (order_index=0) should sort before Setup",
+		)
+		self.assertLess(
+			setup_sort,
+			features_sort,
+			"Setup (order_index=1) should sort before Features",
+		)
+
+	def test_merge_reconciles_stale_sort_order(self):
+		"""Merge fixes sort_order on unchanged docs that drifted from the revision.
+
+		If a prior merge left sort_order out of sync (e.g. due to the
+		set_sort_order_for_new_document override bug), subsequent merges should
+		reconcile the mismatch even for items whose order_index didn't change
+		between the base and merge revisions.
+		"""
+		space = create_test_wiki_space()
+		page_a = create_test_wiki_document(space.root_group, title="Page A")
+		page_b = create_test_wiki_document(space.root_group, title="Page B")
+
+		# Snapshot into main_revision
+		cr_init = create_change_request(space.name, "Init")
+		merge_change_request(cr_init.name)
+
+		# Artificially corrupt sort_order to simulate a prior bug
+		page_a_key = frappe.get_value("Wiki Document", page_a.name, "doc_key")
+		frappe.db.set_value("Wiki Document", page_a.name, "sort_order", 999, update_modified=False)
+
+		# Verify it's now wrong
+		self.assertEqual(frappe.get_value("Wiki Document", page_a.name, "sort_order"), 999)
+
+		# Create a trivial CR (content change on page_b only — page_a is "unchanged")
+		cr = create_change_request(space.name, "Trivial edit")
+		page_b_key = frappe.get_value("Wiki Document", page_b.name, "doc_key")
+		update_cr_page(cr.name, page_b_key, {"content": "updated"})
+
+		# Merge — page_a's order_index didn't change between revisions,
+		# but the live doc has the wrong sort_order
+		merge_change_request(cr.name)
+
+		# The reconciliation step should have fixed page_a's sort_order
+		page_a.reload()
+		actual = page_a.sort_order
+		expected = frappe.get_value(
+			"Wiki Revision Item",
+			{"revision": frappe.get_value("Wiki Space", space.name, "main_revision"), "doc_key": page_a_key},
+			"order_index",
+		)
+		self.assertEqual(
+			actual,
+			expected,
+			f"Page A sort_order={actual} should match revision order_index={expected}. "
+			"Merge should reconcile stale sort_order for unchanged items.",
+		)
+
+	def test_resolve_conflict_keep_child_of_deleted_parent(self):
+		"""Retry merge fails when a kept child's parent was auto-deleted.
+
+		Scenario:
+		  - CR deletes a group (cascading to its children).
+		  - Main concurrently modifies a child of that group.
+		  - During merge: parent auto-deletes (unchanged in main), child
+		    conflicts (modified in main vs deleted in CR).
+		  - User resolves child conflict as 'ours' (keep).
+		  - The kept child still has parent_key pointing to the deleted group,
+		    but _apply_merge_changes_only never reparents it → deleting the
+		    group raises NestedSetChildExistsError.
+		"""
+		space = create_test_wiki_space()
+		group = create_test_wiki_document(space.root_group, title="Group", is_group=1)
+		page_a = create_test_wiki_document(group.name, title="Page A", content="original-a")
+		create_test_wiki_document(group.name, title="Page B", content="original-b")
+
+		# Snapshot into main_revision
+		cr_init = create_change_request(space.name, "Init")
+		merge_change_request(cr_init.name)
+
+		group_key = frappe.get_value("Wiki Document", group.name, "doc_key")
+		page_a_key = frappe.get_value("Wiki Document", page_a.name, "doc_key")
+
+		# CR: delete the group (cascades to children)
+		cr = create_change_request(space.name, "Delete group")
+		delete_cr_page(cr.name, group_key)
+
+		# Advance main: modify page_a so it diverges from base
+		page_a.content = "main-modified-a"
+		page_a.save()
+		new_main = create_revision_from_live_tree(space.name, message="main edit page_a")
+		frappe.db.set_value("Wiki Space", space.name, "main_revision", new_main.name)
+
+		# Merge should detect a conflict on page_a (modified in main, deleted in CR)
+		with self.assertRaises(frappe.ValidationError):
+			merge_change_request(cr.name)
+
+		conflicts = get_merge_conflicts(cr.name)
+		page_a_conflicts = [c for c in conflicts if c["doc_key"] == page_a_key]
+		self.assertEqual(len(page_a_conflicts), 1)
+
+		# Resolve: keep the main version of page_a ("ours")
+		resolve_merge_conflict(page_a_conflicts[0]["name"], "ours")
+
+		# Retry merge — this should succeed, reparenting page_a to root
+		retry_merge_after_resolution(cr.name)
+
+		cr_doc = frappe.get_doc("Wiki Change Request", cr.name)
+		self.assertEqual(cr_doc.status, "Merged")
+
+		# page_a should still exist with its content preserved
+		page_a.reload()
+		self.assertEqual(page_a.content, "main-modified-a")
+		# page_a must have been reparented away from the deleted group
+		self.assertNotEqual(page_a.parent_wiki_document, group.name)
+
+		# group and page_b should be deleted
+		self.assertFalse(frappe.db.exists("Wiki Document", group.name))
+
 	def test_resolve_and_retry_merge_end_to_end(self):
 		"""Phase 1 tracer bullet: detect conflict, resolve it, retry merge successfully."""
 		space = create_test_wiki_space()
