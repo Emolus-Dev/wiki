@@ -79,9 +79,12 @@ router.beforeEach(async (to, from, next) => {
 	const { useUserStore } = await import('@/stores/user');
 	const sessionStore = useSessionStore();
 
+	const userStore = useUserStore();
 	let isLoggedIn = sessionStore.isLoggedIn;
 	try {
-		await useUserStore().fetch();
+		if (!userStore.data) {
+			await userStore.fetch();
+		}
 	} catch (error) {
 		isLoggedIn = false;
 	}

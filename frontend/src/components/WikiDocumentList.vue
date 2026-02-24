@@ -315,10 +315,7 @@ async function flushReorder() {
 }
 
 async function applyReorder(payload) {
-	if (!crStore.currentChangeRequest) {
-		await crStore.initChangeRequest(props.spaceId);
-	}
-	if (!crStore.currentChangeRequest) {
+	if (!(await crStore.ensureChangeRequest(props.spaceId))) {
 		toast.error(__('Could not create change request'));
 		return;
 	}
@@ -367,11 +364,7 @@ async function createDocument(close) {
 	}
 
 	try {
-		if (!crStore.currentChangeRequest) {
-			await crStore.initChangeRequest(props.spaceId);
-		}
-
-		if (!crStore.currentChangeRequest) {
+		if (!(await crStore.ensureChangeRequest(props.spaceId))) {
 			toast.error(__('Could not create change request'));
 			return;
 		}
@@ -401,11 +394,7 @@ async function createDocument(close) {
 
 async function deleteDocument(close) {
 	try {
-		if (!crStore.currentChangeRequest) {
-			await crStore.initChangeRequest(props.spaceId);
-		}
-
-		if (!crStore.currentChangeRequest) {
+		if (!(await crStore.ensureChangeRequest(props.spaceId))) {
 			toast.error(__('Could not create change request'));
 			return;
 		}
@@ -435,11 +424,7 @@ async function renameDocument(close) {
 	}
 
 	try {
-		if (!crStore.currentChangeRequest) {
-			await crStore.initChangeRequest(props.spaceId);
-		}
-
-		if (!crStore.currentChangeRequest) {
+		if (!(await crStore.ensureChangeRequest(props.spaceId))) {
 			toast.error(__('Could not create change request'));
 			return;
 		}
@@ -475,11 +460,7 @@ async function createExternalLink(close) {
 	}
 
 	try {
-		if (!crStore.currentChangeRequest) {
-			await crStore.initChangeRequest(props.spaceId);
-		}
-
-		if (!crStore.currentChangeRequest) {
+		if (!(await crStore.ensureChangeRequest(props.spaceId))) {
 			toast.error(__('Could not create change request'));
 			return;
 		}
@@ -528,11 +509,7 @@ async function updateExternalLink(close) {
 	}
 
 	try {
-		if (!crStore.currentChangeRequest) {
-			await crStore.initChangeRequest(props.spaceId);
-		}
-
-		if (!crStore.currentChangeRequest) {
+		if (!(await crStore.ensureChangeRequest(props.spaceId))) {
 			toast.error(__('Could not create change request'));
 			return;
 		}

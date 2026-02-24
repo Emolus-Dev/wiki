@@ -102,6 +102,13 @@ export const useChangeRequestStore = defineStore('changeRequest', () => {
 		return currentChangeRequest.value;
 	}
 
+	async function ensureChangeRequest(spaceId) {
+		if (!currentChangeRequest.value) {
+			await initChangeRequest(spaceId);
+		}
+		return !!currentChangeRequest.value;
+	}
+
 	async function loadChanges() {
 		if (!currentChangeRequest.value) return [];
 		await changesResource.submit({
@@ -231,6 +238,7 @@ export const useChangeRequestStore = defineStore('changeRequest', () => {
 		reorderChildrenResource,
 		refreshChangeRequest,
 		initChangeRequest,
+		ensureChangeRequest,
 		loadChanges,
 		submitForReview,
 		archiveChangeRequest,

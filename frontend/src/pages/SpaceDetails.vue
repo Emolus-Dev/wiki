@@ -406,23 +406,29 @@ const mergedTreeData = computed(() => {
     return clonedTree;
 });
 
-watch([() => space.doc, () => crStore.isChangeRequestMode], async ([doc, isMode]) => {
-    if (doc && isMode) {
-        crStore.currentChangeRequest = null;
-        await crStore.initChangeRequest(props.spaceId);
-        await crStore.loadChanges();
-        if (crStore.currentChangeRequest?.name) {
+watch(
+    [() => space.doc, () => crStore.isChangeRequestMode, () => crStore.currentChangeRequest?.name],
+    async ([doc, isMode, crName], oldValues) => {
+        if (!doc || !isMode) return;
+
+        const [oldDoc, , oldCrName] = oldValues || [];
+
+        if (doc !== oldDoc) {
+            crStore.currentChangeRequest = null;
+        }
+
+        if (!crStore.currentChangeRequest) {
+            await crStore.initChangeRequest(props.spaceId);
+            return;
+        }
+
+        if (crName && crName !== oldCrName) {
+            await crStore.loadChanges();
             await crTree.reload();
         }
-    }
-}, { immediate: true });
-
-watch(() => crStore.currentChangeRequest?.name, async (name) => {
-    if (name) {
-        await crStore.loadChanges();
-        await crTree.reload();
-    }
-});
+    },
+    { immediate: true },
+);
 
 async function refreshTree() {
     if (!crStore.currentChangeRequest?.name) {

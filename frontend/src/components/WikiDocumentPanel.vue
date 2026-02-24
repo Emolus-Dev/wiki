@@ -55,7 +55,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { createDocumentResource, Badge, Button, Dropdown, createResource, toast } from "frappe-ui";
 import WikiEditor from './WikiEditor.vue';
 import { useChangeRequestStore } from '@/stores/changeRequest';
@@ -96,37 +96,22 @@ const crPageResource = createResource({
 
 const currentCrPage = ref(null);
 
-onMounted(async () => {
-	if (props.spaceId) {
-		await crStore.initChangeRequest(props.spaceId);
-		await crStore.loadChanges();
-		await loadCrPage();
-	}
-});
-
-watch(() => props.pageId, async (newPageId) => {
+watch(() => props.pageId, (newPageId) => {
 	if (newPageId) {
 		wikiDoc.name = newPageId;
 		wikiDoc.reload();
 	}
 });
 
-watch(() => props.spaceId, async (newSpaceId) => {
-	if (newSpaceId) {
-		crStore.currentChangeRequest = null;
-		await crStore.initChangeRequest(newSpaceId);
-		await crStore.loadChanges();
-		await loadCrPage();
-	}
-});
-
-watch(() => wikiDoc.doc?.doc_key, async () => {
-	await loadCrPage();
-});
-
-watch(() => crStore.currentChangeRequest?.name, async () => {
-	await loadCrPage();
-});
+watch(
+	[() => crStore.currentChangeRequest?.name, () => wikiDoc.doc?.doc_key],
+	async ([crName, docKey]) => {
+		if (crName && docKey) {
+			await loadCrPage();
+		}
+	},
+	{ immediate: true },
+);
 
 async function loadCrPage() {
 	if (!crStore.currentChangeRequest || !wikiDoc.doc?.doc_key) {
