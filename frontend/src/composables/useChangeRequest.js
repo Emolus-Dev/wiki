@@ -1,4 +1,4 @@
-import { userResource } from '@/data/user';
+import { useUserStore } from '@/stores/user';
 import { createResource } from 'frappe-ui';
 import { computed, ref } from 'vue';
 
@@ -7,29 +7,11 @@ const isLoadingChangeRequest = ref(false);
 let initChangeRequestPromise = null;
 
 export function isWikiManager() {
-	const user = userResource.data;
-	if (!user || !user.roles) return false;
-
-	return user.roles.some(
-		(role) => role.role === 'Wiki Manager' || role.role === 'System Manager',
-	);
-}
-
-export function canAccessWiki() {
-	const user = userResource.data;
-	if (!user || !user.roles) return false;
-
-	return user.roles.some(
-		(role) =>
-			role.role === 'Wiki User' ||
-			role.role === 'Wiki Manager' ||
-			role.role === 'System Manager',
-	);
+	return useUserStore().isWikiManager;
 }
 
 export function shouldUseChangeRequestMode() {
-	const user = userResource.data;
-	return Boolean(user?.is_logged_in);
+	return useUserStore().shouldUseChangeRequestMode;
 }
 
 export function useChangeRequestMode(spaceId) {

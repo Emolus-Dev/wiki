@@ -276,8 +276,8 @@
 <script setup>
 import { ref, computed, reactive } from 'vue';
 import { createDocumentResource, createResource, Button, Badge, Dialog, FormControl, LoadingIndicator, toast } from 'frappe-ui';
-import { userResource } from '@/data/user';
-import { isWikiManager, currentChangeRequest } from '@/composables/useChangeRequest';
+import { useUserStore } from '@/stores/user';
+import { currentChangeRequest } from '@/composables/useChangeRequest';
 import DiffViewer from '@/components/DiffViewer.vue';
 import LucideChevronDown from '~icons/lucide/chevron-down';
 import LucideAlertCircle from '~icons/lucide/alert-circle';
@@ -352,8 +352,9 @@ const withdrawResource = createResource({
 	url: 'wiki.frappe_wiki.doctype.wiki_change_request.wiki_change_request.archive_change_request',
 });
 
-const isManager = computed(() => isWikiManager());
-const isOwner = computed(() => changeRequest.doc?.owner === userResource.data?.name);
+const userStore = useUserStore();
+const isManager = computed(() => userStore.isWikiManager);
+const isOwner = computed(() => changeRequest.doc?.owner === userStore.data?.name);
 
 const canReview = computed(() => {
 	return isManager.value && ['In Review', 'Approved'].includes(changeRequest.doc?.status);
@@ -491,7 +492,7 @@ async function handleReject(close) {
 	try {
 		await rejectResource.submit({
 			name: props.changeRequestId,
-			reviewer: userResource.data?.name,
+			reviewer: userStore.data?.name,
 			status: 'Changes Requested',
 			comment: rejectComment.value.trim(),
 		});
