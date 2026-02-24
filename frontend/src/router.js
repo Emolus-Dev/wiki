@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import { session } from './data/session';
 
 const routes = [
 	{
@@ -76,9 +75,12 @@ const router = createRouter({
 });
 
 router.beforeEach(async (to, from, next) => {
-	let isLoggedIn = session.isLoggedIn;
+	const { useSessionStore } = await import('@/stores/session');
+	const { useUserStore } = await import('@/stores/user');
+	const sessionStore = useSessionStore();
+
+	let isLoggedIn = sessionStore.isLoggedIn;
 	try {
-		const { useUserStore } = await import('@/stores/user');
 		await useUserStore().fetch();
 	} catch (error) {
 		isLoggedIn = false;
