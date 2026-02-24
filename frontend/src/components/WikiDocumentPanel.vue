@@ -124,6 +124,7 @@ const currentCrPage = ref(null);
 
 watch(() => props.pageId, (newPageId) => {
 	if (newPageId) {
+		currentCrPage.value = null;
 		wikiDoc.name = newPageId;
 		wikiDoc.reload();
 	}
@@ -134,6 +135,8 @@ watch(
 	async ([crName, docKey]) => {
 		if (crName && docKey) {
 			await loadCrPage();
+		} else {
+			currentCrPage.value = null;
 		}
 	},
 	{ immediate: true },
@@ -141,6 +144,7 @@ watch(
 
 async function loadCrPage() {
 	if (!crStore.currentChangeRequest || !wikiDoc.doc?.doc_key) {
+		currentCrPage.value = null;
 		return;
 	}
 	await crPageResource.submit({
