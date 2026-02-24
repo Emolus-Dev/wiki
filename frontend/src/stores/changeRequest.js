@@ -7,6 +7,7 @@ export const useChangeRequestStore = defineStore('changeRequest', () => {
 	const currentChangeRequest = ref(null);
 	const isLoadingChangeRequest = ref(false);
 	let initChangeRequestPromise = null;
+	let loadChangesPromise = null;
 
 	const isChangeRequestMode = computed(
 		() => useUserStore().shouldUseChangeRequestMode,
@@ -111,11 +112,19 @@ export const useChangeRequestStore = defineStore('changeRequest', () => {
 
 	async function loadChanges() {
 		if (!currentChangeRequest.value) return [];
-		await changesResource.submit({
-			name: currentChangeRequest.value.name,
-			scope: 'summary',
-		});
-		return changesResource.data || [];
+		if (loadChangesPromise) return loadChangesPromise;
+
+		loadChangesPromise = changesResource
+			.submit({
+				name: currentChangeRequest.value.name,
+				scope: 'summary',
+			})
+			.then(() => changesResource.data || [])
+			.finally(() => {
+				loadChangesPromise = null;
+			});
+
+		return loadChangesPromise;
 	}
 
 	async function submitForReview(reviewers = []) {

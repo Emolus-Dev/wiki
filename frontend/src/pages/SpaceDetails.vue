@@ -37,11 +37,12 @@
                 <p class="text-sm text-ink-gray-5 mt-0.5">{{ space.doc?.route }}</p>
             </div>
 
-            <div v-if="space.doc && mergedTreeData" class="flex-1 overflow-auto p-2">
+            <div v-if="space.doc && treeData" class="flex-1 overflow-auto p-2">
                 <WikiDocumentList
-                    :tree-data="mergedTreeData"
+                    :tree-data="treeData"
+                    :change-type-map="changeTypeMap"
                     :space-id="spaceId"
-                    :root-node="mergedTreeData.root_group || space.doc.root_group"
+                    :root-node="treeData.root_group || space.doc.root_group"
                     :selected-page-id="currentPageId"
                     :selected-draft-key="currentDraftKey"
                     @refresh="refreshTree"
@@ -372,30 +373,14 @@ const crTree = createResource({
     auto: false,
 });
 
-const mergedTreeData = computed(() => {
-    const tree = crTree.data;
-    if (!tree) {
-        return tree;
+const treeData = computed(() => crTree.data);
+
+const changeTypeMap = computed(() => {
+    const map = new Map();
+    for (const change of crStore.changes) {
+        map.set(change.doc_key, change.change_type);
     }
-
-    const clonedTree = JSON.parse(JSON.stringify(tree));
-    const changeMap = new Map((crStore.changes).map((change) => [change.doc_key, change]));
-
-    const applyChanges = (nodes) => {
-        if (!nodes) return;
-        for (const node of nodes) {
-            const change = changeMap.get(node.doc_key);
-            if (change) {
-                node._changeType = change.change_type;
-            }
-            if (node.children) {
-                applyChanges(node.children);
-            }
-        }
-    };
-
-    applyChanges(clonedTree.children || []);
-    return clonedTree;
+    return map;
 });
 
 watch(
@@ -480,7 +465,7 @@ async function handleMergeChangeRequest() {
         await refreshTree();
 
         if (docKey) {
-            const node = findNodeByDocKey(mergedTreeData.value?.children, docKey);
+            const node = findNodeByDocKey(treeData.value?.children, docKey);
             if (node?.document_name) {
                 router.push({ name: 'SpacePage', params: { spaceId: props.spaceId, pageId: node.document_name } });
             }

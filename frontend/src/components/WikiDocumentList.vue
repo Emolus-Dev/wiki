@@ -29,6 +29,7 @@
 			<NestedDraggable
 				:key="treeKey"
 				:items="treeData.children"
+				:change-type-map="changeTypeMap"
 				:level="0"
 				:parent-name="rootNode"
 				:space-id="spaceId"
@@ -195,6 +196,10 @@ const props = defineProps({
 		type: Object,
 		required: true,
 	},
+	changeTypeMap: {
+		type: Map,
+		default: () => new Map(),
+	},
 	spaceId: {
 		type: String,
 		required: true,
@@ -321,9 +326,6 @@ async function applyReorder(payload) {
 		payload.newParent,
 		siblingKeys,
 	);
-	if (payload?.item && !payload.item._changeType) {
-		payload.item._changeType = 'reordered';
-	}
 	toast.success(__('Documents reordered'));
 	emit('refresh');
 }
