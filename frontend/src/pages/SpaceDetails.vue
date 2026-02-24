@@ -450,7 +450,6 @@ async function handleArchiveChangeRequest() {
         toast.success(__('Change request archived'));
         crStore.currentChangeRequest = null;
         await crStore.initChangeRequest(props.spaceId);
-        await crStore.loadChanges();
         await refreshTree();
     } catch (error) {
         toast.error(error.messages?.[0] || __('Error archiving change request'));
@@ -474,7 +473,6 @@ async function handleMergeChangeRequest() {
         toast.success(__('Change request merged'));
         crStore.currentChangeRequest = null;
         await crStore.initChangeRequest(props.spaceId);
-        await crStore.loadChanges();
         await refreshTree();
 
         if (docKey) {
