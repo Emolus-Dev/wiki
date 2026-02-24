@@ -1,4 +1,3 @@
-import router from '@/router';
 import { createResource } from 'frappe-ui';
 import { defineStore } from 'pinia';
 import { computed } from 'vue';
@@ -9,7 +8,7 @@ export const useUserStore = defineStore('user', () => {
 		cache: 'User',
 		onError(error) {
 			if (error && error.exc_type === 'AuthenticationError') {
-				router.push({ name: 'LoginPage' });
+				window.location.href = '/login';
 			}
 		},
 	});

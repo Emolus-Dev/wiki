@@ -1,4 +1,3 @@
-import router from '@/router';
 import { useUserStore } from '@/stores/user';
 import { createResource } from 'frappe-ui';
 import { defineStore } from 'pinia';
@@ -30,7 +29,7 @@ export const useSessionStore = defineStore('session', () => {
 			useUserStore().reload();
 			user.value = getCookieUser();
 			login.reset();
-			router.replace(data.default_route || '/');
+			window.location.href = data.default_route || '/';
 		},
 	});
 
@@ -39,7 +38,7 @@ export const useSessionStore = defineStore('session', () => {
 		onSuccess() {
 			useUserStore().reset();
 			user.value = getCookieUser();
-			router.replace({ name: 'Login' });
+			window.location.href = '/login';
 		},
 	});
 
