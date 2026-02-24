@@ -44,8 +44,27 @@
 			</div>
 		</div>
 
-		<div v-else-if="isLoading" class="h-full flex items-center justify-center">
-			<LoadingIndicator class="size-8" />
+		<div v-else-if="isLoading" class="h-full flex flex-col animate-pulse">
+			<div class="flex items-center justify-between p-6 pb-4 shrink-0 border-b-2 border-b-gray-500/20">
+				<div class="flex items-center gap-2">
+					<div class="h-7 w-48 rounded bg-surface-gray-3" />
+					<div class="h-5 w-14 rounded-full bg-surface-gray-3" />
+				</div>
+				<div class="flex items-center gap-2">
+					<div class="h-8 w-28 rounded bg-surface-gray-3" />
+					<div class="size-8 rounded bg-surface-gray-3" />
+				</div>
+			</div>
+			<div class="flex-1 px-6 pb-6 mt-4 space-y-4">
+				<div class="h-4 w-3/4 rounded bg-surface-gray-3" />
+				<div class="h-4 w-full rounded bg-surface-gray-3" />
+				<div class="h-4 w-5/6 rounded bg-surface-gray-3" />
+				<div class="h-4 w-full rounded bg-surface-gray-3" />
+				<div class="h-4 w-2/3 rounded bg-surface-gray-3" />
+				<div class="h-4 w-full rounded bg-surface-gray-3 mt-6" />
+				<div class="h-4 w-4/5 rounded bg-surface-gray-3" />
+				<div class="h-4 w-full rounded bg-surface-gray-3" />
+			</div>
 		</div>
 
 		<div v-else class="h-full flex items-center justify-center text-ink-gray-5">

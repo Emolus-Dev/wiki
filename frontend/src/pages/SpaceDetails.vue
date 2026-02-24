@@ -49,6 +49,19 @@
                     @reorder-state-change="handleReorderStateChange"
                 />
             </div>
+            <div v-else class="flex-1 overflow-auto p-2">
+                <!-- Sidebar tree skeleton -->
+                <div class="space-y-1 animate-pulse">
+                    <div v-for="i in 8" :key="i" class="flex items-center gap-2 px-2 py-1.5 rounded">
+                        <div class="size-4 rounded bg-surface-gray-3 shrink-0" />
+                        <div class="h-3.5 rounded bg-surface-gray-3" :style="{ width: `${60 + (i % 3) * 25}%` }" />
+                    </div>
+                    <div v-for="i in 4" :key="'nested-' + i" class="flex items-center gap-2 px-2 py-1.5 rounded ml-6">
+                        <div class="size-4 rounded bg-surface-gray-3 shrink-0" />
+                        <div class="h-3.5 rounded bg-surface-gray-3" :style="{ width: `${50 + (i % 2) * 30}%` }" />
+                    </div>
+                </div>
+            </div>
 
             <div
                 class="absolute top-0 right-0 w-1 h-full cursor-col-resize z-10"
