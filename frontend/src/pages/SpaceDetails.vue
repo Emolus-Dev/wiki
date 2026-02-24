@@ -58,14 +58,6 @@
 
         <main class="flex-1 flex flex-col bg-surface-white min-w-0">
             <ContributionBanner
-                :isChangeRequestMode="crStore.isChangeRequestMode"
-                :changeRequestStatus="crStore.currentChangeRequest?.status || 'Draft'"
-                :changeCount="crStore.changeCount"
-                :changes="crStore.changesResource.data || []"
-                :submitReviewResource="crStore.submitReviewResource"
-                :archiveChangeRequestResource="crStore.archiveChangeRequestResource"
-                :mergeResource="crStore.mergeChangeRequestResource"
-                :canMerge="isManager"
                 :mergeDisabled="isTreeReordering"
                 @submit="handleSubmitChangeRequest"
                 @withdraw="handleArchiveChangeRequest"
@@ -387,7 +379,7 @@ const mergedTreeData = computed(() => {
     }
 
     const clonedTree = JSON.parse(JSON.stringify(tree));
-    const changeMap = new Map((crStore.changesResource.data || []).map((change) => [change.doc_key, change]));
+    const changeMap = new Map((crStore.changes).map((change) => [change.doc_key, change]));
 
     const applyChanges = (nodes) => {
         if (!nodes) return;

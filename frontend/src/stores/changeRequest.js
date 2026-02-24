@@ -143,7 +143,14 @@ export const useChangeRequestStore = defineStore('changeRequest', () => {
 		return currentChangeRequest.value;
 	}
 
-	const changeCount = computed(() => changesResource.data?.length || 0);
+	const changes = computed(() => changesResource.data || []);
+	const changeCount = computed(() => changes.value.length);
+	const isSubmitting = computed(() => submitReviewResource.loading);
+	const isArchiving = computed(() => archiveChangeRequestResource.loading);
+	const isMerging = computed(() => mergeChangeRequestResource.loading);
+	const isCreatingPage = computed(() => createPageResource.loading);
+	const isUpdatingPage = computed(() => updatePageResource.loading);
+	const isDeletingPage = computed(() => deletePageResource.loading);
 
 	const canSubmit = computed(() => {
 		return (
@@ -222,20 +229,16 @@ export const useChangeRequestStore = defineStore('changeRequest', () => {
 		isLoadingChangeRequest,
 		isChangeRequestMode,
 		hasActiveChangeRequest,
+		changes,
 		changeCount,
 		canSubmit,
 		canWithdraw,
-		changeRequestResource,
-		draftChangeRequestResource,
-		changesResource,
-		submitReviewResource,
-		archiveChangeRequestResource,
-		mergeChangeRequestResource,
-		createPageResource,
-		updatePageResource,
-		deletePageResource,
-		movePageResource,
-		reorderChildrenResource,
+		isSubmitting,
+		isArchiving,
+		isMerging,
+		isCreatingPage,
+		isUpdatingPage,
+		isDeletingPage,
 		refreshChangeRequest,
 		initChangeRequest,
 		ensureChangeRequest,

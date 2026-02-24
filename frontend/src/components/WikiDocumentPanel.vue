@@ -126,7 +126,7 @@ async function loadCrPage() {
 const hasChangeForCurrentPage = computed(() => {
 	const docKey = wikiDoc.doc?.doc_key;
 	if (!docKey) return false;
-	return Boolean(crStore.changesResource.data?.some((change) => change.doc_key === docKey));
+	return Boolean(crStore.changes.some((change) => change.doc_key === docKey));
 });
 
 const editorContent = computed(() => {
@@ -148,7 +148,7 @@ const displayPublished = computed(() => {
 });
 
 const isSaving = computed(() => {
-	return crStore.updatePageResource.loading;
+	return crStore.isUpdatingPage;
 });
 
 const editorKey = computed(() => {

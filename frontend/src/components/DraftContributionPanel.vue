@@ -140,7 +140,7 @@ const editorContent = computed(() => {
 });
 
 const isSaving = computed(() => {
-	return crStore.updatePageResource.loading;
+	return crStore.isUpdatingPage;
 });
 
 const editorKey = computed(() => {
