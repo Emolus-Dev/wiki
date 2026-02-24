@@ -128,7 +128,7 @@ import { useRouter } from 'vue-router';
 import { useStorage } from '@vueuse/core';
 import { Dropdown, Badge, Button, toast } from 'frappe-ui';
 import draggable from 'vuedraggable';
-import { useChangeRequest, currentChangeRequest } from '@/composables/useChangeRequest';
+import { useChangeRequestStore } from '@/stores/changeRequest';
 import LucideChevronRight from '~icons/lucide/chevron-right';
 import LucideFolder from '~icons/lucide/folder';
 import LucideFileText from '~icons/lucide/file-text';
@@ -179,7 +179,7 @@ const emit = defineEmits([
     'drag-state-change',
 ]);
 const router = useRouter();
-const { updatePage } = useChangeRequest();
+const crStore = useChangeRequestStore();
 
 const localItems = ref([...props.items]);
 const isDragging = ref(false);
@@ -299,13 +299,13 @@ function handleNestedDragStateChange(state) {
 }
 
 async function togglePublish(element) {
-    if (!currentChangeRequest.value) {
+    if (!crStore.currentChangeRequest) {
         toast.error(__('No active change request'));
         return;
     }
     const newStatus = element.is_published ? 0 : 1;
     try {
-        await updatePage(currentChangeRequest.value.name, element.doc_key, {
+        await crStore.updatePage(crStore.currentChangeRequest.name, element.doc_key, {
             is_published: newStatus,
         });
         const action = element.is_published ? __('unpublished') : __('published');

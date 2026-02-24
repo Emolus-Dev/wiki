@@ -59,7 +59,7 @@
 			<template #actions="{ close }">
 				<div class="flex justify-end gap-2">
 					<Button variant="outline" @click="close">{{ __('Cancel') }}</Button>
-					<Button variant="solid" :loading="createPageResource.loading" @click="createDocument(close)">
+					<Button variant="solid" :loading="crStore.createPageResource.loading" @click="createDocument(close)">
 						{{ __('Save Draft') }}
 					</Button>
 				</div>
@@ -97,7 +97,7 @@
 			<template #actions="{ close }">
 				<div class="flex justify-end gap-2">
 					<Button variant="outline" @click="close">{{ __('Cancel') }}</Button>
-					<Button variant="solid" theme="gray" :loading="deletePageResource.loading"
+					<Button variant="solid" theme="gray" :loading="crStore.deletePageResource.loading"
 						@click="deleteDocument(close)">
 						{{ __('Save Delete Draft') }}
 					</Button>
@@ -120,7 +120,7 @@
 			<template #actions="{ close }">
 				<div class="flex justify-end gap-2">
 					<Button variant="outline" @click="close">{{ __('Cancel') }}</Button>
-					<Button variant="solid" :loading="updatePageResource.loading"
+					<Button variant="solid" :loading="crStore.updatePageResource.loading"
 						@click="renameDocument(close)">
 						{{ __('Save') }}
 					</Button>
@@ -145,7 +145,7 @@
 			<template #actions="{ close }">
 				<div class="flex justify-end gap-2">
 					<Button variant="outline" @click="close">{{ __('Cancel') }}</Button>
-					<Button variant="solid" :loading="createPageResource.loading" @click="createExternalLink(close)">
+					<Button variant="solid" :loading="crStore.createPageResource.loading" @click="createExternalLink(close)">
 						{{ __('Save Draft') }}
 					</Button>
 				</div>
@@ -169,7 +169,7 @@
 			<template #actions="{ close }">
 				<div class="flex justify-end gap-2">
 					<Button variant="outline" @click="close">{{ __('Cancel') }}</Button>
-					<Button variant="solid" :loading="updatePageResource.loading" @click="updateExternalLink(close)">
+					<Button variant="solid" :loading="crStore.updatePageResource.loading" @click="updateExternalLink(close)">
 						{{ __('Save') }}
 					</Button>
 				</div>
@@ -179,11 +179,11 @@
 </template>
 
 <script setup>
-import { ref, toRef, computed, watch, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import { useStorage } from '@vueuse/core';
 import { toast, FormControl } from 'frappe-ui';
 import NestedDraggable from './NestedDraggable.vue';
-import { useChangeRequestMode, useChangeRequest, currentChangeRequest } from '@/composables/useChangeRequest';
+import { useChangeRequestStore } from '@/stores/changeRequest';
 import LucideFilePlus from '~icons/lucide/file-plus';
 import LucideFileText from '~icons/lucide/file-text';
 import LucideAlertTriangle from '~icons/lucide/alert-triangle';
@@ -226,22 +226,7 @@ const treeKey = computed(() => {
 	return getNodeIds(props.treeData?.children);
 });
 
-const spaceIdRef = toRef(props, 'spaceId');
-const {
-	initChangeRequest,
-	loadChanges,
-} = useChangeRequestMode(spaceIdRef);
-
-const {
-	createPage,
-	createPageResource,
-	updatePage,
-	updatePageResource,
-	deletePage,
-	deletePageResource,
-	movePage,
-	reorderChildren,
-} = useChangeRequest();
+const crStore = useChangeRequestStore();
 
 const expandedNodes = useStorage('wiki-tree-expanded-nodes', {});
 
@@ -330,23 +315,23 @@ async function flushReorder() {
 }
 
 async function applyReorder(payload) {
-	if (!currentChangeRequest.value) {
-		await initChangeRequest();
+	if (!crStore.currentChangeRequest) {
+		await crStore.initChangeRequest(props.spaceId);
 	}
-	if (!currentChangeRequest.value) {
+	if (!crStore.currentChangeRequest) {
 		toast.error(__('Could not create change request'));
 		return;
 	}
 
 	const siblingKeys = payload.siblings.map(s => s.doc_key);
-	await movePage(
-		currentChangeRequest.value.name,
+	await crStore.movePage(
+		crStore.currentChangeRequest.name,
 		payload.item.doc_key,
 		payload.newParent,
 		payload.newIndex,
 	);
-	await reorderChildren(
-		currentChangeRequest.value.name,
+	await crStore.reorderChildren(
+		crStore.currentChangeRequest.name,
 		payload.newParent,
 		siblingKeys,
 	);
@@ -382,17 +367,17 @@ async function createDocument(close) {
 	}
 
 	try {
-		if (!currentChangeRequest.value) {
-			await initChangeRequest();
+		if (!crStore.currentChangeRequest) {
+			await crStore.initChangeRequest(props.spaceId);
 		}
 
-		if (!currentChangeRequest.value) {
+		if (!crStore.currentChangeRequest) {
 			toast.error(__('Could not create change request'));
 			return;
 		}
 
-		await createPage(
-			currentChangeRequest.value.name,
+		await crStore.createPage(
+			crStore.currentChangeRequest.name,
 			createParent.value,
 			createTitle.value.trim(),
 			'',
@@ -405,7 +390,7 @@ async function createDocument(close) {
 			expandedNodes.value[createParent.value] = true;
 		}
 
-		await loadChanges();
+		await crStore.loadChanges();
 		emit('refresh');
 		close();
 	} catch (error) {
@@ -416,19 +401,19 @@ async function createDocument(close) {
 
 async function deleteDocument(close) {
 	try {
-		if (!currentChangeRequest.value) {
-			await initChangeRequest();
+		if (!crStore.currentChangeRequest) {
+			await crStore.initChangeRequest(props.spaceId);
 		}
 
-		if (!currentChangeRequest.value) {
+		if (!crStore.currentChangeRequest) {
 			toast.error(__('Could not create change request'));
 			return;
 		}
 
-		await deletePage(currentChangeRequest.value.name, deleteNode.value.doc_key);
+		await crStore.deletePage(crStore.currentChangeRequest.name, deleteNode.value.doc_key);
 
 		toast.success(__('Delete saved as draft'));
-		await loadChanges();
+		await crStore.loadChanges();
 		emit('refresh');
 		close();
 	} catch (error) {
@@ -450,20 +435,20 @@ async function renameDocument(close) {
 	}
 
 	try {
-		if (!currentChangeRequest.value) {
-			await initChangeRequest();
+		if (!crStore.currentChangeRequest) {
+			await crStore.initChangeRequest(props.spaceId);
 		}
 
-		if (!currentChangeRequest.value) {
+		if (!crStore.currentChangeRequest) {
 			toast.error(__('Could not create change request'));
 			return;
 		}
 
-		await updatePage(currentChangeRequest.value.name, renameNode.value.doc_key, {
+		await crStore.updatePage(crStore.currentChangeRequest.name, renameNode.value.doc_key, {
 			title: renameTitle.value.trim(),
 		});
 		toast.success(renameNode.value?.is_group ? __('Group renamed') : __('Title updated'));
-		await loadChanges();
+		await crStore.loadChanges();
 		emit('refresh');
 		close();
 	} catch (error) {
@@ -490,17 +475,17 @@ async function createExternalLink(close) {
 	}
 
 	try {
-		if (!currentChangeRequest.value) {
-			await initChangeRequest();
+		if (!crStore.currentChangeRequest) {
+			await crStore.initChangeRequest(props.spaceId);
 		}
 
-		if (!currentChangeRequest.value) {
+		if (!crStore.currentChangeRequest) {
 			toast.error(__('Could not create change request'));
 			return;
 		}
 
-		await createPage(
-			currentChangeRequest.value.name,
+		await crStore.createPage(
+			crStore.currentChangeRequest.name,
 			externalLinkParent.value,
 			externalLinkTitle.value.trim(),
 			'',
@@ -515,7 +500,7 @@ async function createExternalLink(close) {
 			expandedNodes.value[externalLinkParent.value] = true;
 		}
 
-		await loadChanges();
+		await crStore.loadChanges();
 		emit('refresh');
 		close();
 	} catch (error) {
@@ -543,22 +528,22 @@ async function updateExternalLink(close) {
 	}
 
 	try {
-		if (!currentChangeRequest.value) {
-			await initChangeRequest();
+		if (!crStore.currentChangeRequest) {
+			await crStore.initChangeRequest(props.spaceId);
 		}
 
-		if (!currentChangeRequest.value) {
+		if (!crStore.currentChangeRequest) {
 			toast.error(__('Could not create change request'));
 			return;
 		}
 
-		await updatePage(currentChangeRequest.value.name, editExternalLinkNode.value.doc_key, {
+		await crStore.updatePage(crStore.currentChangeRequest.name, editExternalLinkNode.value.doc_key, {
 			title: editExternalLinkTitle.value.trim(),
 			external_url: editExternalLinkUrl.value.trim(),
 		});
 
 		toast.success(__('External link updated'));
-		await loadChanges();
+		await crStore.loadChanges();
 		emit('refresh');
 		close();
 	} catch (error) {

@@ -277,7 +277,7 @@
 import { ref, computed, reactive } from 'vue';
 import { createDocumentResource, createResource, Button, Badge, Dialog, FormControl, LoadingIndicator, toast } from 'frappe-ui';
 import { useUserStore } from '@/stores/user';
-import { currentChangeRequest } from '@/composables/useChangeRequest';
+import { useChangeRequestStore } from '@/stores/changeRequest';
 import DiffViewer from '@/components/DiffViewer.vue';
 import LucideChevronDown from '~icons/lucide/chevron-down';
 import LucideAlertCircle from '~icons/lucide/alert-circle';
@@ -353,6 +353,7 @@ const withdrawResource = createResource({
 });
 
 const userStore = useUserStore();
+const crStore = useChangeRequestStore();
 const isManager = computed(() => userStore.isWikiManager);
 const isOwner = computed(() => changeRequest.doc?.owner === userStore.data?.name);
 
@@ -432,8 +433,8 @@ async function handleApprove() {
 	try {
 		await mergeResource.submit({ name: props.changeRequestId });
 		toast.success(__('Change request merged'));
-		if (currentChangeRequest.value?.name === props.changeRequestId) {
-			currentChangeRequest.value = null;
+		if (crStore.currentChangeRequest?.name === props.changeRequestId) {
+			crStore.currentChangeRequest = null;
 		}
 		changeRequest.reload();
 		await changes.submit({ name: props.changeRequestId, scope: 'summary' });
@@ -471,8 +472,8 @@ async function handleResolveAndMerge() {
 		toast.success(__('Conflicts resolved and change request merged'));
 		hasConflicts.value = false;
 		conflicts.value = [];
-		if (currentChangeRequest.value?.name === props.changeRequestId) {
-			currentChangeRequest.value = null;
+		if (crStore.currentChangeRequest?.name === props.changeRequestId) {
+			crStore.currentChangeRequest = null;
 		}
 		changeRequest.reload();
 		await changes.submit({ name: props.changeRequestId, scope: 'summary' });

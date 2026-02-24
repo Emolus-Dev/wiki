@@ -55,10 +55,10 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, toRef, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { createDocumentResource, Badge, Button, Dropdown, createResource, toast } from "frappe-ui";
 import WikiEditor from './WikiEditor.vue';
-import { useChangeRequestMode, useChangeRequest, currentChangeRequest } from '@/composables/useChangeRequest';
+import { useChangeRequestStore } from '@/stores/changeRequest';
 import LucideMoreVertical from '~icons/lucide/more-vertical';
 import LucideLock from '~icons/lucide/lock';
 import LucideExternalLink from '~icons/lucide/external-link';
@@ -79,17 +79,7 @@ const props = defineProps({
 const emit = defineEmits(['refresh']);
 const editorRef = ref(null);
 
-const spaceIdRef = toRef(props, 'spaceId');
-const {
-	initChangeRequest,
-	loadChanges,
-	changesResource,
-} = useChangeRequestMode(spaceIdRef);
-
-const {
-	updatePage,
-	updatePageResource,
-} = useChangeRequest();
+const crStore = useChangeRequestStore();
 
 const wikiDoc = createDocumentResource({
 	doctype: "Wiki Document",
@@ -108,8 +98,8 @@ const currentCrPage = ref(null);
 
 onMounted(async () => {
 	if (props.spaceId) {
-		await initChangeRequest();
-		await loadChanges();
+		await crStore.initChangeRequest(props.spaceId);
+		await crStore.loadChanges();
 		await loadCrPage();
 	}
 });
@@ -123,9 +113,9 @@ watch(() => props.pageId, async (newPageId) => {
 
 watch(() => props.spaceId, async (newSpaceId) => {
 	if (newSpaceId) {
-		currentChangeRequest.value = null;
-		await initChangeRequest();
-		await loadChanges();
+		crStore.currentChangeRequest = null;
+		await crStore.initChangeRequest(newSpaceId);
+		await crStore.loadChanges();
 		await loadCrPage();
 	}
 });
@@ -134,16 +124,16 @@ watch(() => wikiDoc.doc?.doc_key, async () => {
 	await loadCrPage();
 });
 
-watch(() => currentChangeRequest.value?.name, async () => {
+watch(() => crStore.currentChangeRequest?.name, async () => {
 	await loadCrPage();
 });
 
 async function loadCrPage() {
-	if (!currentChangeRequest.value || !wikiDoc.doc?.doc_key) {
+	if (!crStore.currentChangeRequest || !wikiDoc.doc?.doc_key) {
 		return;
 	}
 	await crPageResource.submit({
-		name: currentChangeRequest.value.name,
+		name: crStore.currentChangeRequest.name,
 		doc_key: wikiDoc.doc.doc_key,
 	});
 }
@@ -151,7 +141,7 @@ async function loadCrPage() {
 const hasChangeForCurrentPage = computed(() => {
 	const docKey = wikiDoc.doc?.doc_key;
 	if (!docKey) return false;
-	return Boolean(changesResource.data?.some((change) => change.doc_key === docKey));
+	return Boolean(crStore.changesResource.data?.some((change) => change.doc_key === docKey));
 });
 
 const editorContent = computed(() => {
@@ -173,7 +163,7 @@ const displayPublished = computed(() => {
 });
 
 const isSaving = computed(() => {
-	return updatePageResource.loading;
+	return crStore.updatePageResource.loading;
 });
 
 const editorKey = computed(() => {
@@ -194,16 +184,16 @@ const menuOptions = computed(() => {
 });
 
 async function togglePublish() {
-	if (!currentChangeRequest.value || !wikiDoc.doc?.doc_key) return;
+	if (!crStore.currentChangeRequest || !wikiDoc.doc?.doc_key) return;
 	const newStatus = displayPublished.value ? 0 : 1;
 	const action = newStatus ? __('published') : __('unpublished');
 
 	try {
-		await updatePage(currentChangeRequest.value.name, wikiDoc.doc.doc_key, {
+		await crStore.updatePage(crStore.currentChangeRequest.name, wikiDoc.doc.doc_key, {
 			is_published: newStatus,
 		});
 		toast.success(__('Page {0}', [action]));
-		await loadChanges();
+		await crStore.loadChanges();
 		await loadCrPage();
 		emit('refresh');
 	} catch (error) {
@@ -220,18 +210,18 @@ function saveFromHeader() {
 }
 
 async function saveContent(content) {
-	if (!currentChangeRequest.value || !wikiDoc.doc?.doc_key) {
+	if (!crStore.currentChangeRequest || !wikiDoc.doc?.doc_key) {
 		toast.error(__('No active change request'));
 		return;
 	}
 
 	try {
-		await updatePage(currentChangeRequest.value.name, wikiDoc.doc.doc_key, {
+		await crStore.updatePage(crStore.currentChangeRequest.name, wikiDoc.doc.doc_key, {
 			content,
 			title: displayTitle.value,
 		});
 		toast.success(__('Draft updated'));
-		await loadChanges();
+		await crStore.loadChanges();
 		emit('refresh');
 	} catch (error) {
 		console.error('Error saving change request:', error);

@@ -58,13 +58,13 @@
 
         <main class="flex-1 flex flex-col bg-surface-white min-w-0">
             <ContributionBanner
-                :isChangeRequestMode="isChangeRequestMode"
-                :changeRequestStatus="currentChangeRequest?.status || 'Draft'"
-                :changeCount="changeCount"
-                :changes="changesResource.data || []"
-                :submitReviewResource="submitReviewResource"
-                :archiveChangeRequestResource="archiveChangeRequestResource"
-                :mergeResource="mergeChangeRequestResource"
+                :isChangeRequestMode="crStore.isChangeRequestMode"
+                :changeRequestStatus="crStore.currentChangeRequest?.status || 'Draft'"
+                :changeCount="crStore.changeCount"
+                :changes="crStore.changesResource.data || []"
+                :submitReviewResource="crStore.submitReviewResource"
+                :archiveChangeRequestResource="crStore.archiveChangeRequestResource"
+                :mergeResource="crStore.mergeChangeRequestResource"
                 :canMerge="isManager"
                 :mergeDisabled="isTreeReordering"
                 @submit="handleSubmitChangeRequest"
@@ -229,13 +229,14 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, toRef } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { createDocumentResource, createResource, Button, Dialog, Switch, FormControl, toast } from 'frappe-ui';
 import WikiDocumentList from '../components/WikiDocumentList.vue';
 import ContributionBanner from '../components/ContributionBanner.vue';
 import { useSidebarResize } from '../composables/useSidebarResize';
-import { useChangeRequestMode, currentChangeRequest, isWikiManager } from '../composables/useChangeRequest';
+import { useChangeRequestStore } from '@/stores/changeRequest';
+import { useUserStore } from '@/stores/user';
 
 const props = defineProps({
     spaceId: {
@@ -247,22 +248,10 @@ const props = defineProps({
 const route = useRoute();
 
 const router = useRouter();
-const spaceIdRef = toRef(props, 'spaceId');
-const {
-    isChangeRequestMode,
-    changeCount,
-    changesResource,
-    initChangeRequest,
-    loadChanges,
-    submitReviewResource,
-    archiveChangeRequestResource,
-    mergeChangeRequestResource,
-    submitForReview,
-    archiveChangeRequest,
-    mergeChangeRequest,
-} = useChangeRequestMode(spaceIdRef);
+const crStore = useChangeRequestStore();
+const userStore = useUserStore();
 
-const isManager = computed(() => isWikiManager());
+const isManager = computed(() => userStore.isWikiManager);
 
 const showSettingsDialog = ref(false);
 const showUpdateRoutesDialog = ref(false);
@@ -383,10 +372,10 @@ async function cloneSpace(close) {
 const crTree = createResource({
     url: 'wiki.frappe_wiki.doctype.wiki_change_request.wiki_change_request.get_cr_tree',
     makeParams() {
-        if (!currentChangeRequest.value?.name) {
+        if (!crStore.currentChangeRequest?.name) {
             return null;
         }
-        return { name: currentChangeRequest.value.name };
+        return { name: crStore.currentChangeRequest.name };
     },
     auto: false,
 });
@@ -398,7 +387,7 @@ const mergedTreeData = computed(() => {
     }
 
     const clonedTree = JSON.parse(JSON.stringify(tree));
-    const changeMap = new Map((changesResource.data || []).map((change) => [change.doc_key, change]));
+    const changeMap = new Map((crStore.changesResource.data || []).map((change) => [change.doc_key, change]));
 
     const applyChanges = (nodes) => {
         if (!nodes) return;
@@ -417,30 +406,30 @@ const mergedTreeData = computed(() => {
     return clonedTree;
 });
 
-watch([() => space.doc, isChangeRequestMode], async ([doc, isMode]) => {
+watch([() => space.doc, () => crStore.isChangeRequestMode], async ([doc, isMode]) => {
     if (doc && isMode) {
-        currentChangeRequest.value = null;
-        await initChangeRequest();
-        await loadChanges();
-        if (currentChangeRequest.value?.name) {
+        crStore.currentChangeRequest = null;
+        await crStore.initChangeRequest(props.spaceId);
+        await crStore.loadChanges();
+        if (crStore.currentChangeRequest?.name) {
             await crTree.reload();
         }
     }
 }, { immediate: true });
 
-watch(() => currentChangeRequest.value?.name, async (name) => {
+watch(() => crStore.currentChangeRequest?.name, async (name) => {
     if (name) {
-        await loadChanges();
+        await crStore.loadChanges();
         await crTree.reload();
     }
 });
 
 async function refreshTree() {
-    if (!currentChangeRequest.value?.name) {
+    if (!crStore.currentChangeRequest?.name) {
         return;
     }
     await crTree.reload();
-    await loadChanges();
+    await crStore.loadChanges();
 }
 
 function handleReorderStateChange(isReordering) {
@@ -449,7 +438,7 @@ function handleReorderStateChange(isReordering) {
 
 async function handleSubmitChangeRequest() {
     try {
-        const result = await submitForReview();
+        const result = await crStore.submitForReview();
         toast.success(__('Change request submitted for review'));
         if (result?.name) {
             router.push({ name: 'ChangeRequestReview', params: { changeRequestId: result.name } });
@@ -461,11 +450,11 @@ async function handleSubmitChangeRequest() {
 
 async function handleArchiveChangeRequest() {
     try {
-        await archiveChangeRequest();
+        await crStore.archiveChangeRequest();
         toast.success(__('Change request archived'));
-        currentChangeRequest.value = null;
-        await initChangeRequest();
-        await loadChanges();
+        crStore.currentChangeRequest = null;
+        await crStore.initChangeRequest(props.spaceId);
+        await crStore.loadChanges();
         await refreshTree();
     } catch (error) {
         toast.error(error.messages?.[0] || __('Error archiving change request'));
@@ -485,11 +474,11 @@ function findNodeByDocKey(nodes, docKey) {
 async function handleMergeChangeRequest() {
     const docKey = currentDraftKey.value;
     try {
-        await mergeChangeRequest();
+        await crStore.mergeChangeRequest();
         toast.success(__('Change request merged'));
-        currentChangeRequest.value = null;
-        await initChangeRequest();
-        await loadChanges();
+        crStore.currentChangeRequest = null;
+        await crStore.initChangeRequest(props.spaceId);
+        await crStore.loadChanges();
         await refreshTree();
 
         if (docKey) {

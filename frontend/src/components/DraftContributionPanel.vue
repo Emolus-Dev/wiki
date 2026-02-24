@@ -58,11 +58,11 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, toRef, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { createResource, Badge, Button, Dropdown, toast, LoadingIndicator } from "frappe-ui";
 import WikiEditor from './WikiEditor.vue';
-import { useChangeRequestMode, useChangeRequest, currentChangeRequest } from '@/composables/useChangeRequest';
+import { useChangeRequestStore } from '@/stores/changeRequest';
 import LucideSave from '~icons/lucide/save';
 import LucideMoreVertical from '~icons/lucide/more-vertical';
 import LucideFolder from '~icons/lucide/folder';
@@ -83,17 +83,7 @@ const emit = defineEmits(['refresh']);
 const router = useRouter();
 const editorRef = ref(null);
 
-const spaceIdRef = toRef(props, 'spaceId');
-const {
-	initChangeRequest,
-	loadChanges,
-} = useChangeRequestMode(spaceIdRef);
-
-	const {
-		updatePage,
-		updatePageResource,
-		deletePage,
-	} = useChangeRequest();
+const crStore = useChangeRequestStore();
 
 const crPage = ref(null);
 const isLoading = ref(true);
@@ -103,14 +93,14 @@ const fetchCrPageResource = createResource({
 });
 
 async function loadCrPage() {
-	if (!currentChangeRequest.value) {
+	if (!crStore.currentChangeRequest) {
 		crPage.value = null;
 		return;
 	}
 	isLoading.value = true;
 	try {
 		const result = await fetchCrPageResource.submit({
-			name: currentChangeRequest.value.name,
+			name: crStore.currentChangeRequest.name,
 			doc_key: props.docKey,
 		});
 		crPage.value = result;
@@ -124,8 +114,8 @@ async function loadCrPage() {
 
 onMounted(async () => {
 	if (props.spaceId) {
-		await initChangeRequest();
-		await loadChanges();
+		await crStore.initChangeRequest(props.spaceId);
+		await crStore.loadChanges();
 	}
 	await loadCrPage();
 });
@@ -138,9 +128,9 @@ watch(() => props.docKey, async (newId) => {
 
 watch(() => props.spaceId, async (newSpaceId) => {
 	if (newSpaceId) {
-		currentChangeRequest.value = null;
-		await initChangeRequest();
-		await loadChanges();
+		crStore.currentChangeRequest = null;
+		await crStore.initChangeRequest(newSpaceId);
+		await crStore.loadChanges();
 		await loadCrPage();
 	}
 });
@@ -150,7 +140,7 @@ const editorContent = computed(() => {
 });
 
 const isSaving = computed(() => {
-	return updatePageResource.loading;
+	return crStore.updatePageResource.loading;
 });
 
 const editorKey = computed(() => {
@@ -175,15 +165,15 @@ function saveFromHeader() {
 }
 
 async function saveContent(content) {
-	if (!currentChangeRequest.value || !crPage.value?.doc_key) return;
+	if (!crStore.currentChangeRequest || !crPage.value?.doc_key) return;
 	try {
-		await updatePage(
-			currentChangeRequest.value.name,
+		await crStore.updatePage(
+			crStore.currentChangeRequest.name,
 			crPage.value.doc_key,
 			{ content, title: crPage.value.title },
 		);
 		toast.success(__('Draft updated'));
-		await loadChanges();
+		await crStore.loadChanges();
 		emit('refresh');
 	} catch (error) {
 		console.error('Error saving draft:', error);
@@ -192,11 +182,11 @@ async function saveContent(content) {
 }
 
 async function deleteDraft() {
-	if (!currentChangeRequest.value || !crPage.value?.doc_key) return;
+	if (!crStore.currentChangeRequest || !crPage.value?.doc_key) return;
 	try {
-		await deletePage(currentChangeRequest.value.name, crPage.value.doc_key);
+		await crStore.deletePage(crStore.currentChangeRequest.name, crPage.value.doc_key);
 		toast.success(__('Draft deleted'));
-		await loadChanges();
+		await crStore.loadChanges();
 		emit('refresh');
 		router.push({ name: 'SpaceDetails', params: { spaceId: props.spaceId } });
 	} catch (error) {
