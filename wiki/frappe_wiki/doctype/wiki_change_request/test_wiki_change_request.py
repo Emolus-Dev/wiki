@@ -13,6 +13,7 @@ from wiki.frappe_wiki.doctype.wiki_change_request.wiki_change_request import (
 	delete_cr_page,
 	diff_change_request,
 	get_change_request,
+	get_cr_page,
 	get_cr_tree,
 	get_merge_conflicts,
 	get_or_create_draft_change_request,
@@ -1097,6 +1098,52 @@ class TestWikiChangeRequest(FrappeTestCase):
 
 		page.reload()
 		self.assertEqual(page.content, "cr-change")
+
+	def test_route_tracked_through_cr_and_applied_on_merge(self):
+		"""Route changes through a CR should be applied to the Wiki Document on merge."""
+		space = create_test_wiki_space()
+		page = create_test_wiki_document(space.root_group, title="Routed Page", content="v1")
+		page.reload()
+		original_route = page.route
+		self.assertTrue(original_route, "Page should have a route after creation")
+
+		cr = create_change_request(space.name, "Route update CR")
+		page_key = frappe.get_value("Wiki Document", page.name, "doc_key")
+
+		new_route = f"{space.route}/custom-new-route"
+		update_cr_page(cr.name, page_key, {"route": new_route})
+
+		# Verify get_cr_page returns the updated route
+		cr_page = get_cr_page(cr.name, page_key)
+		self.assertEqual(cr_page["route"], new_route)
+
+		merge_change_request(cr.name)
+
+		page.reload()
+		self.assertEqual(page.route, new_route)
+
+	def test_new_draft_page_gets_auto_generated_route(self):
+		"""A new page created in a CR should get an auto-generated route from ancestor slugs."""
+		space = create_test_wiki_space()
+		group = create_test_wiki_document(space.root_group, title="Docs", is_group=1)
+
+		cr = create_change_request(space.name, "New page CR")
+		group_key = frappe.get_value("Wiki Document", group.name, "doc_key")
+
+		new_doc_key = create_cr_page(cr.name, group_key, "My New Page")
+
+		# Verify get_cr_page returns a computed route
+		cr_page = get_cr_page(cr.name, new_doc_key)
+		self.assertTrue(cr_page["route"], "New draft page should have an auto-generated route")
+		self.assertIn("my-new-page", cr_page["route"])
+
+		merge_change_request(cr.name)
+
+		# Verify the new Wiki Document has the expected route
+		new_doc_name = frappe.db.get_value("Wiki Document", {"doc_key": new_doc_key}, "name")
+		self.assertTrue(new_doc_name, "New Wiki Document should exist after merge")
+		new_doc = frappe.get_doc("Wiki Document", new_doc_name)
+		self.assertTrue(new_doc.route, "New Wiki Document should have a route")
 
 
 # Helpers

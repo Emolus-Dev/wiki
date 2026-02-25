@@ -235,7 +235,7 @@ def get_cr_tree(name: str) -> dict[str, Any]:
 		doc_map[item["doc_key"]] = {
 			"doc_key": item.get("doc_key"),
 			"document_name": None,
-			"route": None,
+			"route": item.get("route"),
 			"title": item.get("title"),
 			"slug": item.get("slug"),
 			"is_group": item.get("is_group"),
@@ -306,6 +306,7 @@ def get_cr_page(name: str, doc_key: str) -> dict[str, Any]:
 		"doc_key",
 		"title",
 		"slug",
+		"route",
 		"is_group",
 		"is_published",
 		"is_external_link",
@@ -340,19 +341,19 @@ def get_cr_page(name: str, doc_key: str) -> dict[str, Any]:
 	if item.get("content_blob"):
 		content = frappe.get_value("Wiki Content Blob", item.get("content_blob"), "content") or ""
 
-	doc_name = frappe.db.get_value("Wiki Document", {"doc_key": doc_key}, ["name", "route"], as_dict=True)
+	doc_name = frappe.db.get_value("Wiki Document", {"doc_key": doc_key}, "name")
 	return {
 		"doc_key": item.get("doc_key"),
 		"title": item.get("title"),
 		"slug": item.get("slug"),
+		"route": item.get("route") or "",
 		"is_group": item.get("is_group"),
 		"is_published": item.get("is_published"),
 		"is_external_link": item.get("is_external_link"),
 		"external_url": item.get("external_url"),
 		"parent_key": item.get("parent_key"),
 		"order_index": item.get("order_index"),
-		"document_name": doc_name.get("name") if doc_name else None,
-		"route": doc_name.get("route") if doc_name else None,
+		"document_name": doc_name or None,
 		"content": content,
 	}
 
@@ -416,6 +417,22 @@ def create_cr_page(
 	item.order_index = order_index if order_index is not None else max_order + 1
 	item.content_blob = get_or_create_content_blob(content or "")
 	item.is_deleted = 0
+
+	# Compute initial route from ancestor slugs + wiki space route
+	# Skip the root group (parent_key is empty) since the space route already covers it
+	route_parts = [item.slug]
+	current_parent = parent_key
+	while current_parent and current_parent in item_map:
+		ancestor = item_map[current_parent]
+		if not ancestor.get("parent_key"):
+			break
+		route_parts.insert(0, ancestor.get("slug") or "")
+		current_parent = ancestor.get("parent_key")
+	space_route = frappe.db.get_value("Wiki Space", cr.wiki_space, "route") or ""
+	if space_route:
+		route_parts.insert(0, space_route)
+	item.route = "/".join(route_parts)
+
 	item.insert()
 
 	mark_hashes_stale(head_revision)
@@ -435,6 +452,8 @@ def update_cr_page(name: str, doc_key: str, fields: dict[str, Any]) -> None:
 		item.title = fields["title"]
 	if "slug" in fields and fields["slug"] is not None:
 		item.slug = fields["slug"]
+	if "route" in fields and fields["route"] is not None:
+		item.route = fields["route"]
 	if "is_group" in fields and fields["is_group"] is not None:
 		item.is_group = 1 if fields["is_group"] else 0
 	if "is_published" in fields and fields["is_published"] is not None:
@@ -534,6 +553,7 @@ def diff_change_request(name: str, scope: str = "summary", doc_key: str | None =
 		result = {
 			"title": item.get("title"),
 			"slug": item.get("slug"),
+			"route": item.get("route"),
 			"is_group": item.get("is_group"),
 			"is_published": item.get("is_published"),
 			"is_external_link": item.get("is_external_link"),
@@ -595,7 +615,7 @@ def diff_change_request(name: str, scope: str = "summary", doc_key: str | None =
 		if base != head:
 			change_type = "modified"
 			order_changed = base.get("order_index") != head.get("order_index")
-			metadata_fields = ["title", "slug", "is_group", "is_published", "parent_key"]
+			metadata_fields = ["title", "slug", "route", "is_group", "is_published", "parent_key"]
 			metadata_changed = any(base.get(field) != head.get(field) for field in metadata_fields)
 			content_changed = base.get("content_hash") != head.get("content_hash")
 			if base.get("content_hash") is None and head.get("content_hash") is None:
@@ -1030,6 +1050,7 @@ def _find_changed_keys(
 	compare_fields = [
 		"title",
 		"slug",
+		"route",
 		"parent_key",
 		"order_index",
 		"is_group",
@@ -1150,6 +1171,7 @@ def _classify_changes(
 	metadata_fields = [
 		"title",
 		"slug",
+		"route",
 		"parent_key",
 		"order_index",
 		"is_group",
@@ -1274,6 +1296,8 @@ def _apply_merge_changes_only(
 
 			doc.title = item.get("title")
 			doc.slug = item.get("slug") or cleanup_page_name(item.get("title") or "")
+			if item.get("route"):
+				doc.route = item["route"]
 			doc.is_group = item.get("is_group")
 			doc.is_published = item.get("is_published")
 			doc.is_external_link = item.get("is_external_link")
@@ -1318,6 +1342,7 @@ def normalize_item(item: dict[str, Any] | None) -> dict[str, Any] | None:
 		"doc_key": item.get("doc_key"),
 		"title": item.get("title"),
 		"slug": item.get("slug"),
+		"route": item.get("route"),
 		"is_group": item.get("is_group"),
 		"is_published": item.get("is_published"),
 		"is_external_link": item.get("is_external_link"),
@@ -1389,6 +1414,7 @@ def merge_items(
 		"doc_key": ours.get("doc_key"),
 		"title": resolve_field(base.get("title"), ours.get("title"), theirs.get("title")),
 		"slug": resolve_field(base.get("slug"), ours.get("slug"), theirs.get("slug")),
+		"route": resolve_field(base.get("route"), ours.get("route"), theirs.get("route")),
 		"is_group": resolve_field(base.get("is_group"), ours.get("is_group"), theirs.get("is_group")),
 		"is_published": resolve_field(
 			base.get("is_published"), ours.get("is_published"), theirs.get("is_published")
@@ -1409,7 +1435,7 @@ def items_equal(
 		return True
 	if item_a is None or item_b is None:
 		return False
-	compare_fields = ["title", "slug", "is_group", "is_published", "parent_key", "order_index"]
+	compare_fields = ["title", "slug", "route", "is_group", "is_published", "parent_key", "order_index"]
 	for field in compare_fields:
 		if item_a.get(field) != item_b.get(field):
 			return False
@@ -1417,7 +1443,7 @@ def items_equal(
 
 
 def conflict_on_metadata(base: dict[str, Any], ours: dict[str, Any], theirs: dict[str, Any]) -> bool:
-	metadata_fields = ["title", "slug", "is_group", "is_published"]
+	metadata_fields = ["title", "slug", "route", "is_group", "is_published"]
 	for field in metadata_fields:
 		base_value = base.get(field)
 		ours_value = ours.get(field)
@@ -1596,6 +1622,7 @@ def create_merge_revision(cr: Document, merged_items: dict[str, dict[str, Any]])
 		new_item.doc_key = item.get("doc_key")
 		new_item.title = item.get("title")
 		new_item.slug = item.get("slug")
+		new_item.route = item.get("route")
 		new_item.is_group = item.get("is_group")
 		new_item.is_published = item.get("is_published")
 		new_item.is_external_link = item.get("is_external_link")
@@ -1670,6 +1697,8 @@ def _apply_merge_revision(space: Document, revision: Document) -> None:
 
 		doc.title = item.get("title")
 		doc.slug = item.get("slug") or cleanup_page_name(item.get("title") or "")
+		if item.get("route"):
+			doc.route = item["route"]
 		doc.is_group = item.get("is_group")
 		doc.is_published = item.get("is_published")
 		doc.is_external_link = item.get("is_external_link")

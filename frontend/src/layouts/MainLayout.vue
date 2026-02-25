@@ -42,9 +42,10 @@
 <script setup>
 import { computed } from 'vue';
 import Sidebar from '../components/Sidebar.vue';
-import { canAccessWiki } from '@/composables/useChangeRequest';
-import { userResource } from '@/data/user';
+import { useUserStore } from '@/stores/user';
 
-const isLoading = computed(() => !userResource.data);
-const hasAccess = computed(() => canAccessWiki());
+const userStore = useUserStore();
+
+const isLoading = computed(() => userStore.isLoading);
+const hasAccess = computed(() => userStore.canAccessWiki);
 </script>

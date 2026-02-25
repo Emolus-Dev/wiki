@@ -123,10 +123,11 @@ import {
 } from "frappe-ui";
 import LucidePlus from "~icons/lucide/plus";
 import LucideSearch from "~icons/lucide/search";
-import { isWikiManager } from "@/composables/useChangeRequest";
+import { useUserStore } from "@/stores/user";
 
 const router = useRouter();
-const isManager = computed(() => isWikiManager());
+const userStore = useUserStore();
+const isManager = computed(() => userStore.isWikiManager);
 
 const showCreateDialog = ref(false);
 const routeManuallyEdited = ref(false);

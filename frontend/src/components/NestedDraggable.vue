@@ -53,16 +53,16 @@
                             {{ element.title }}
                         </span>
 
-						<Badge v-if="element._changeType === 'added'" variant="subtle" theme="blue" size="sm">
+						<Badge v-if="changeTypeMap.get(element.doc_key) === 'added'" variant="subtle" theme="blue" size="sm">
 							{{ __('New') }}
 						</Badge>
-						<Badge v-else-if="element._changeType === 'deleted'" variant="subtle" theme="red" size="sm">
+						<Badge v-else-if="changeTypeMap.get(element.doc_key) === 'deleted'" variant="subtle" theme="red" size="sm">
 							{{ __('Deleted') }}
 						</Badge>
-						<Badge v-else-if="element._changeType === 'modified'" variant="subtle" theme="blue" size="sm">
+						<Badge v-else-if="changeTypeMap.get(element.doc_key) === 'modified'" variant="subtle" theme="blue" size="sm">
 							{{ __('Modified') }}
 						</Badge>
-						<Badge v-else-if="element._changeType === 'reordered'" variant="subtle" theme="orange" size="sm">
+						<Badge v-else-if="changeTypeMap.get(element.doc_key) === 'reordered'" variant="subtle" theme="orange" size="sm">
 							{{ __('Reordered') }}
 						</Badge>
 						<Badge v-else-if="!element.is_group && !element.is_published" variant="subtle" theme="orange" size="sm">
@@ -82,6 +82,7 @@
                 <div v-if="element.is_group" v-show="isExpanded(element.doc_key)">
                     <NestedDraggable
                         :items="element.children || []"
+                        :change-type-map="changeTypeMap"
                         :level="level + 1"
                         :parent-name="element.doc_key"
                         :space-id="spaceId"
@@ -128,7 +129,7 @@ import { useRouter } from 'vue-router';
 import { useStorage } from '@vueuse/core';
 import { Dropdown, Badge, Button, toast } from 'frappe-ui';
 import draggable from 'vuedraggable';
-import { useChangeRequest, currentChangeRequest } from '@/composables/useChangeRequest';
+import { useChangeRequestStore } from '@/stores/changeRequest';
 import LucideChevronRight from '~icons/lucide/chevron-right';
 import LucideFolder from '~icons/lucide/folder';
 import LucideFileText from '~icons/lucide/file-text';
@@ -146,6 +147,10 @@ const props = defineProps({
     items: {
         type: Array,
         required: true,
+    },
+    changeTypeMap: {
+        type: Map,
+        default: () => new Map(),
     },
     level: {
         type: Number,
@@ -179,7 +184,7 @@ const emit = defineEmits([
     'drag-state-change',
 ]);
 const router = useRouter();
-const { updatePage } = useChangeRequest();
+const crStore = useChangeRequestStore();
 
 const localItems = ref([...props.items]);
 const isDragging = ref(false);
@@ -202,7 +207,7 @@ function toggleExpanded(name) {
 }
 
 function handleRowClick(element) {
-    if (element._changeType === 'deleted') {
+    if (props.changeTypeMap.get(element.doc_key) === 'deleted') {
         return;
     }
 
@@ -238,7 +243,7 @@ function getRowClasses(element) {
         classes.push('bg-surface-gray-3');
     }
 
-    if (element._changeType === 'deleted') {
+    if (props.changeTypeMap.get(element.doc_key) === 'deleted') {
         classes.push('cursor-not-allowed', 'opacity-60');
     } else {
         classes.push('cursor-pointer');
@@ -248,7 +253,7 @@ function getRowClasses(element) {
 }
 
 function getTitleClass(element) {
-    if (element._changeType === 'deleted') {
+    if (props.changeTypeMap.get(element.doc_key) === 'deleted') {
         return 'text-ink-gray-4 line-through';
     }
     if (element.is_published || element.is_group) {
@@ -299,13 +304,13 @@ function handleNestedDragStateChange(state) {
 }
 
 async function togglePublish(element) {
-    if (!currentChangeRequest.value) {
+    if (!crStore.currentChangeRequest) {
         toast.error(__('No active change request'));
         return;
     }
     const newStatus = element.is_published ? 0 : 1;
     try {
-        await updatePage(currentChangeRequest.value.name, element.doc_key, {
+        await crStore.updatePage(crStore.currentChangeRequest.name, element.doc_key, {
             is_published: newStatus,
         });
         const action = element.is_published ? __('unpublished') : __('published');

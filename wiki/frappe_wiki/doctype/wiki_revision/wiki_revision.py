@@ -34,6 +34,7 @@ def create_revision_from_live_tree(
 			"doc_key",
 			"title",
 			"slug",
+			"route",
 			"is_group",
 			"is_published",
 			"is_external_link",
@@ -80,6 +81,7 @@ def create_revision_from_live_tree(
 		item.doc_key = doc.get("doc_key")
 		item.title = doc.get("title")
 		item.slug = doc.get("slug") or cleanup_page_name(doc.get("title") or "")
+		item.route = doc.get("route")
 		item.is_group = doc.get("is_group")
 		item.is_published = doc.get("is_published")
 		item.is_external_link = doc.get("is_external_link")
@@ -143,6 +145,7 @@ def clone_revision(
 			"doc_key",
 			"title",
 			"slug",
+			"route",
 			"is_group",
 			"is_published",
 			"is_external_link",
@@ -161,6 +164,7 @@ def clone_revision(
 		new_item.doc_key = item["doc_key"]
 		new_item.title = item.get("title")
 		new_item.slug = item.get("slug")
+		new_item.route = item.get("route")
 		new_item.is_group = item.get("is_group")
 		new_item.is_published = item.get("is_published")
 		new_item.is_external_link = item.get("is_external_link")
@@ -262,6 +266,7 @@ def get_revision_item_map(revision: str) -> dict[str, dict[str, Any]]:
 			"doc_key",
 			"title",
 			"slug",
+			"route",
 			"is_group",
 			"is_published",
 			"is_external_link",
@@ -334,6 +339,7 @@ def ensure_overlay_item(revision: str, doc_key: str) -> str | None:
 			"doc_key",
 			"title",
 			"slug",
+			"route",
 			"is_group",
 			"is_published",
 			"is_external_link",
@@ -353,6 +359,7 @@ def ensure_overlay_item(revision: str, doc_key: str) -> str | None:
 	new_item.doc_key = base_item.doc_key
 	new_item.title = base_item.title
 	new_item.slug = base_item.slug
+	new_item.route = base_item.route
 	new_item.is_group = base_item.is_group
 	new_item.is_published = base_item.is_published
 	new_item.is_external_link = base_item.is_external_link

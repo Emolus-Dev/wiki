@@ -276,17 +276,15 @@
 <script setup>
 import { ref, computed, reactive } from 'vue';
 import { createDocumentResource, createResource, Button, Badge, Dialog, FormControl, LoadingIndicator, toast } from 'frappe-ui';
-import { userResource } from '@/data/user';
-import { isWikiManager, currentChangeRequest } from '@/composables/useChangeRequest';
+import { useUserStore } from '@/stores/user';
+import { useChangeRequestStore } from '@/stores/changeRequest';
 import DiffViewer from '@/components/DiffViewer.vue';
 import LucideChevronDown from '~icons/lucide/chevron-down';
 import LucideAlertCircle from '~icons/lucide/alert-circle';
 import LucideAlertTriangle from '~icons/lucide/alert-triangle';
-import LucideArrowUpDown from '~icons/lucide/arrow-up-down';
-import LucidePlus from '~icons/lucide/plus';
-import LucidePencil from '~icons/lucide/pencil';
-import LucideTrash2 from '~icons/lucide/trash-2';
-import LucideFileText from '~icons/lucide/file-text';
+import { useChangeTypeDisplay } from '@/composables/useChangeTypeDisplay';
+
+const { getChangeIcon, getChangeIconClass, getChangeTheme, getChangeLabel, getChangeDescription } = useChangeTypeDisplay();
 
 const props = defineProps({
 	changeRequestId: {
@@ -352,8 +350,10 @@ const withdrawResource = createResource({
 	url: 'wiki.frappe_wiki.doctype.wiki_change_request.wiki_change_request.archive_change_request',
 });
 
-const isManager = computed(() => isWikiManager());
-const isOwner = computed(() => changeRequest.doc?.owner === userResource.data?.name);
+const userStore = useUserStore();
+const crStore = useChangeRequestStore();
+const isManager = computed(() => userStore.isWikiManager);
+const isOwner = computed(() => changeRequest.doc?.owner === userStore.data?.name);
 
 const canReview = computed(() => {
 	return isManager.value && ['In Review', 'Approved'].includes(changeRequest.doc?.status);
@@ -431,8 +431,8 @@ async function handleApprove() {
 	try {
 		await mergeResource.submit({ name: props.changeRequestId });
 		toast.success(__('Change request merged'));
-		if (currentChangeRequest.value?.name === props.changeRequestId) {
-			currentChangeRequest.value = null;
+		if (crStore.currentChangeRequest?.name === props.changeRequestId) {
+			crStore.currentChangeRequest = null;
 		}
 		changeRequest.reload();
 		await changes.submit({ name: props.changeRequestId, scope: 'summary' });
@@ -470,8 +470,8 @@ async function handleResolveAndMerge() {
 		toast.success(__('Conflicts resolved and change request merged'));
 		hasConflicts.value = false;
 		conflicts.value = [];
-		if (currentChangeRequest.value?.name === props.changeRequestId) {
-			currentChangeRequest.value = null;
+		if (crStore.currentChangeRequest?.name === props.changeRequestId) {
+			crStore.currentChangeRequest = null;
 		}
 		changeRequest.reload();
 		await changes.submit({ name: props.changeRequestId, scope: 'summary' });
@@ -491,7 +491,7 @@ async function handleReject(close) {
 	try {
 		await rejectResource.submit({
 			name: props.changeRequestId,
-			reviewer: userResource.data?.name,
+			reviewer: userStore.data?.name,
 			status: 'Changes Requested',
 			comment: rejectComment.value.trim(),
 		});
@@ -523,63 +523,6 @@ function getStatusTheme(status) {
 		case 'Merged': return 'green';
 		case 'Archived': return 'gray';
 		default: return 'gray';
-	}
-}
-
-function getChangeIcon(changeType) {
-	switch (changeType) {
-		case 'added': return LucidePlus;
-		case 'deleted': return LucideTrash2;
-		case 'modified': return LucidePencil;
-		case 'reordered': return LucideArrowUpDown;
-		default: return LucideFileText;
-	}
-}
-
-function getChangeIconClass(changeType) {
-	switch (changeType) {
-		case 'added': return 'bg-green-100 text-green-600';
-		case 'deleted': return 'bg-red-100 text-red-600';
-		case 'modified': return 'bg-blue-100 text-blue-600';
-		case 'reordered': return 'bg-amber-100 text-amber-600';
-		default: return 'bg-gray-100 text-gray-600';
-	}
-}
-
-function getChangeTheme(changeType) {
-	switch (changeType) {
-		case 'added': return 'green';
-		case 'deleted': return 'red';
-		case 'modified': return 'blue';
-		case 'reordered': return 'orange';
-		default: return 'gray';
-	}
-}
-
-function getChangeLabel(changeType) {
-	switch (changeType) {
-		case 'added': return __('New');
-		case 'deleted': return __('Deleted');
-		case 'modified': return __('Modified');
-		case 'reordered': return __('Reordered');
-		default: return changeType;
-	}
-}
-
-function getChangeDescription(changeType, isGroup, isExternalLink) {
-	switch (changeType) {
-		case 'added':
-			if (isGroup) return __('New group to be created');
-			if (isExternalLink) return __('New external link added');
-			return __('New page to be created');
-		case 'deleted':
-			return __('Will be deleted');
-		case 'modified':
-			return __('Content or metadata updated');
-		case 'reordered':
-			return __('Order updated');
-		default:
-			return '';
 	}
 }
 
