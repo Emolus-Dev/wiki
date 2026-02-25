@@ -2,18 +2,38 @@
 	<div class="h-full flex flex-col">
 		<div v-if="wikiDoc.doc" class="h-full flex flex-col">
 			<div class="flex items-center justify-between p-6 pb-4 bg-surface-white shrink-0 border-b-2 border-b-gray-500/20">
-				<div class="flex items-center gap-2">
-					<h1 class="text-2xl font-semibold text-ink-gray-9">{{ displayTitle }}</h1>
-					<LucideLock v-if="wikiDoc.doc.is_private" class="size-4 text-ink-gray-5" :title="__('Private')" />
-					<Badge v-if="displayPublished" variant="subtle" theme="green" size="sm">
-						{{ __('Published') }}
-					</Badge>
-					<Badge v-else variant="subtle" theme="orange" size="sm">
-						{{ __('Not Published') }}
-					</Badge>
-					<Badge v-if="hasChangeForCurrentPage" variant="subtle" theme="blue" size="sm">
-						{{ __('Has Draft Changes') }}
-					</Badge>
+				<div class="flex items-center gap-2 min-w-0 flex-1">
+					<div class="flex flex-col gap-1 min-w-0 flex-1">
+						<div class="flex items-center gap-2">
+							<input
+								type="text"
+								v-model="editableTitle"
+								class="text-2xl font-semibold text-ink-gray-9 bg-transparent border-none outline-none w-full focus:ring-0 p-0 placeholder:text-ink-gray-4"
+								:placeholder="__('Page title')"
+								@blur="saveTitleIfChanged"
+								@keydown.enter="$event.target.blur()"
+							/>
+							<LucideLock v-if="wikiDoc.doc.is_private" class="size-4 text-ink-gray-5 shrink-0" :title="__('Private')" />
+						</div>
+						<div
+							class="flex items-center gap-1 text-sm text-ink-gray-5 cursor-pointer hover:text-ink-gray-7 group/route"
+							@click="openRouteDialog"
+						>
+							<span class="font-mono truncate">/{{ displayRoute }}</span>
+							<LucidePencil class="size-3 shrink-0 opacity-0 group-hover/route:opacity-100" />
+						</div>
+						<div class="flex items-center gap-2 mt-1">
+							<Badge v-if="displayPublished" variant="subtle" theme="green" size="sm">
+								{{ __('Published') }}
+							</Badge>
+							<Badge v-else variant="subtle" theme="orange" size="sm">
+								{{ __('Not Published') }}
+							</Badge>
+							<Badge v-if="hasChangeForCurrentPage" variant="subtle" theme="blue" size="sm">
+								{{ __('Has Draft Changes') }}
+							</Badge>
+						</div>
+					</div>
 				</div>
 
 				<div class="flex items-center gap-2">
@@ -77,17 +97,39 @@
 				<div class="h-4 w-3/4 rounded bg-surface-gray-3" />
 			</div>
 		</div>
+		<Dialog v-model="showRouteDialog" :options="{ size: 'sm' }">
+			<template #body-title>
+				<h3 class="text-xl font-semibold text-ink-gray-9">{{ __('Edit Route') }}</h3>
+			</template>
+			<template #body-content>
+				<FormControl
+					v-model="editableRoute"
+					:label="__('Route')"
+					type="text"
+					:placeholder="__('page-route')"
+				/>
+			</template>
+			<template #actions="{ close }">
+				<div class="flex justify-end gap-2">
+					<Button variant="outline" @click="close">{{ __('Cancel') }}</Button>
+					<Button variant="solid" :loading="isSavingRoute" @click="saveRoute(close)">
+						{{ __('Update') }}
+					</Button>
+				</div>
+			</template>
+		</Dialog>
 	</div>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue';
-import { createDocumentResource, Badge, Button, Dropdown, createResource, toast } from "frappe-ui";
+import { createDocumentResource, Badge, Button, Dropdown, Dialog, FormControl, createResource, toast } from "frappe-ui";
 import WikiEditor from './WikiEditor.vue';
 import { useChangeRequestStore } from '@/stores/changeRequest';
 import LucideMoreVertical from '~icons/lucide/more-vertical';
 import LucideLock from '~icons/lucide/lock';
 import LucideExternalLink from '~icons/lucide/external-link';
+import LucidePencil from '~icons/lucide/pencil';
 
 const isMac = computed(() => /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent));
 
@@ -104,6 +146,10 @@ const props = defineProps({
 
 const emit = defineEmits(['refresh']);
 const editorRef = ref(null);
+const editableTitle = ref('');
+const editableRoute = ref('');
+const showRouteDialog = ref(false);
+const isSavingRoute = ref(false);
 
 const crStore = useChangeRequestStore();
 
@@ -132,11 +178,15 @@ watch(() => props.pageId, (newPageId) => {
 
 watch(
 	[() => crStore.currentChangeRequest?.name, () => wikiDoc.doc?.doc_key],
-	async ([crName, docKey]) => {
+	async ([crName, docKey], [oldCrName]) => {
 		if (crName && docKey) {
 			await loadCrPage();
 		} else {
 			currentCrPage.value = null;
+		}
+		// After merge/archive, the CR name changes — reload wikiDoc to get updated route etc.
+		if (oldCrName && crName !== oldCrName) {
+			wikiDoc.reload();
 		}
 	},
 	{ immediate: true },
@@ -177,6 +227,14 @@ const displayPublished = computed(() => {
 	return Boolean(wikiDoc.doc?.is_published);
 });
 
+const displayRoute = computed(() => {
+	return currentCrPage.value?.route || wikiDoc.doc?.route || '';
+});
+
+watch(displayTitle, (newTitle) => {
+	editableTitle.value = newTitle;
+}, { immediate: true });
+
 const isSaving = computed(() => {
 	return crStore.isUpdatingPage;
 });
@@ -197,6 +255,50 @@ const menuOptions = computed(() => {
 		},
 	];
 });
+
+async function saveTitleIfChanged() {
+	const newTitle = editableTitle.value.trim();
+	if (!newTitle || newTitle === displayTitle.value) return;
+	if (!crStore.currentChangeRequest || !wikiDoc.doc?.doc_key) return;
+	try {
+		await crStore.updatePage(crStore.currentChangeRequest.name, wikiDoc.doc.doc_key, {
+			title: newTitle,
+		});
+		await crStore.loadChanges();
+		await loadCrPage();
+		emit('refresh');
+	} catch (error) {
+		toast.error(error.messages?.[0] || __('Error updating title'));
+	}
+}
+
+function openRouteDialog() {
+	editableRoute.value = displayRoute.value;
+	showRouteDialog.value = true;
+}
+
+async function saveRoute(close) {
+	const newRoute = editableRoute.value.trim().replace(/^\/+/, '');
+	if (!newRoute || newRoute === displayRoute.value) {
+		close();
+		return;
+	}
+	if (!crStore.currentChangeRequest || !wikiDoc.doc?.doc_key) return;
+	isSavingRoute.value = true;
+	try {
+		await crStore.updatePage(crStore.currentChangeRequest.name, wikiDoc.doc.doc_key, {
+			route: newRoute,
+		});
+		await crStore.loadChanges();
+		await loadCrPage();
+		emit('refresh');
+		close();
+	} catch (error) {
+		toast.error(error.messages?.[0] || __('Error updating route'));
+	} finally {
+		isSavingRoute.value = false;
+	}
+}
 
 async function togglePublish() {
 	if (!crStore.currentChangeRequest || !wikiDoc.doc?.doc_key) return;
@@ -233,7 +335,7 @@ async function saveContent(content) {
 	try {
 		await crStore.updatePage(crStore.currentChangeRequest.name, wikiDoc.doc.doc_key, {
 			content,
-			title: displayTitle.value,
+			title: editableTitle.value,
 		});
 		toast.success(__('Draft updated'));
 		await crStore.loadChanges();

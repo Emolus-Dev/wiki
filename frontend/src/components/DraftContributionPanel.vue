@@ -2,14 +2,32 @@
 	<div class="h-full flex flex-col">
 		<div v-if="crPage" class="h-full flex flex-col">
 			<div class="flex items-center justify-between p-6 pb-4 bg-surface-white shrink-0 border-b-2 border-b-gray-500/20">
-				<div class="flex items-center gap-2">
-					<h1 class="text-2xl font-semibold text-ink-gray-9">{{ crPage.title }}</h1>
-					<Badge variant="subtle" theme="blue" size="sm">
-						{{ __('Draft') }}
-					</Badge>
-					<Badge v-if="crPage.is_group" variant="subtle" theme="gray" size="sm">
-						{{ __('Group') }}
-					</Badge>
+				<div class="flex items-center gap-2 min-w-0 flex-1">
+					<div class="flex flex-col gap-1 min-w-0 flex-1">
+						<input
+							type="text"
+							v-model="editableTitle"
+							class="text-2xl font-semibold text-ink-gray-9 bg-transparent border-none outline-none w-full focus:ring-0 p-0 placeholder:text-ink-gray-4"
+							:placeholder="__('Page title')"
+							@blur="saveTitleIfChanged"
+							@keydown.enter="$event.target.blur()"
+						/>
+						<div
+							class="flex items-center gap-1 text-sm text-ink-gray-5 cursor-pointer hover:text-ink-gray-7 group/route"
+							@click="openRouteDialog"
+						>
+							<span class="font-mono truncate">/{{ crPage.route || '' }}</span>
+							<LucidePencil class="size-3 shrink-0 opacity-0 group-hover/route:opacity-100" />
+						</div>
+						<div class="flex items-center gap-2 mt-1">
+							<Badge variant="subtle" theme="blue" size="sm">
+								{{ __('Draft') }}
+							</Badge>
+							<Badge v-if="crPage.is_group" variant="subtle" theme="gray" size="sm">
+								{{ __('Group') }}
+							</Badge>
+						</div>
+					</div>
 				</div>
 
 				<div class="flex items-center gap-2">
@@ -73,19 +91,41 @@
 				<p>{{ __('Draft not found') }}</p>
 			</div>
 		</div>
+		<Dialog v-model="showRouteDialog" :options="{ size: 'sm' }">
+			<template #body-title>
+				<h3 class="text-xl font-semibold text-ink-gray-9">{{ __('Edit Route') }}</h3>
+			</template>
+			<template #body-content>
+				<FormControl
+					v-model="editableRoute"
+					:label="__('Route')"
+					type="text"
+					:placeholder="__('page-route')"
+				/>
+			</template>
+			<template #actions="{ close }">
+				<div class="flex justify-end gap-2">
+					<Button variant="outline" @click="close">{{ __('Cancel') }}</Button>
+					<Button variant="solid" :loading="isSavingRoute" @click="saveRoute(close)">
+						{{ __('Update') }}
+					</Button>
+				</div>
+			</template>
+		</Dialog>
 	</div>
 </template>
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { createResource, Badge, Button, Dropdown, toast, LoadingIndicator } from "frappe-ui";
+import { createResource, Badge, Button, Dropdown, Dialog, FormControl, toast, LoadingIndicator } from "frappe-ui";
 import WikiEditor from './WikiEditor.vue';
 import { useChangeRequestStore } from '@/stores/changeRequest';
 import LucideSave from '~icons/lucide/save';
 import LucideMoreVertical from '~icons/lucide/more-vertical';
 import LucideFolder from '~icons/lucide/folder';
 import LucideAlertCircle from '~icons/lucide/alert-circle';
+import LucidePencil from '~icons/lucide/pencil';
 
 const props = defineProps({
 	docKey: {
@@ -101,6 +141,10 @@ const props = defineProps({
 const emit = defineEmits(['refresh']);
 const router = useRouter();
 const editorRef = ref(null);
+const editableTitle = ref('');
+const editableRoute = ref('');
+const showRouteDialog = ref(false);
+const isSavingRoute = ref(false);
 
 const crStore = useChangeRequestStore();
 
@@ -154,6 +198,12 @@ watch(() => props.spaceId, async (newSpaceId) => {
 	}
 });
 
+watch(crPage, (page) => {
+	if (page) {
+		editableTitle.value = page.title || '';
+	}
+}, { immediate: true });
+
 const editorContent = computed(() => {
 	return crPage.value?.content || '';
 });
@@ -179,6 +229,50 @@ const menuOptions = computed(() => {
 	];
 });
 
+async function saveTitleIfChanged() {
+	const newTitle = editableTitle.value.trim();
+	if (!newTitle || newTitle === (crPage.value?.title || '')) return;
+	if (!crStore.currentChangeRequest || !crPage.value?.doc_key) return;
+	try {
+		await crStore.updatePage(crStore.currentChangeRequest.name, crPage.value.doc_key, {
+			title: newTitle,
+		});
+		await crStore.loadChanges();
+		await loadCrPage();
+		emit('refresh');
+	} catch (error) {
+		toast.error(error.messages?.[0] || __('Error updating title'));
+	}
+}
+
+function openRouteDialog() {
+	editableRoute.value = crPage.value?.route || '';
+	showRouteDialog.value = true;
+}
+
+async function saveRoute(close) {
+	const newRoute = editableRoute.value.trim().replace(/^\/+/, '');
+	if (!newRoute || newRoute === (crPage.value?.route || '')) {
+		close();
+		return;
+	}
+	if (!crStore.currentChangeRequest || !crPage.value?.doc_key) return;
+	isSavingRoute.value = true;
+	try {
+		await crStore.updatePage(crStore.currentChangeRequest.name, crPage.value.doc_key, {
+			route: newRoute,
+		});
+		await crStore.loadChanges();
+		await loadCrPage();
+		emit('refresh');
+		close();
+	} catch (error) {
+		toast.error(error.messages?.[0] || __('Error updating route'));
+	} finally {
+		isSavingRoute.value = false;
+	}
+}
+
 function saveFromHeader() {
 	editorRef.value?.saveToDB();
 }
@@ -189,7 +283,7 @@ async function saveContent(content) {
 		await crStore.updatePage(
 			crStore.currentChangeRequest.name,
 			crPage.value.doc_key,
-			{ content, title: crPage.value.title },
+			{ content, title: editableTitle.value },
 		);
 		toast.success(__('Draft updated'));
 		await crStore.loadChanges();

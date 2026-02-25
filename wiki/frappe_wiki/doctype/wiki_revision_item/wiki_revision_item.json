@@ -9,6 +9,7 @@
 		"doc_key",
 		"title",
 		"slug",
+		"route",
 		"column_break_meta",
 		"is_group",
 		"is_published",
@@ -44,6 +45,11 @@
 			"fieldname": "slug",
 			"fieldtype": "Data",
 			"label": "Slug"
+		},
+		{
+			"fieldname": "route",
+			"fieldtype": "Data",
+			"label": "Route"
 		},
 		{
 			"fieldname": "column_break_meta",
