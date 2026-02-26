@@ -322,7 +322,9 @@ class WikiRenderer(mistune.HTMLRenderer):
 
 		# Track h2 and h3 headings for TOC
 		if level in (2, 3):
-			self._headings.append({"id": slug, "text": unescape(text), "level": level})
+			self._headings.append(
+				{"id": slug, "text": unescape(re.sub(r"<[^>]+>", "", text)), "level": level}
+			)
 
 		return f'<h{level} id="{slug}">{text}</h{level}>\n'
 

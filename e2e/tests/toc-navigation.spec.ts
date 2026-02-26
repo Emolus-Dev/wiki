@@ -117,10 +117,14 @@ Beta sub content.`;
 			.locator('aside')
 			.getByText(secondPageTitle, { exact: true })
 			.click();
+		await page.waitForURL(/\/draft\/[^/?#]+/);
 		await expect(editor).toBeVisible({ timeout: 10000 });
-		await page.waitForFunction(() => window.wikiEditor !== undefined, {
-			timeout: 10000,
-		});
+		await page.waitForFunction(
+			() => window.wikiEditor?.commands?.setContent !== undefined,
+			{ timeout: 10000 },
+		);
+		// Ensure editor is ready to accept content
+		await page.waitForTimeout(500);
 
 		const secondPageMarkdown = `## Gamma Section
 
