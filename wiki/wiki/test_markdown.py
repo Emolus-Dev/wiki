@@ -554,6 +554,24 @@ More text here.
 		self.assertEqual(headings[0]["text"], "What's New? (2024)")
 		self.assertEqual(headings[0]["id"], "whats-new-2024")
 
+	def test_toc_preserves_underscores_in_heading_ids(self):
+		"""Test that underscores in heading text are preserved in IDs."""
+		content = """## get_filtered_list_url
+Some text.
+## add_to_date
+More text.
+## date_diff
+End."""
+		html, headings = render_markdown_with_toc(content)
+
+		self.assertEqual(len(headings), 3)
+		self.assertEqual(headings[0]["id"], "get_filtered_list_url")
+		self.assertEqual(headings[1]["id"], "add_to_date")
+		self.assertEqual(headings[2]["id"], "date_diff")
+		self.assertIn('id="get_filtered_list_url"', html)
+		self.assertIn('id="add_to_date"', html)
+		self.assertIn('id="date_diff"', html)
+
 	def test_toc_with_mixed_content(self):
 		"""Test TOC extraction with complex content including callouts."""
 		content = """## Getting Started
