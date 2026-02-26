@@ -421,9 +421,12 @@ class WikiDocumentRenderer(BaseRenderer):
 			return False
 
 		document = frappe.db.get_value(
-			"Wiki Document", {"route": self.path}, ["name", "is_group", "is_published"], as_dict=True
+			"Wiki Document",
+			{"route": self.path},
+			["name", "is_group", "is_published", "is_external_link"],
+			as_dict=True,
 		)
-		if document and not document.is_group and document.is_published:
+		if document and not document.is_group and document.is_published and not document.is_external_link:
 			self.wiki_doc_name = document.name
 			return True
 
@@ -546,7 +549,9 @@ def get_breadcrumbs(name: str) -> dict:
 @frappe.whitelist(allow_guest=True)
 def get_page_data(route: str) -> dict:
 	"""Returns all data needed to render a page dynamically for client-side navigation."""
-	doc_name = frappe.db.get_value("Wiki Document", {"route": route, "is_published": 1}, "name")
+	doc_name = frappe.db.get_value(
+		"Wiki Document", {"route": route, "is_published": 1, "is_external_link": 0}, "name"
+	)
 	if not doc_name:
 		frappe.throw(frappe._("Page not found"), frappe.DoesNotExistError)
 
