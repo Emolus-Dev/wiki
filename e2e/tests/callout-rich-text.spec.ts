@@ -52,7 +52,6 @@ test.describe('Callout Rich Text Editing', () => {
 				editor?: {
 					commands: {
 						setContent: (c: string, o?: object) => void;
-						insertContent: (c: object) => boolean;
 					};
 					getMarkdown: () => string;
 					getHTML: () => string;
@@ -65,16 +64,11 @@ test.describe('Callout Rich Text Editing', () => {
 			const editor = ed?.editor;
 			if (!editor) return { error: 'editor not found' };
 
-			// Insert a callout with inline markdown content
+			// Set content with a callout using markdown syntax
 			const calloutContent =
 				'This has **bold** and *italic* and [a link](https://example.com)';
-			editor.commands.insertContent({
-				type: 'calloutBlock',
-				attrs: {
-					type: 'note',
-					title: 'Test',
-					content: calloutContent,
-				},
+			editor.commands.setContent(`:::note[Test]\n${calloutContent}\n:::`, {
+				contentType: 'markdown',
 			});
 
 			const md1 = editor.getMarkdown();
@@ -116,25 +110,23 @@ test.describe('Callout Rich Text Editing', () => {
 		const pageTitle = `callout-preview-${Date.now()}`;
 		await createPageAndOpenEditor(page, pageTitle);
 
-		// Insert a callout with rich content via editor API
+		// Set content with a callout using markdown syntax
 		await page.evaluate(() => {
 			const ed = document.querySelector('.ProseMirror') as HTMLElement & {
 				editor?: {
-					commands: { insertContent: (c: object) => boolean };
+					commands: { setContent: (c: string, o?: object) => void };
 				};
 			};
-			ed?.editor?.commands.insertContent({
-				type: 'calloutBlock',
-				attrs: {
-					type: 'tip',
-					title: '',
-					content: 'Use **bold** for emphasis and *italic* for style',
-				},
-			});
+			ed?.editor?.commands.setContent(
+				':::tip\nUse **bold** for emphasis and *italic* for style\n:::',
+				{ contentType: 'markdown' },
+			);
 		});
 
 		// The callout should render in view mode (not editing) with formatted text
-		const calloutContent = page.locator('.callout-block-wrapper .prose');
+		const calloutContent = page.locator(
+			'.callout-block-wrapper .callout-content-text',
+		);
 		await expect(calloutContent).toBeVisible({ timeout: 5000 });
 
 		// Check that bold and italic are rendered as HTML
@@ -147,26 +139,21 @@ test.describe('Callout Rich Text Editing', () => {
 		const pageTitle = `callout-edit-${Date.now()}`;
 		await createPageAndOpenEditor(page, pageTitle);
 
-		// Insert a callout
+		// Set content with a callout using markdown syntax
 		await page.evaluate(() => {
 			const ed = document.querySelector('.ProseMirror') as HTMLElement & {
 				editor?: {
-					commands: { insertContent: (c: object) => boolean };
+					commands: { setContent: (c: string, o?: object) => void };
 				};
 			};
-			ed?.editor?.commands.insertContent({
-				type: 'calloutBlock',
-				attrs: {
-					type: 'note',
-					title: '',
-					content: 'Some content here',
-				},
+			ed?.editor?.commands.setContent(':::note\nSome content here\n:::', {
+				contentType: 'markdown',
 			});
 		});
 
 		// Double-click the callout content area to enter edit mode
 		const calloutContent = page
-			.locator('.callout-block-wrapper .prose')
+			.locator('.callout-block-wrapper .callout-content-text')
 			.first();
 		await expect(calloutContent).toBeVisible({ timeout: 5000 });
 		await calloutContent.dblclick();
