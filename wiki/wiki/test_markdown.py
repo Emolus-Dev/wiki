@@ -275,6 +275,19 @@ Content
 		result = render_markdown(content)
 		self.assertIn("Custom Title", result)
 
+	def test_callout_with_inline_markdown(self):
+		"""Test callout content renders bold, italic, and links."""
+		content = """:::note
+This has **bold text** and *italic text* and [a link](https://example.com)
+:::
+"""
+		result = render_markdown(content)
+		self.assertIn("callout-note", result)
+		self.assertIn("<strong>bold text</strong>", result)
+		self.assertIn("<em>italic text</em>", result)
+		self.assertIn('href="https://example.com"', result)
+		self.assertIn("a link", result)
+
 
 class TestComplexMarkdownContent(unittest.TestCase):
 	"""Tests for complex markdown content with callouts and images."""
