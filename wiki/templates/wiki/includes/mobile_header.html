@@ -2,9 +2,9 @@
 {% from "templates/wiki/macros/sidebar_tree.html" import render_wiki_tree %}
 
 <!-- Mobile Navigation Container - Only visible on smaller screens -->
-<div class="lg:hidden" x-data="mobileNav()">
+<div class="sticky top-0 z-30 lg:hidden" x-data="mobileNav()">
     <!-- Mobile Header -->
-    <header class="sticky top-0 z-30 bg-[var(--surface-white)] border-b border-[var(--outline-gray-1)]">
+    <header class="bg-[var(--surface-white)] border-b border-[var(--outline-gray-1)]">
         <div class="flex items-center justify-between px-4 py-3">
             <!-- Left: Logo and Menu Toggle -->
             <div class="flex items-center gap-3">
