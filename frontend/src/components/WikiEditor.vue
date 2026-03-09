@@ -894,4 +894,103 @@ onUnmounted(() => {
 .wiki-editor-content .hljs-property {
     color: #005cc5;
 }
+
+/* Syntax highlighting - Dark theme overrides (matches public page theme) */
+[data-theme="dark"] .wiki-editor-content .hljs-comment,
+[data-theme="dark"] .wiki-editor-content .hljs-quote {
+    color: #8b949e;
+}
+
+[data-theme="dark"] .wiki-editor-content .hljs-keyword,
+[data-theme="dark"] .wiki-editor-content .hljs-selector-tag {
+    color: #ff7b72;
+}
+
+[data-theme="dark"] .wiki-editor-content .hljs-deletion {
+    color: #ffa198;
+    background-color: rgba(248, 81, 73, 0.15);
+}
+
+[data-theme="dark"] .wiki-editor-content .hljs-string,
+[data-theme="dark"] .wiki-editor-content .hljs-doctag {
+    color: #a5d6ff;
+}
+
+[data-theme="dark"] .wiki-editor-content .hljs-addition {
+    color: #7ee787;
+    background-color: rgba(46, 160, 67, 0.15);
+}
+
+[data-theme="dark"] .wiki-editor-content .hljs-number,
+[data-theme="dark"] .wiki-editor-content .hljs-literal {
+    color: #79c0ff;
+}
+
+[data-theme="dark"] .wiki-editor-content .hljs-symbol,
+[data-theme="dark"] .wiki-editor-content .hljs-bullet {
+    color: #ffa657;
+}
+
+[data-theme="dark"] .wiki-editor-content .hljs-function {
+    color: #d2a8ff;
+}
+
+[data-theme="dark"] .wiki-editor-content .hljs-title {
+    color: #d2a8ff;
+}
+
+[data-theme="dark"] .wiki-editor-content .hljs-built_in {
+    color: #79c0ff;
+}
+
+[data-theme="dark"] .wiki-editor-content .hljs-class .hljs-title,
+[data-theme="dark"] .wiki-editor-content .hljs-type {
+    color: #7ee787;
+}
+
+[data-theme="dark"] .wiki-editor-content .hljs-attr {
+    color: #79c0ff;
+}
+
+[data-theme="dark"] .wiki-editor-content .hljs-variable,
+[data-theme="dark"] .wiki-editor-content .hljs-template-variable {
+    color: #ffa657;
+}
+
+[data-theme="dark"] .wiki-editor-content .hljs-name {
+    color: #7ee787;
+}
+
+[data-theme="dark"] .wiki-editor-content .hljs-selector-id,
+[data-theme="dark"] .wiki-editor-content .hljs-selector-class {
+    color: #d2a8ff;
+}
+
+[data-theme="dark"] .wiki-editor-content .hljs-regexp {
+    color: #a5d6ff;
+}
+
+[data-theme="dark"] .wiki-editor-content .hljs-link {
+    color: #79c0ff;
+}
+
+[data-theme="dark"] .wiki-editor-content .hljs-meta {
+    color: #8b949e;
+}
+
+[data-theme="dark"] .wiki-editor-content .hljs-operator {
+    color: #ff7b72;
+}
+
+[data-theme="dark"] .wiki-editor-content .hljs-punctuation {
+    color: #c9d1d9;
+}
+
+[data-theme="dark"] .wiki-editor-content .hljs-params {
+    color: #c9d1d9;
+}
+
+[data-theme="dark"] .wiki-editor-content .hljs-property {
+    color: #79c0ff;
+}
 </style>
