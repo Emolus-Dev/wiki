@@ -362,6 +362,7 @@ def get_cr_page(name: str, doc_key: str) -> dict[str, Any]:
 def create_change_request(wiki_space: str, title: str, description: str | None = None) -> Document:
 	space = frappe.get_doc("Wiki Space", wiki_space)
 	if not space.main_revision:
+		space.check_permission("write")
 		main_revision = create_revision_from_live_tree(wiki_space, message="Initial main")
 		frappe.db.set_value("Wiki Space", wiki_space, "main_revision", main_revision.name)
 		space.main_revision = main_revision.name
@@ -396,6 +397,7 @@ def create_cr_page(
 	external_url: str | None = None,
 ) -> str:
 	cr = frappe.get_doc("Wiki Change Request", name)
+	cr.check_permission("write")
 	head_revision = cr.head_revision
 
 	item_map = get_effective_revision_item_map(head_revision)
@@ -443,6 +445,7 @@ def create_cr_page(
 @frappe.whitelist()
 def update_cr_page(name: str, doc_key: str, fields: dict[str, Any]) -> None:
 	cr = frappe.get_doc("Wiki Change Request", name)
+	cr.check_permission("write")
 	item_name = ensure_overlay_item(cr.head_revision, doc_key)
 	if not item_name:
 		frappe.throw(_("Document not found in change request"))
@@ -475,6 +478,7 @@ def update_cr_page(name: str, doc_key: str, fields: dict[str, Any]) -> None:
 @frappe.whitelist()
 def move_cr_page(name: str, doc_key: str, new_parent_key: str, new_order_index: int | None = None) -> None:
 	cr = frappe.get_doc("Wiki Change Request", name)
+	cr.check_permission("write")
 	item_name = ensure_overlay_item(cr.head_revision, doc_key)
 	if not item_name:
 		frappe.throw(_("Document not found in change request"))
@@ -492,6 +496,7 @@ def move_cr_page(name: str, doc_key: str, new_parent_key: str, new_order_index: 
 @frappe.whitelist()
 def reorder_cr_children(name: str, parent_key: str, ordered_doc_keys: list[str]) -> None:
 	cr = frappe.get_doc("Wiki Change Request", name)
+	cr.check_permission("write")
 	for index, doc_key in enumerate(ordered_doc_keys):
 		item_name = ensure_overlay_item(cr.head_revision, doc_key)
 		if not item_name:
@@ -508,6 +513,7 @@ def reorder_cr_children(name: str, parent_key: str, ordered_doc_keys: list[str])
 @frappe.whitelist()
 def delete_cr_page(name: str, doc_key: str) -> None:
 	cr = frappe.get_doc("Wiki Change Request", name)
+	cr.check_permission("write")
 	item_name = ensure_overlay_item(cr.head_revision, doc_key)
 	if not item_name:
 		frappe.throw(_("Document not found in change request"))
@@ -652,6 +658,7 @@ def diff_change_request(name: str, scope: str = "summary", doc_key: str | None =
 @frappe.whitelist()
 def request_review(name: str, reviewers: list[str]) -> None:
 	cr = frappe.get_doc("Wiki Change Request", name)
+	cr.check_permission("write")
 	unique_reviewers = []
 	seen = set()
 	for reviewer in reviewers or []:
@@ -932,6 +939,7 @@ def retry_merge_after_resolution(name: str) -> str:
 @frappe.whitelist()
 def check_outdated(name: str) -> int:
 	cr = frappe.get_doc("Wiki Change Request", name)
+	cr.check_permission("write")
 	main_revision = frappe.get_value("Wiki Space", cr.wiki_space, "main_revision")
 	outdated = 1 if main_revision and main_revision != cr.base_revision else 0
 	frappe.db.set_value("Wiki Change Request", cr.name, "outdated", outdated)

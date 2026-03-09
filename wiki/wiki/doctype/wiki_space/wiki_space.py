@@ -73,6 +73,7 @@ class WikiSpace(Document):
 
 	@frappe.whitelist()
 	def migrate_to_v3(self):
+		frappe.only_for("Wiki Manager")
 		if self.root_group:
 			return  # Migration already done
 
