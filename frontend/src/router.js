@@ -90,7 +90,7 @@ router.beforeEach(async (to, from, next) => {
 	}
 
 	if (!isLoggedIn) {
-		window.location.href = `/login?redirect-to=/wiki/${encodeURIComponent(
+		window.location.href = `/login?redirect-to=/wiki${encodeURIComponent(
 			to.fullPath,
 		)}`;
 	} else {
