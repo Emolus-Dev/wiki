@@ -69,7 +69,7 @@ CALLOUT_ICONS = {
 # Matches: :::type or :::type[title] or :::type\[title] (escaped bracket from editor)
 # Content continues until closing :::
 CALLOUT_PATTERN = re.compile(
-	r"^:::(?P<type>note|tip|caution|danger|warning)(?:\\?\[(?P<title>[^\]]*)\])?\s*\n(?P<content>[\s\S]*?)\n:::[ \t]*$",
+	r"^[ \t]*:::(?P<type>note|tip|caution|danger|warning)(?:\\?\[(?P<title>[^\]]*)\])?\s*\n(?P<content>[\s\S]*?)\n[ \t]*:::[ \t]*$",
 	re.MULTILINE,
 )
 

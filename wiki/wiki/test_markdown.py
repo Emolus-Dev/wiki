@@ -288,6 +288,18 @@ This has **bold text** and *italic text* and [a link](https://example.com)
 		self.assertIn('href="https://example.com"', result)
 		self.assertIn("a link", result)
 
+	def test_indented_callout(self):
+		"""Test callout that is indented (e.g. inside a list item) still renders."""
+		content = """1. First item
+2. Second item
+  :::note
+  **This is an indented note inside a list.**
+  :::
+3. Third item"""
+		result = render_markdown(content)
+		self.assertIn("callout-note", result)
+		self.assertIn("This is an indented note inside a list.", result)
+
 
 class TestComplexMarkdownContent(unittest.TestCase):
 	"""Tests for complex markdown content with callouts and images."""
