@@ -758,6 +758,7 @@ onUnmounted(() => {
 .wiki-editor-content img {
     max-width: 100%;
     height: auto;
+    border: 1px solid var(--ink-gray-3);
     border-radius: 0.375rem;
 }
 
