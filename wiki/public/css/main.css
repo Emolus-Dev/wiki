@@ -345,12 +345,23 @@
   color: var(--ink-red-3);
 }
 
+/* Image lightbox active state */
+#image-viewer.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+body.image-viewer-open {
+  overflow: hidden;
+}
+
 /* Ensure images don't overflow container */
 .prose img {
   max-width: 100%;
   height: auto;
   border: 1px solid var(--ink-gray-3);
   border-radius: 0.375rem;
+  cursor: zoom-in;
 }
 
 /* Image caption styling using img + em pattern
