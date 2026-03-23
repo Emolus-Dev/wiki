@@ -17,10 +17,14 @@ Supported types: note, tip, caution, danger, warning (alias for caution)
 """
 
 import re
-from html import unescape
+from html import escape, unescape
 from urllib.parse import quote
 
 import mistune
+from pygments import highlight
+from pygments.formatters import HtmlFormatter
+from pygments.lexers import TextLexer, get_lexer_by_name, guess_lexer
+from pygments.util import ClassNotFound
 
 
 def slugify(text: str) -> str:
@@ -285,6 +289,28 @@ def _encode_image_url_spaces(content: str) -> str:
 	return IMAGE_PATTERN.sub(encode_url, content)
 
 
+def _get_code_language(info: str | None) -> str:
+	if not info:
+		return ""
+
+	return info.strip().split(None, 1)[0].lower()
+
+
+def _highlight_code_block(code: str, info: str | None) -> tuple[str, str]:
+	language = _get_code_language(info)
+
+	try:
+		if language:
+			lexer = get_lexer_by_name(language)
+		else:
+			lexer = guess_lexer(code)
+	except ClassNotFound:
+		lexer = TextLexer()
+
+	highlighted = highlight(code, lexer, HtmlFormatter(nowrap=True, noclasses=True))
+	return highlighted, language
+
+
 class WikiRenderer(mistune.HTMLRenderer):
 	"""Custom HTML renderer.
 
@@ -348,6 +374,18 @@ class WikiRenderer(mistune.HTMLRenderer):
 		if safe_title:
 			s += f' title="{safe_title}"'
 		return s + " />"
+
+	def block_code(self, code: str, info: str | None = None) -> str:
+		highlighted, language = _highlight_code_block(code, info)
+		class_names = ["hljs"]
+		data_language_attr = ""
+
+		if language:
+			class_names.append(f"language-{language}")
+			data_language_attr = f' data-language="{escape(language, quote=True)}"'
+
+		class_attr = " ".join(class_names)
+		return f'<pre><code class="{class_attr}"{data_language_attr}>{highlighted}</code></pre>\n'
 
 	def get_headings(self) -> list:
 		"""Return the list of h2/h3 headings extracted during rendering."""

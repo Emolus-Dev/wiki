@@ -15,6 +15,12 @@ class TestMarkdownRenderer(unittest.TestCase):
 		self.assertIn("<strong>bold</strong>", result)
 		self.assertIn("<em>italic</em>", result)
 
+	def test_fenced_code_block_renders_with_syntax_highlighting(self):
+		result = render_markdown('```python\nprint("hi")\n```')
+		self.assertIn('<pre><code class="hljs language-python" data-language="python">', result)
+		self.assertIn('style="', result)
+		self.assertIn("print", result)
+
 	def test_empty_content(self):
 		"""Test empty content returns empty string."""
 		self.assertEqual(render_markdown(""), "")
