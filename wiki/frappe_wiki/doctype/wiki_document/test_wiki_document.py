@@ -1095,6 +1095,33 @@ class TestExternalLinkExclusions(WikiDocumentTestBase):
 		self.assertIn(normal_page.name, result_names)
 		self.assertEqual(len(results["results"]), 1)
 
+	def test_search_indexes_code_block_contents(self):
+		"""Test that code block content remains searchable for config snippets."""
+		from wiki.frappe_wiki.doctype.wiki_document.wiki_sqlite_search import WikiSQLiteSearch
+
+		root_group = create_test_wiki_document(self, "Root CodeSearch", is_group=True)
+		code_page = create_test_wiki_document(
+			self,
+			"Code Search Page",
+			parent=root_group.name,
+			content="""```ini
+[program:frappe-bench-node-socketio]
+user=mario
+directory=/home/mario/frappe-bench
+```""",
+		)
+		create_test_wiki_space(self, "CodeSearch Space", "code-search-space", root_group.name)
+
+		search = WikiSQLiteSearch()
+		search.drop_index()
+		search.build_index()
+
+		results = search.search("user=mario")
+		result_names = [r["name"] for r in results["results"]]
+
+		self.assertIn(code_page.name, result_names)
+		self.assertTrue(any("mario" in (r["content"] or "").lower() for r in results["results"]))
+
 	def test_renderer_cannot_render_external_link(self):
 		"""Test that WikiDocumentRenderer.can_render() returns False for external links."""
 		from wiki.frappe_wiki.doctype.wiki_document.wiki_document import WikiDocumentRenderer

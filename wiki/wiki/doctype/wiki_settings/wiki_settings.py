@@ -35,5 +35,12 @@ def clear_wiki_page_cache():
 
 
 def _clear_wiki_page_cache():
-	for route in frappe.get_all("Wiki Page", pluck="route"):
+	routes = set()
+
+	for doctype in ("Wiki Page", "Wiki Document", "Wiki Space"):
+		for route in frappe.get_all(doctype, pluck="route"):
+			if route:
+				routes.add(route.lstrip("/"))
+
+	for route in routes:
 		frappe.cache().hdel("website_page", route)

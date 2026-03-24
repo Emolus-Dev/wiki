@@ -85,12 +85,17 @@
                         <template x-for="(result, index) in results" :key="index">
                             <li>
                                 <a :href="'/' + result.route"
-                                   @click.prevent="navigateTo(result.route)"
+                                   @click.prevent="navigateTo(result)"
                                    @mouseenter="selectedIndex = index"
-                                   @keydown.enter.prevent="navigateTo(result.route)"
+                                   @keydown.enter.prevent="navigateTo(result)"
                                    :class="selectedIndex === index ? 'bg-[var(--surface-gray-2)]' : ''"
                                    class="flex flex-col gap-1 px-4 py-3 hover:bg-[var(--surface-gray-2)] transition-colors cursor-pointer">
                                     <span class="text-sm font-medium text-[var(--ink-gray-9)]" x-html="result.title"></span>
+                                    <template x-if="result.match_text">
+                                        <span class="text-[11px] font-medium text-[var(--ink-gray-6)]">
+                                            {{ _("Match") }}: <span x-text="result.match_text"></span>
+                                        </span>
+                                    </template>
                                     <span class="text-xs text-[var(--ink-gray-5)] line-clamp-2" x-html="result.content"></span>
                                 </a>
                             </li>
@@ -185,15 +190,19 @@
                         this.error = 'Search index not available. Please contact administrator.';
                         this.results = [];
                         this.total = 0;
-                    } else if (data.message) {
-                        this.results = data.message.results || [];
-                        this.total = data.message.total || 0;
-                        this.error = null;
                     } else {
-                        // Unexpected response format
-                        console.warn('Unexpected response format:', data);
-                        this.results = [];
-                        this.total = 0;
+                        const payload = data.message ?? data;
+
+                        if (Array.isArray(payload.results)) {
+                            this.results = payload.results;
+                            this.total = payload.total || 0;
+                            this.error = null;
+                        } else {
+                            // Unexpected response format
+                            console.warn('Unexpected response format:', data);
+                            this.results = [];
+                            this.total = 0;
+                        }
                     }
                 } catch (error) {
                     console.error('Search error:', error);
@@ -205,9 +214,12 @@
                 }
             },
 
-            navigateTo(route) {
+            navigateTo(result) {
                 this.close();
-                Alpine.store('navigation').navigateTo(route);
+                Alpine.store('navigation').navigateTo(result.route, true, {
+                    searchQuery: this.query,
+                    matchText: result.match_text,
+                });
             },
 
             init() {
@@ -230,7 +242,7 @@
                     this.selectedIndex = Math.max(this.selectedIndex - 1, 0);
                 } else if (e.key === 'Enter' && this.results.length > 0) {
                     e.preventDefault();
-                    this.navigateTo(this.results[this.selectedIndex].route);
+                    this.navigateTo(this.results[this.selectedIndex]);
                 }
             }
         }

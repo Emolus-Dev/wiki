@@ -1,6 +1,21 @@
+import re
+from html import unescape
+
 import frappe
 
 from wiki.wiki.doctype.wiki_settings.wiki_settings import enforce_guest_access_disabled
+
+
+def _extract_match_text(*values: str | None) -> str:
+	for value in values:
+		if not value:
+			continue
+
+		match = re.search(r"<mark>(.*?)</mark>", value, flags=re.IGNORECASE | re.DOTALL)
+		if match:
+			return unescape(re.sub(r"<[^>]+>", "", match.group(1))).strip()
+
+	return ""
 
 
 @frappe.whitelist(allow_guest=True)
@@ -34,6 +49,7 @@ def search(query: str, space: str | None = None) -> dict:
 				"title": r["title"],
 				"route": r.get("route", ""),
 				"content": r["content"],
+				"match_text": _extract_match_text(r["content"], r["title"]),
 				"score": r["score"],
 			}
 			for r in result["results"]

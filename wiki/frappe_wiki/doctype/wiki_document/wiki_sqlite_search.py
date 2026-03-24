@@ -41,16 +41,19 @@ class WikiSQLiteSearch(SQLiteSearch):
 				prepared["content"] = self._strip_markdown(prepared["content"])
 		return prepared
 
+	def search(self, query, title_only=False, filters=None):
+		return super().search(self._normalize_query(query), title_only=title_only, filters=filters)
+
 	def _strip_markdown(self, text):
 		"""Convert markdown to plain text for cleaner search indexing"""
 		if not text:
 			return text
 
-		# Remove code blocks (``` ... ```)
-		text = re.sub(r"```[\s\S]*?```", " ", text)
+		# Preserve fenced code block contents while removing the markdown fences
+		text = re.sub(r"```(?:[^\n]*)\n([\s\S]*?)```", lambda m: f"\n{m.group(1)}\n", text)
 
-		# Remove inline code (`code`)
-		text = re.sub(r"`[^`]+`", " ", text)
+		# Preserve inline code contents while removing backticks
+		text = re.sub(r"`([^`]+)`", r"\1", text)
 
 		# Remove custom directives (:::note, :::danger, etc.)
 		text = re.sub(r":::[a-z]+\s*", " ", text)
@@ -82,6 +85,14 @@ class WikiSQLiteSearch(SQLiteSearch):
 		text = re.sub(r"\s+", " ", text)
 
 		return text.strip()
+
+	def _normalize_query(self, query: str) -> str:
+		if not query:
+			return query
+
+		normalized = re.sub(r"[^\w\s\-_]", " ", query)
+		normalized = re.sub(r"\s+", " ", normalized).strip()
+		return normalized or query
 
 	def _get_root_space(self, docname):
 		"""Get the root wiki space for a document"""

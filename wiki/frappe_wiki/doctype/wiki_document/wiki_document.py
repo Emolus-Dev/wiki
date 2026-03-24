@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 
 import frappe
 from frappe import _
+from frappe.search.sqlite_search import SQLiteSearchIndexMissingError
 from frappe.utils import pretty_date
 from frappe.utils.nestedset import NestedSet, get_descendants_of
 from frappe.website.page_renderers.base_renderer import BaseRenderer
@@ -434,6 +435,7 @@ class WikiDocumentRenderer(BaseRenderer):
 
 		# Get root group - either from a group document or from a Wiki Space route
 		root_group = None
+		space_root_route = False
 		if document and document.is_group:
 			root_group = document.name
 		else:
@@ -441,9 +443,13 @@ class WikiDocumentRenderer(BaseRenderer):
 			root_group = frappe.db.get_value(
 				"Wiki Space", {"route": self.path, "is_published": 1}, "root_group"
 			)
+			space_root_route = bool(root_group)
 
 		# Redirect to first published child document if available
 		if root_group:
+			if space_root_route:
+				enforce_guest_access_disabled()
+
 			child_docs = get_descendants_of(
 				"Wiki Document", root_group, order_by="lft asc, sort_order desc", ignore_permissions=True
 			)
@@ -564,12 +570,32 @@ def get_page_data(route: str) -> dict:
 
 def on_wiki_document_update(doc, method):
 	"""Sync desk edits to the revision system so CRs stay aligned with the live tree."""
+	_sync_search_index(doc)
 	_sync_document_to_revision(doc)
 
 
 def on_wiki_document_trash(doc, method):
 	"""Sync desk deletions to the revision system."""
+	_sync_search_index(doc, deleted=True)
 	_sync_document_to_revision(doc)
+
+
+def _sync_search_index(doc, deleted: bool = False):
+	from wiki.frappe_wiki.doctype.wiki_document.wiki_sqlite_search import WikiSQLiteSearch
+
+	search_engine = WikiSQLiteSearch()
+	if not search_engine.index_exists():
+		return
+
+	try:
+		search_engine.remove_doc("Wiki Document", doc.name)
+		if deleted:
+			return
+
+		if doc.is_published and not doc.is_group and not doc.is_external_link:
+			search_engine.index_doc("Wiki Document", doc.name)
+	except SQLiteSearchIndexMissingError:
+		return
 
 
 def _sync_document_to_revision(doc):
