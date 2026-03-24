@@ -9,6 +9,7 @@ from frappe.utils import pretty_date
 from frappe.utils.nestedset import NestedSet, get_descendants_of
 from frappe.website.page_renderers.base_renderer import BaseRenderer
 
+from wiki.wiki.doctype.wiki_settings.wiki_settings import enforce_guest_access_disabled
 from wiki.wiki.markdown import render_markdown_with_toc
 
 # Mapping of known service domains to icon identifiers
@@ -236,6 +237,7 @@ class WikiDocument(NestedSet):
 		Check if the current user has permission to view this document.
 		Raises PermissionError if access is denied.
 		"""
+		enforce_guest_access_disabled()
 		if self.is_private and frappe.session.user == "Guest":
 			frappe.throw(
 				frappe._("You must be logged in to view this page"),
@@ -549,6 +551,7 @@ def get_breadcrumbs(name: str) -> dict:
 @frappe.whitelist(allow_guest=True)
 def get_page_data(route: str) -> dict:
 	"""Returns all data needed to render a page dynamically for client-side navigation."""
+	enforce_guest_access_disabled()
 	doc_name = frappe.db.get_value(
 		"Wiki Document", {"route": route, "is_published": 1, "is_external_link": 0}, "name"
 	)

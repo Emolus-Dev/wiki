@@ -1,5 +1,7 @@
 import frappe
 
+from wiki.wiki.doctype.wiki_settings.wiki_settings import enforce_guest_access_disabled
+
 
 @frappe.whitelist(allow_guest=True)
 def search(query: str, space: str | None = None) -> dict:
@@ -14,6 +16,8 @@ def search(query: str, space: str | None = None) -> dict:
 	    Search results with title, content snippets, and scores
 	"""
 	from wiki.frappe_wiki.doctype.wiki_document.wiki_sqlite_search import WikiSQLiteSearch
+
+	enforce_guest_access_disabled()
 
 	if not query or not query.strip():
 		return {"results": [], "total": 0}

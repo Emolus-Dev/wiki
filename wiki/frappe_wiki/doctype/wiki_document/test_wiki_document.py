@@ -1162,3 +1162,34 @@ class TestExternalLinkExclusions(WikiDocumentTestBase):
 
 		context = get_page_data(route=normal_page.route)
 		self.assertEqual(context["title"], "Normal PageData Page")
+
+	def test_get_page_data_blocks_guest_when_guest_access_disabled(self):
+		"""Test that get_page_data() denies guests when guest access is disabled."""
+		from wiki.frappe_wiki.doctype.wiki_document.search import search
+		from wiki.frappe_wiki.doctype.wiki_document.wiki_document import get_page_data
+
+		root_group = create_test_wiki_document(self, "Root GuestLockedPageData", is_group=True)
+		normal_page = create_test_wiki_document(
+			self,
+			"Guest Locked Page",
+			parent=root_group.name,
+			slug="guest-locked-page",
+			content="unique_guest_locked_content_xyz",
+		)
+		create_test_wiki_space(self, "GuestLocked Space", "guest-locked-space", root_group.name)
+
+		previous_user = frappe.session.user
+		previous_setting = frappe.db.get_single_value("Wiki Settings", "disable_guest_access")
+
+		try:
+			frappe.db.set_single_value("Wiki Settings", "disable_guest_access", 1)
+			frappe.set_user("Guest")
+
+			with self.assertRaises(frappe.PermissionError):
+				get_page_data(route=normal_page.route)
+
+			with self.assertRaises(frappe.PermissionError):
+				search(query="unique_guest_locked_content_xyz")
+		finally:
+			frappe.set_user(previous_user)
+			frappe.db.set_single_value("Wiki Settings", "disable_guest_access", previous_setting or 0)

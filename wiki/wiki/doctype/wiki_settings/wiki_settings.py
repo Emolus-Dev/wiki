@@ -13,6 +13,15 @@ class WikiSettings(Document):
 		_clear_wiki_page_cache()
 
 
+def is_guest_access_disabled() -> bool:
+	return bool(frappe.db.get_single_value("Wiki Settings", "disable_guest_access"))
+
+
+def enforce_guest_access_disabled() -> None:
+	if frappe.session.user == "Guest" and is_guest_access_disabled():
+		frappe.throw(frappe._("You must be logged in to view this page"), frappe.PermissionError)
+
+
 @frappe.whitelist()
 def get_all_spaces():
 	return frappe.get_all("Wiki Space", pluck="route")
