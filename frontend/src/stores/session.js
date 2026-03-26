@@ -1,51 +1,59 @@
-import { useUserStore } from '@/stores/user';
-import { createResource } from 'frappe-ui';
-import { defineStore } from 'pinia';
-import { computed, ref } from 'vue';
+import { useUserStore } from "@/stores/user";
+import { createResource } from "frappe-ui";
+import { defineStore } from "pinia";
+import { computed, ref } from "vue";
+
+import { redirectToLogin } from "@/lib/auth";
 
 function getCookieUser() {
-	const cookies = new URLSearchParams(document.cookie.split('; ').join('&'));
-	let user = cookies.get('user_id');
-	if (user === 'Guest') {
-		user = null;
-	}
-	return user;
+  const cookies = new URLSearchParams(document.cookie.split("; ").join("&"));
+  let user = cookies.get("user_id");
+  if (user === "Guest") {
+    user = null;
+  }
+  return user;
 }
 
-export const useSessionStore = defineStore('session', () => {
-	const user = ref(getCookieUser());
+export const useSessionStore = defineStore("session", () => {
+  const user = ref(getCookieUser());
 
-	const isLoggedIn = computed(() => !!user.value);
+  const isLoggedIn = computed(() => !!user.value);
 
-	const login = createResource({
-		url: 'login',
-		makeParams({ email, password }) {
-			return {
-				usr: email,
-				pwd: password,
-			};
-		},
-		onSuccess(data) {
-			useUserStore().reload();
-			user.value = getCookieUser();
-			login.reset();
-			window.location.href = data.default_route || '/';
-		},
-	});
+  function refreshFromCookies() {
+    user.value = getCookieUser();
+    return user.value;
+  }
 
-	const logout = createResource({
-		url: 'logout',
-		onSuccess() {
-			useUserStore().reset();
-			user.value = getCookieUser();
-			window.location.href = '/login';
-		},
-	});
+  const login = createResource({
+    url: "login",
+    makeParams({ email, password }) {
+      return {
+        usr: email,
+        pwd: password,
+      };
+    },
+    onSuccess(data) {
+      useUserStore().reload();
+      refreshFromCookies();
+      login.reset();
+      window.location.href = data.default_route || "/";
+    },
+  });
 
-	return {
-		user,
-		isLoggedIn,
-		login,
-		logout,
-	};
+  const logout = createResource({
+    url: "logout",
+    onSuccess() {
+      useUserStore().reset();
+      refreshFromCookies();
+      redirectToLogin("/");
+    },
+  });
+
+  return {
+    user,
+    isLoggedIn,
+    refreshFromCookies,
+    login,
+    logout,
+  };
 });
