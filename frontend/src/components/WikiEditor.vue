@@ -322,29 +322,21 @@ function createSlashCommandsSuggestion() {
       return {
         onStart: (props) => {
           isDestroyed = false;
-          // Create a container for the Vue component
           const container = document.createElement("div");
 
-          // Create the Vue component instance
           component = {
             element: container,
-            props,
             vm: null,
             app: null,
           };
 
-          // Mount the SlashCommandsList component directly
-          import("vue").then(({ createApp }) => {
-            if (isDestroyed) return;
-            const app = createApp(SlashCommandsList, {
-              items: props.items,
-              command: props.command,
-            });
-            component.app = app;
-            component.vm = app.mount(container);
+          const app = createApp(SlashCommandsList, {
+            items: props.items,
+            command: props.command,
           });
+          component.app = app;
+          component.vm = app.mount(container);
 
-          // Create tippy popup with no default styling
           popup = tippy("body", {
             getReferenceClientRect: props.clientRect,
             appendTo: () => document.body,
@@ -363,21 +355,16 @@ function createSlashCommandsSuggestion() {
         onUpdate: (props) => {
           if (isDestroyed) return;
 
-          // Re-render with new items
+          // Recreate component with updated props
           if (component?.app) {
-            import("vue").then(({ createApp }) => {
-              if (isDestroyed) return;
-              // Unmount old app
-              component.app.unmount();
-              const container = component.element;
-              // Create new app with updated props
-              const app = createApp(SlashCommandsList, {
-                items: props.items,
-                command: props.command,
-              });
-              component.app = app;
-              component.vm = app.mount(container);
+            component.app.unmount();
+            const container = component.element;
+            const app = createApp(SlashCommandsList, {
+              items: props.items,
+              command: props.command,
             });
+            component.app = app;
+            component.vm = app.mount(container);
           }
 
           if (popup) {
@@ -817,7 +804,9 @@ onUnmounted(() => {
   outline-offset: 2px;
 }
 
-/* Syntax highlighting - GitHub Light inspired theme */
+/* Syntax highlighting - GitHub Light theme
+   Based on github.com primer/prism colors.
+   No token should use font-weight except .hljs-strong. */
 .wiki-editor-content .hljs-comment,
 .wiki-editor-content .hljs-quote {
   color: #6a737d;
@@ -835,7 +824,8 @@ onUnmounted(() => {
 }
 
 .wiki-editor-content .hljs-string,
-.wiki-editor-content .hljs-doctag {
+.wiki-editor-content .hljs-doctag,
+.wiki-editor-content .hljs-regexp {
   color: #032f62;
 }
 
@@ -854,25 +844,27 @@ onUnmounted(() => {
   color: #e36209;
 }
 
-.wiki-editor-content .hljs-function {
+.wiki-editor-content .hljs-function,
+.wiki-editor-content .hljs-title {
   color: #6f42c1;
 }
 
-.wiki-editor-content .hljs-title {
+.wiki-editor-content .hljs-title.function_ {
   color: #6f42c1;
-  font-weight: 600;
+}
+
+.wiki-editor-content .hljs-title.class_,
+.wiki-editor-content .hljs-class .hljs-title,
+.wiki-editor-content .hljs-type {
+  color: #22863a;
 }
 
 .wiki-editor-content .hljs-built_in {
   color: #005cc5;
 }
 
-.wiki-editor-content .hljs-class .hljs-title,
-.wiki-editor-content .hljs-type {
-  color: #22863a;
-}
-
-.wiki-editor-content .hljs-attr {
+.wiki-editor-content .hljs-attr,
+.wiki-editor-content .hljs-property {
   color: #005cc5;
 }
 
@@ -881,17 +873,22 @@ onUnmounted(() => {
   color: #e36209;
 }
 
-.wiki-editor-content .hljs-name {
+.wiki-editor-content .hljs-subst {
+  color: #24292e;
+}
+
+.wiki-editor-content .hljs-name,
+.wiki-editor-content .hljs-tag {
   color: #22863a;
+}
+
+.wiki-editor-content .hljs-section {
+  color: #005cc5;
 }
 
 .wiki-editor-content .hljs-selector-id,
 .wiki-editor-content .hljs-selector-class {
   color: #6f42c1;
-}
-
-.wiki-editor-content .hljs-regexp {
-  color: #032f62;
 }
 
 .wiki-editor-content .hljs-link {
@@ -907,7 +904,8 @@ onUnmounted(() => {
   color: #d73a49;
 }
 
-.wiki-editor-content .hljs-punctuation {
+.wiki-editor-content .hljs-punctuation,
+.wiki-editor-content .hljs-params {
   color: #24292e;
 }
 
@@ -919,15 +917,7 @@ onUnmounted(() => {
   font-weight: bold;
 }
 
-.wiki-editor-content .hljs-params {
-  color: #24292e;
-}
-
-.wiki-editor-content .hljs-property {
-  color: #005cc5;
-}
-
-/* Syntax highlighting - Dark theme overrides (matches public page theme) */
+/* Syntax highlighting - GitHub Dark theme overrides */
 [data-theme="dark"] .wiki-editor-content .hljs-comment,
 [data-theme="dark"] .wiki-editor-content .hljs-quote {
   color: #8b949e;
@@ -944,7 +934,8 @@ onUnmounted(() => {
 }
 
 [data-theme="dark"] .wiki-editor-content .hljs-string,
-[data-theme="dark"] .wiki-editor-content .hljs-doctag {
+[data-theme="dark"] .wiki-editor-content .hljs-doctag,
+[data-theme="dark"] .wiki-editor-content .hljs-regexp {
   color: #a5d6ff;
 }
 
@@ -963,24 +954,23 @@ onUnmounted(() => {
   color: #ffa657;
 }
 
-[data-theme="dark"] .wiki-editor-content .hljs-function {
+[data-theme="dark"] .wiki-editor-content .hljs-function,
+[data-theme="dark"] .wiki-editor-content .hljs-title {
   color: #d2a8ff;
 }
 
-[data-theme="dark"] .wiki-editor-content .hljs-title {
-  color: #d2a8ff;
+[data-theme="dark"] .wiki-editor-content .hljs-title.class_,
+[data-theme="dark"] .wiki-editor-content .hljs-class .hljs-title,
+[data-theme="dark"] .wiki-editor-content .hljs-type {
+  color: #7ee787;
 }
 
 [data-theme="dark"] .wiki-editor-content .hljs-built_in {
   color: #79c0ff;
 }
 
-[data-theme="dark"] .wiki-editor-content .hljs-class .hljs-title,
-[data-theme="dark"] .wiki-editor-content .hljs-type {
-  color: #7ee787;
-}
-
-[data-theme="dark"] .wiki-editor-content .hljs-attr {
+[data-theme="dark"] .wiki-editor-content .hljs-attr,
+[data-theme="dark"] .wiki-editor-content .hljs-property {
   color: #79c0ff;
 }
 
@@ -989,17 +979,22 @@ onUnmounted(() => {
   color: #ffa657;
 }
 
-[data-theme="dark"] .wiki-editor-content .hljs-name {
+[data-theme="dark"] .wiki-editor-content .hljs-subst {
+  color: #c9d1d9;
+}
+
+[data-theme="dark"] .wiki-editor-content .hljs-name,
+[data-theme="dark"] .wiki-editor-content .hljs-tag {
   color: #7ee787;
+}
+
+[data-theme="dark"] .wiki-editor-content .hljs-section {
+  color: #79c0ff;
 }
 
 [data-theme="dark"] .wiki-editor-content .hljs-selector-id,
 [data-theme="dark"] .wiki-editor-content .hljs-selector-class {
   color: #d2a8ff;
-}
-
-[data-theme="dark"] .wiki-editor-content .hljs-regexp {
-  color: #a5d6ff;
 }
 
 [data-theme="dark"] .wiki-editor-content .hljs-link {
@@ -1014,15 +1009,8 @@ onUnmounted(() => {
   color: #ff7b72;
 }
 
-[data-theme="dark"] .wiki-editor-content .hljs-punctuation {
-  color: #c9d1d9;
-}
-
+[data-theme="dark"] .wiki-editor-content .hljs-punctuation,
 [data-theme="dark"] .wiki-editor-content .hljs-params {
   color: #c9d1d9;
-}
-
-[data-theme="dark"] .wiki-editor-content .hljs-property {
-  color: #79c0ff;
 }
 </style>
