@@ -460,6 +460,16 @@
             }
             parentElement = parentElement.parentElement;
           }
+
+          // Scroll the active item into view after expansion
+          setTimeout(() => {
+            const activeEl = document.querySelector(
+              `[data-route="${this.currentRoute}"]`,
+            );
+            if (activeEl) {
+              activeEl.scrollIntoView({ block: "nearest", behavior: "smooth" });
+            }
+          }, 150);
         });
       },
     };

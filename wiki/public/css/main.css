@@ -400,3 +400,49 @@ body.image-viewer-open {
   font-weight: 600;
 }
 
+/* ── Sidebar Tree-View Connector Lines ── */
+
+/* Root level: no connectors, small left padding */
+.wiki-tree-root {
+  padding-left: 0.25rem;
+}
+
+/* Nested levels: positioned container for connector lines */
+.wiki-tree-nested {
+  position: relative;
+  margin-left: 0.625rem;
+  padding-left: 1.125rem;
+}
+
+/* Vertical trunk line: drawn via ::before on each item except the last */
+.wiki-tree-nested > .wiki-item {
+  position: relative;
+}
+
+/* Vertical line segment from top of item to bottom (continues trunk) */
+.wiki-tree-nested > .wiki-item::before {
+  content: "";
+  position: absolute;
+  left: -1.125rem;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 1px solid var(--outline-gray-3);
+}
+
+/* Horizontal branch: connects trunk to item content */
+.wiki-tree-nested > .wiki-item::after {
+  content: "";
+  position: absolute;
+  left: -1.125rem;
+  top: 1.0625rem;
+  width: 0.875rem;
+  height: 0;
+  border-top: 1px solid var(--outline-gray-3);
+}
+
+/* Last child: vertical line stops at the branch (└ shape) */
+.wiki-tree-nested > .wiki-item:last-child::before {
+  bottom: auto;
+  height: 1.0625rem;
+}

@@ -424,10 +424,11 @@ render_icon %}
         // Auto-expand parents of current page
         this.expandCurrentPageParents();
 
-        // Debug: log all route elements
-        this.$nextTick(() => {
-          const allRouteElements = document.querySelectorAll("[data-route]");
-        });
+        // Keyboard navigation for the tree
+        const nav = this.$el.querySelector("nav");
+        if (nav) {
+          nav.addEventListener("keydown", (e) => this.handleTreeKeydown(e));
+        }
       },
 
       toggleSidebar() {
@@ -477,7 +478,98 @@ render_icon %}
             }
             parentElement = parentElement.parentElement;
           }
+
+          // Scroll the active item into view after a brief delay for expansion
+          setTimeout(() => {
+            const activeEl = document.querySelector(
+              `[data-route="${this.currentRoute}"]`,
+            );
+            if (activeEl) {
+              activeEl.scrollIntoView({ block: "nearest", behavior: "smooth" });
+            }
+          }, 150);
         });
+      },
+
+      handleTreeKeydown(e) {
+        const focusable = [
+          ...this.$el.querySelectorAll(".wiki-item-content:not([hidden])"),
+        ].filter((el) => {
+          // Only include visible items (not inside collapsed groups)
+          let parent = el.closest(".wiki-children");
+          while (parent) {
+            if (parent.style.display === "none" || parent.offsetHeight === 0)
+              return false;
+            parent = parent.parentElement?.closest(".wiki-children");
+          }
+          return true;
+        });
+
+        if (!focusable.length) return;
+
+        const current =
+          document.activeElement?.closest(".wiki-item-content") ||
+          this.$el.querySelector('.wiki-item-content[aria-current="page"]');
+        const idx = focusable.indexOf(current);
+
+        switch (e.key) {
+          case "ArrowDown": {
+            e.preventDefault();
+            const next = focusable[idx + 1] || focusable[0];
+            (
+              next.querySelector("a") ||
+              next.querySelector("button") ||
+              next
+            ).focus();
+            break;
+          }
+          case "ArrowUp": {
+            e.preventDefault();
+            const prev = focusable[idx - 1] || focusable[focusable.length - 1];
+            (
+              prev.querySelector("a") ||
+              prev.querySelector("button") ||
+              prev
+            ).focus();
+            break;
+          }
+          case "ArrowRight": {
+            e.preventDefault();
+            const nodeId = current?.getAttribute("data-node-id");
+            if (nodeId && !this.expandedStates[nodeId]) {
+              this.expandedStates[nodeId] = true;
+            }
+            break;
+          }
+          case "ArrowLeft": {
+            e.preventDefault();
+            const nId = current?.getAttribute("data-node-id");
+            if (nId && this.expandedStates[nId]) {
+              this.expandedStates[nId] = false;
+            } else {
+              // Move focus to parent group
+              const parentChildren = current?.closest(".wiki-children");
+              if (parentChildren) {
+                const parentItem = parentChildren.parentElement?.querySelector(
+                  ".wiki-item-content[data-node-id]",
+                );
+                if (parentItem) {
+                  (
+                    parentItem.querySelector("a") ||
+                    parentItem.querySelector("button") ||
+                    parentItem
+                  ).focus();
+                }
+              }
+            }
+            break;
+          }
+          case "Enter":
+          case " ": {
+            // Let default behavior handle link clicks
+            break;
+          }
+        }
       },
     };
   }
