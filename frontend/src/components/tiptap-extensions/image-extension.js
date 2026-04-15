@@ -1,7 +1,7 @@
-import { Node, mergeAttributes, nodeInputRule } from '@tiptap/core';
-import { VueNodeViewRenderer } from '@tiptap/vue-3';
-import ImageNodeView from './ImageNodeView.vue';
-import { isVideoUrl } from './video-block.js';
+import { Node, mergeAttributes, nodeInputRule } from "@tiptap/core";
+import { VueNodeViewRenderer } from "@tiptap/vue-3";
+import ImageNodeView from "./ImageNodeView.vue";
+import { isVideoUrl } from "./video-block.js";
 
 // Markdown image regex: ![alt](src "title")
 const inputRegex = /(?:^|\s)(!\[(.+|:?)]\((\S+)(?:(?:\s+)["'](\S+)["'])?\))$/;
@@ -22,166 +22,200 @@ const inputRegex = /(?:^|\s)(!\[(.+|:?)]\((\S+)(?:(?:\s+)["'](\S+)["'])?\))$/;
  * Pattern: ![alt](src "title")\n*caption*
  */
 const imageCaptionTokenizer = {
-	name: 'wikiImage',
-	level: 'block',
+  name: "wikiImage",
+  level: "block",
 
-	start(src) {
-		return src.indexOf('![');
-	},
+  start(src) {
+    return src.indexOf("![");
+  },
 
-	tokenize(src, tokens, lexer) {
-		// Match: ![alt](src) or ![alt](src "title") optionally followed by \n*caption*
-		const imagePattern = /^!\[([^\]]*)\]\(([^)"]+)(?:\s+"([^"]*)")?\)/;
-		const captionPattern = /^\n\*([^*]+)\*/;
+  tokenize(src, tokens, lexer) {
+    // Match: ![alt](src) or ![alt](src "title") optionally followed by \n*caption*
+    const imagePattern = /^!\[([^\]]*)\]\(([^)"]+)(?:\s+"([^"]*)")?\)/;
+    const captionPattern = /^\n\*([^*]+)\*/;
+    const widthPattern = /^\n?\{width=(\d+)\}/;
 
-		const imageMatch = imagePattern.exec(src);
-		if (!imageMatch) {
-			return undefined;
-		}
+    const imageMatch = imagePattern.exec(src);
+    if (!imageMatch) {
+      return undefined;
+    }
 
-		const [imageRaw, alt, href, title] = imageMatch;
-		if (isVideoUrl(href)) {
-			return undefined;
-		}
-		let caption = null;
-		let raw = imageRaw;
+    const [imageRaw, alt, href, title] = imageMatch;
+    if (isVideoUrl(href)) {
+      return undefined;
+    }
+    let caption = null;
+    let raw = imageRaw;
+    let width = null;
 
-		// Check for caption on next line
-		const remaining = src.slice(imageRaw.length);
-		const captionMatch = captionPattern.exec(remaining);
-		if (captionMatch) {
-			caption = captionMatch[1];
-			raw += captionMatch[0];
-		}
+    // Check for caption on next line
+    let remaining = src.slice(imageRaw.length);
+    const widthMatch = widthPattern.exec(remaining);
+    if (widthMatch) {
+      width = Number(widthMatch[1]);
+      raw += widthMatch[0];
+      remaining = remaining.slice(widthMatch[0].length);
+    }
 
-		return {
-			type: 'wikiImage',
-			raw,
-			text: alt || '',
-			href: href || '',
-			title: title || null,
-			caption: caption,
-		};
-	},
+    const captionMatch = captionPattern.exec(remaining);
+    if (captionMatch) {
+      caption = captionMatch[1];
+      raw += captionMatch[0];
+    }
+
+    return {
+      type: "wikiImage",
+      raw,
+      text: alt || "",
+      href: href || "",
+      title: title || null,
+      width: width,
+      caption: caption,
+    };
+  },
 };
 
 export const WikiImage = Node.create({
-	name: 'image',
+  name: "image",
 
-	group: 'block',
+  group: "block",
 
-	draggable: true,
+  draggable: true,
 
-	addOptions() {
-		return {
-			inline: false,
-			allowBase64: true,
-			HTMLAttributes: {},
-		};
-	},
+  addOptions() {
+    return {
+      inline: false,
+      allowBase64: true,
+      HTMLAttributes: {},
+    };
+  },
 
-	addAttributes() {
-		return {
-			src: {
-				default: null,
-			},
-			alt: {
-				default: null,
-			},
-			title: {
-				default: null,
-			},
-			caption: {
-				default: null,
-			},
-			width: {
-				default: null,
-			},
-			height: {
-				default: null,
-			},
-		};
-	},
+  addAttributes() {
+    return {
+      src: {
+        default: null,
+      },
+      alt: {
+        default: null,
+      },
+      title: {
+        default: null,
+      },
+      caption: {
+        default: null,
+      },
+      width: {
+        default: null,
+      },
+      height: {
+        default: null,
+      },
+    };
+  },
 
-	parseHTML() {
-		return [
-			{
-				tag: 'img[src]',
-			},
-		];
-	},
+  parseHTML() {
+    return [
+      {
+        tag: "img[src]",
+        getAttrs: (dom) => ({
+          src: dom.getAttribute("src"),
+          alt: dom.getAttribute("alt"),
+          title: dom.getAttribute("title"),
+          width:
+            dom.getAttribute("width") ||
+            dom.style.width?.replace("px", "") ||
+            null,
+          height:
+            dom.getAttribute("height") ||
+            dom.style.height?.replace("px", "") ||
+            null,
+        }),
+      },
+    ];
+  },
 
-	renderHTML({ HTMLAttributes }) {
-		return [
-			'img',
-			mergeAttributes(this.options.HTMLAttributes, HTMLAttributes),
-		];
-	},
+  renderHTML({ HTMLAttributes }) {
+    const width = HTMLAttributes.width ? String(HTMLAttributes.width) : null;
+    const height = HTMLAttributes.height ? String(HTMLAttributes.height) : null;
+    return [
+      "img",
+      mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
+        width: width || undefined,
+        height: height || undefined,
+      }),
+    ];
+  },
 
-	// Custom tokenizer for marked.js to capture image + caption pattern
-	markdownTokenizer: imageCaptionTokenizer,
+  // Custom tokenizer for marked.js to capture image + caption pattern
+  markdownTokenizer: imageCaptionTokenizer,
 
-	// Token name must match the tokenizer's type
-	markdownTokenName: 'wikiImage',
+  // Token name must match the tokenizer's type
+  markdownTokenName: "wikiImage",
 
-	// Parse markdown image with optional caption
-	parseMarkdown: (token, helpers) => {
-		return helpers.createNode('image', {
-			src: token.href,
-			title: token.title,
-			alt: token.text,
-			caption: token.caption || null,
-		});
-	},
+  // Parse markdown image with optional caption
+  parseMarkdown: (token, helpers) => {
+    return helpers.createNode("image", {
+      src: token.href,
+      title: token.title,
+      alt: token.text,
+      caption: token.caption || null,
+      width: token.width || null,
+    });
+  },
 
-	// Render to markdown using Stack Overflow caption pattern:
-	// ![alt](src "title")
-	// *caption*
-	renderMarkdown: (node) => {
-		const src = node.attrs?.src ?? '';
-		const alt = node.attrs?.alt ?? '';
-		const title = node.attrs?.title ?? '';
-		const caption = node.attrs?.caption ?? '';
+  // Render to markdown using Stack Overflow caption pattern:
+  // ![alt](src "title")
+  // *caption*
+  renderMarkdown: (node) => {
+    const src = node.attrs?.src ?? "";
+    const alt = node.attrs?.alt ?? "";
+    const title = node.attrs?.title ?? "";
+    const caption = node.attrs?.caption ?? "";
+    const width = node.attrs?.width ?? null;
 
-		let md = title ? `![${alt}](${src} "${title}")` : `![${alt}](${src})`;
+    let md = title ? `![${alt}](${src} "${title}")` : `![${alt}](${src})`;
 
-		// Add caption on next line (no blank line) if present
-		if (caption) {
-			md += `\n*${caption}*`;
-		}
+    if (width) {
+      md += `\n{width=${width}}`;
+    }
 
-		return md;
-	},
+    // Add caption on next line (no blank line) if present
+    if (caption) {
+      md += `\n*${caption}*`;
+    }
 
-	addNodeView() {
-		return VueNodeViewRenderer(ImageNodeView);
-	},
+    return md;
+  },
 
-	addCommands() {
-		return {
-			setImage:
-				(options) =>
-				({ commands }) => {
-					return commands.insertContent({
-						type: this.name,
-						attrs: options,
-					});
-				},
-		};
-	},
+  addNodeView() {
+    return VueNodeViewRenderer(ImageNodeView);
+  },
 
-	addInputRules() {
-		return [
-			nodeInputRule({
-				find: inputRegex,
-				type: this.type,
-				getAttributes: (match) => {
-					const [, , alt, src, title] = match;
-					return { src, alt, title };
-				},
-			}),
-		];
-	},
+  addCommands() {
+    return {
+      setImage:
+        (options) =>
+        ({ commands }) => {
+          return commands.insertContent({
+            type: this.name,
+            attrs: options,
+          });
+        },
+    };
+  },
+
+  addInputRules() {
+    return [
+      nodeInputRule({
+        find: inputRegex,
+        type: this.type,
+        getAttributes: (match) => {
+          const [, , alt, src, title] = match;
+          return { src, alt, title };
+        },
+      }),
+    ];
+  },
 });
 
 export default WikiImage;

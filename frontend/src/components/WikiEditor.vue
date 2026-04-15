@@ -1,7 +1,11 @@
 <template>
   <div class="wiki-editor-container">
     <div v-if="editor">
-      <WikiToolbar :editor="editor" @uploadImage="handleImageUpload" />
+      <WikiToolbar
+        :editor="editor"
+        v-model:upload-is-private="uploadIsPrivate"
+        @uploadImage="handleImageUpload"
+      />
       <WikiBubbleMenu :editor="editor" />
       <EditorContent :editor="editor" />
     </div>
@@ -105,6 +109,7 @@ const fileUploader = useFileUpload();
 
 // Editor instance
 const editor = ref(null);
+const uploadIsPrivate = ref(true);
 
 // Refs for file input and link popup
 const slashImageInput = ref(null);
@@ -117,11 +122,16 @@ let linkPopupApp = null;
 async function uploadFile(file) {
   try {
     const isImage = file.type.includes("image");
+    const isPrivate = uploadIsPrivate.value;
     const result = await fileUploader.upload(file, {
-      private: false,
+      private: isPrivate,
     });
 
-    toast.success(`${isImage ? "Image" : "File"} uploaded successfully`);
+    toast.success(
+      `${isImage ? "Image" : "File"} uploaded successfully as ${
+        isPrivate ? "private" : "public"
+      }`,
+    );
     return result.file_url;
   } catch (error) {
     handleError({

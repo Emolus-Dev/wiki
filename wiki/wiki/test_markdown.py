@@ -175,6 +175,23 @@ class TestImageCaptionSupport(unittest.TestCase):
 		self.assertIn('title="<i>Title</i>"', result)
 		self.assertNotIn("<script>", result)
 
+	def test_image_with_width_metadata(self):
+		"""Image width metadata should render as an img width attribute, not visible text."""
+		result = render_markdown("![Alt text](/files/test.jpg)\n{width=420}")
+
+		self.assertIn('<img src="/files/test.jpg"', result)
+		self.assertIn('width="420"', result)
+		self.assertNotIn("{width=420}", result)
+
+	def test_image_with_width_metadata_and_caption(self):
+		"""Image width metadata should coexist with caption rendering."""
+		result = render_markdown("![Alt text](/files/test.jpg)\n{width=420}\n*This is the caption*")
+
+		self.assertIn('<img src="/files/test.jpg"', result)
+		self.assertIn('width="420"', result)
+		self.assertIn("<em>This is the caption</em>", result)
+		self.assertNotIn("{width=420}", result)
+
 	def test_video_markdown_renders_as_block_not_inline_caption_pattern(self):
 		"""Video markdown should render as a block and not merge with following italic text."""
 		content = """![Demo Video](/files/demo-video.mp4)

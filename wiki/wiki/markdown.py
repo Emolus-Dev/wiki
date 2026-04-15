@@ -160,6 +160,11 @@ IMAGE_PATTERN = re.compile(
 	r'!\[([^\]]*)\]\(([^)"\s]+(?:\s[^)]*)?)\)',
 )
 
+IMAGE_WITH_METADATA_PATTERN = re.compile(
+	r'^!\[(?P<alt>[^\]]*)\]\((?P<url>[^)"\s]+)(?:\s+"(?P<title>[^"]*)")?\)[ \t]*(?:\n\{width=(?P<width>\d+)\})?(?:\n\*(?P<caption>[^\n*][^\n]*?)\*)?[ \t]*$',
+	re.MULTILINE,
+)
+
 VIDEO_EXTENSIONS = (
 	".mp4",
 	".webm",
@@ -245,6 +250,63 @@ def _replace_video_placeholders(html: str, videos: list[dict], placeholder_prefi
 		video_html = _generate_video_html(video["url"], video["alt"], video["title"])
 		html = html.replace(f"<p>{placeholder}</p>", video_html)
 		html = html.replace(placeholder, video_html)
+	return html
+
+
+def _generate_image_html(
+	url: str,
+	alt: str = "",
+	title: str = "",
+	width: str | None = None,
+	caption: str = "",
+) -> str:
+	src = quote(url, safe="/:#?&=%@+~,;.-_")
+	safe_alt = _remove_script_tags(alt)
+	safe_title = _remove_script_tags(title)
+	title_attr = f' title="{safe_title}"' if safe_title else ""
+	width_attr = f' width="{int(width)}"' if width else ""
+	img_html = f'<img src="{src}" alt="{safe_alt}"{title_attr}{width_attr} />'
+	if caption:
+		return f"<p>{img_html}<em>{escape(caption)}</em></p>"
+	return f"<p>{img_html}</p>"
+
+
+def _process_images_with_metadata(content: str) -> tuple[str, list[dict], str]:
+	images = []
+	placeholder_prefix = "WIKIIMAGEPLACEHOLDER"
+
+	def replacer(match):
+		url = match.group("url") or ""
+		if _is_video_url(url):
+			return match.group(0)
+
+		idx = len(images)
+		images.append(
+			{
+				"url": url,
+				"alt": match.group("alt") or "",
+				"title": match.group("title") or "",
+				"width": match.group("width") or "",
+				"caption": match.group("caption") or "",
+			}
+		)
+		return f"\n\n{placeholder_prefix}{idx}END\n\n"
+
+	return IMAGE_WITH_METADATA_PATTERN.sub(replacer, content), images, placeholder_prefix
+
+
+def _replace_image_placeholders(html: str, images: list[dict], placeholder_prefix: str) -> str:
+	for idx, image in enumerate(images):
+		placeholder = f"{placeholder_prefix}{idx}END"
+		image_html = _generate_image_html(
+			image["url"],
+			image["alt"],
+			image["title"],
+			image["width"],
+			image["caption"],
+		)
+		html = html.replace(f"<p>{placeholder}</p>", image_html)
+		html = html.replace(placeholder, image_html)
 	return html
 
 
@@ -427,14 +489,20 @@ def render_markdown_with_toc(content: str) -> tuple[str, list]:
 	# Step 3: Extract video blocks and replace with placeholders
 	processed_content, videos, video_placeholder_prefix = _process_videos_with_placeholders(processed_content)
 
-	# Step 4: Render markdown (placeholders may be wrapped in <p> tags)
+	# Step 4: Extract image blocks with width metadata and replace with placeholders
+	processed_content, images, image_placeholder_prefix = _process_images_with_metadata(processed_content)
+
+	# Step 5: Render markdown (placeholders may be wrapped in <p> tags)
 	html = md(processed_content)
 
-	# Step 5: Replace callout placeholders with actual callout HTML
+	# Step 6: Replace callout placeholders with actual callout HTML
 	html = _replace_callout_placeholders(html, callouts, placeholder_prefix, md)
 
-	# Step 6: Replace video placeholders with block video HTML
+	# Step 7: Replace video placeholders with block video HTML
 	html = _replace_video_placeholders(html, videos, video_placeholder_prefix)
+
+	# Step 8: Replace image placeholders with image HTML
+	html = _replace_image_placeholders(html, images, image_placeholder_prefix)
 
 	# Get the headings extracted during rendering
 	headings = renderer.get_headings()
