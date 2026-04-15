@@ -1,6 +1,6 @@
 <template>
   <draggable
-    class="nested-draggable-area space-y-1"
+    class="nested-draggable-area space-y-1.5"
     :class="{ 'min-h-[40px]': level > 0 }"
     tag="div"
     :list="localItems"
@@ -17,18 +17,18 @@
     <template #item="{ element }">
       <div class="draggable-item">
         <div
-          class="flex items-center justify-between gap-2 min-h-9 mx-1 px-2.5 py-1.5 rounded-lg group border transition-all duration-150"
+          class="flex items-center justify-between gap-3 min-h-11 mx-2 px-3 py-2 rounded-xl group border transition-all duration-200"
           :class="getRowClasses(element)"
-          :style="{ paddingLeft: `${level * 14 + 8}px` }"
+          :style="{ paddingLeft: `${level * 18 + 12}px` }"
           @click="handleRowClick(element)"
         >
-          <div class="flex items-center gap-1.5 flex-1 min-w-0">
+          <div class="flex items-center gap-2 flex-1 min-w-0">
             <button
-              class="drag-handle p-0.5 hover:bg-surface-gray-3 rounded cursor-grab active:cursor-grabbing transition-opacity"
+              class="drag-handle shrink-0 p-1 rounded-md cursor-grab active:cursor-grabbing transition-all duration-150 hover:bg-surface-gray-3"
               :class="
                 isRowActionVisible(element)
-                  ? 'opacity-100'
-                  : 'opacity-0 group-hover:opacity-100'
+                  ? 'opacity-100 text-ink-gray-6'
+                  : 'opacity-45 text-ink-gray-4 group-hover:opacity-100 group-hover:text-ink-gray-6'
               "
               @click.stop
             >
@@ -37,7 +37,7 @@
 
             <button
               v-if="element.is_group"
-              class="p-0.5 hover:bg-surface-gray-3 rounded"
+              class="shrink-0 p-1 rounded-md hover:bg-surface-gray-3 transition-colors"
               @click.stop="toggleExpanded(element.doc_key)"
             >
               <LucideChevronRight
@@ -45,7 +45,7 @@
                 :class="{ 'rotate-90': isExpanded(element.doc_key) }"
               />
             </button>
-            <div v-else class="w-4" />
+            <div v-else class="w-6 shrink-0" />
 
             <LucideFolder
               v-if="element.is_group"
@@ -72,6 +72,7 @@
               variant="subtle"
               theme="blue"
               size="sm"
+              class="shrink-0"
             >
               {{ __("New") }}
             </Badge>
@@ -80,6 +81,7 @@
               variant="subtle"
               theme="red"
               size="sm"
+              class="shrink-0"
             >
               {{ __("Deleted") }}
             </Badge>
@@ -88,6 +90,7 @@
               variant="subtle"
               theme="blue"
               size="sm"
+              class="shrink-0"
             >
               {{ __("Modified") }}
             </Badge>
@@ -96,6 +99,7 @@
               variant="subtle"
               theme="orange"
               size="sm"
+              class="shrink-0"
             >
               {{ __("Reordered") }}
             </Badge>
@@ -104,17 +108,18 @@
               variant="subtle"
               theme="orange"
               size="sm"
+              class="shrink-0"
             >
               {{ __("Not Published") }}
             </Badge>
           </div>
 
           <div
-            class="flex items-center gap-1 transition-opacity"
+            class="flex items-center gap-1 shrink-0 transition-all duration-150"
             :class="
               isRowActionVisible(element)
-                ? 'opacity-100'
-                : 'opacity-0 group-hover:opacity-100'
+                ? 'opacity-100 translate-x-0'
+                : 'opacity-55 translate-x-0.5 group-hover:opacity-100 group-hover:translate-x-0'
             "
             @click.stop
           >
@@ -129,7 +134,7 @@
         <div
           v-if="element.is_group"
           v-show="isExpanded(element.doc_key)"
-          class="ml-4 border-l border-outline-gray-1/80 pl-2"
+          class="ml-4 mt-1.5 rounded-2xl border border-outline-gray-1/80 bg-surface-gray-1/70 pl-3 pr-2 py-2"
         >
           <NestedDraggable
             :items="element.children || []"
@@ -150,18 +155,18 @@
           <!-- Empty group actions -->
           <div
             v-if="!element.children || element.children.length === 0"
-            class="flex items-center gap-2 py-2 text-ink-gray-5"
-            :style="{ paddingLeft: `${level * 14 + 60}px` }"
+            class="flex flex-wrap items-center gap-2 px-3 py-2 text-ink-gray-5"
+            :style="{ paddingLeft: `${level * 18 + 42}px` }"
           >
             <button
-              class="flex items-center gap-1.5 text-xs hover:text-ink-gray-7 hover:bg-surface-gray-2 px-2.5 py-1.5 rounded-md transition-colors"
+              class="flex items-center gap-1.5 text-xs hover:text-ink-gray-7 hover:bg-surface-white px-2.5 py-1.5 rounded-lg border border-transparent hover:border-outline-gray-1 transition-colors"
               @click="emit('create', element.doc_key, false)"
             >
               <LucideFilePlus class="size-3.5" />
               <span>{{ __("Add Page") }}</span>
             </button>
             <button
-              class="flex items-center gap-1.5 text-xs hover:text-ink-gray-7 hover:bg-surface-gray-2 px-2.5 py-1.5 rounded-md transition-colors"
+              class="flex items-center gap-1.5 text-xs hover:text-ink-gray-7 hover:bg-surface-white px-2.5 py-1.5 rounded-lg border border-transparent hover:border-outline-gray-1 transition-colors"
               @click="emit('create', element.doc_key, true)"
             >
               <LucideFolderPlus class="size-3.5" />
@@ -309,11 +314,26 @@ function getRowClasses(element) {
   const classes = [];
 
   if (isSelectedElement(element)) {
-    classes.push("bg-surface-gray-3", "border-outline-gray-2", "shadow-sm");
+    classes.push(
+      "bg-surface-white",
+      "border-outline-gray-2",
+      "shadow-sm",
+      "ring-1",
+      "ring-outline-gray-1",
+    );
   } else if (element.is_group && isExpanded(element.doc_key)) {
-    classes.push("bg-surface-gray-2", "border-outline-gray-1");
+    classes.push(
+      "bg-surface-gray-1/80",
+      "border-outline-gray-2/80",
+      "shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]",
+    );
   } else {
-    classes.push("border-transparent", "hover:bg-surface-gray-2");
+    classes.push(
+      "bg-transparent",
+      "border-transparent",
+      "hover:bg-surface-gray-1/90",
+      "hover:border-outline-gray-1/70",
+    );
   }
 
   if (props.changeTypeMap.get(element.doc_key) === "deleted") {
@@ -330,6 +350,9 @@ function getTitleClass(element) {
     return "text-ink-gray-4 line-through";
   }
   if (isSelectedElement(element)) {
+    return "text-ink-gray-9 font-medium";
+  }
+  if (element.is_group && isExpanded(element.doc_key)) {
     return "text-ink-gray-9 font-medium";
   }
   if (element.is_published || element.is_group) {
@@ -476,17 +499,21 @@ onBeforeUnmount(() => {
   min-height: 8px;
 }
 
+.draggable-item {
+  position: relative;
+}
+
 .dragging-ghost {
   opacity: 0.5;
   background-color: var(--surface-blue-1, #e0f2fe);
-  border-radius: 4px;
+  border-radius: 12px;
 }
 
 .dragging-item {
   opacity: 0.8;
   background-color: white;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border-radius: 4px;
+  border-radius: 12px;
 }
 
 .drag-handle:active {

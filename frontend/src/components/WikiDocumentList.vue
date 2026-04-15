@@ -53,24 +53,26 @@
 
     <div
       v-else
-      class="border border-outline-gray-2 rounded-xl overflow-hidden bg-surface-white shadow-sm"
+      class="border border-outline-gray-2 rounded-2xl overflow-hidden bg-surface-white shadow-sm"
     >
       <div
-        class="flex items-center justify-between gap-3 px-4 py-3 border-b border-outline-gray-1 bg-surface-gray-1/60"
+        class="flex items-start justify-between gap-4 px-5 py-4 border-b border-outline-gray-1 bg-gradient-to-b from-surface-gray-1 to-surface-white"
       >
         <div>
-          <p class="text-sm font-medium text-ink-gray-8">
+          <p class="text-sm font-semibold text-ink-gray-8">
             {{ __("Navigation Tree") }}
           </p>
-          <p class="text-xs text-ink-gray-5 mt-0.5">
+          <p class="text-xs text-ink-gray-5 mt-1 max-w-sm leading-4">
             {{ __("Drag, organize and open documents from here") }}
           </p>
         </div>
-        <p class="text-xs text-ink-gray-5 whitespace-nowrap">
+        <p
+          class="text-xs text-ink-gray-5 whitespace-nowrap rounded-full bg-surface-gray-2 px-2.5 py-1"
+        >
           {{ __("Root actions available above") }}
         </p>
       </div>
-      <div class="py-2">
+      <div class="px-1.5 py-3">
         <NestedDraggable
           :key="treeKey"
           :items="treeData.children"
