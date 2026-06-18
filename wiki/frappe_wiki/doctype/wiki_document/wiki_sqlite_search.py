@@ -95,6 +95,43 @@ class WikiSQLiteSearch(SQLiteSearch):
 		return normalized or query
 
 	def _get_root_space(self, docname):
-		"""Get the root wiki space for a document"""
-		wiki_doc = frappe.get_doc("Wiki Document", docname)
-		return wiki_doc.get_root_group() or docname
+		"""Get the root wiki space (topmost ancestor) for a document.
+
+		Resolved from an in-memory parent map instead of loading each document and
+		running a nested-set ancestor query per doc.
+		"""
+		return self._get_root_group_map().get(docname) or docname
+
+	def _get_root_group_map(self) -> dict:
+		"""Build and cache a ``{name: root_group}`` map for all Wiki Documents.
+
+		Built once per instance from a single query over
+		``(name, parent_wiki_document)``. During a full index build the same
+		instance is reused for every document, so this turns N
+		``(get_doc + ancestor query)`` calls into a single query total. Mirrors
+		``WikiDocument.get_root_group()``: a top-level document has no root group.
+		"""
+		if getattr(self, "_root_group_cache", None) is not None:
+			return self._root_group_cache
+
+		parent_map = dict(
+			frappe.get_all(
+				"Wiki Document",
+				fields=["name", "parent_wiki_document"],
+				as_list=True,
+			)
+		)
+
+		resolved: dict[str, str | None] = {}
+
+		def resolve_root(name):
+			if name in resolved:
+				return resolved[name]
+			resolved[name] = None  # guard against cyclic/corrupt parent chains
+			parent = parent_map.get(name)
+			root = (resolve_root(parent) or parent) if parent else None
+			resolved[name] = root
+			return root
+
+		self._root_group_cache = {name: resolve_root(name) for name in parent_map}
+		return self._root_group_cache

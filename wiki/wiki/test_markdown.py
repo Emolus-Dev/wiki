@@ -192,6 +192,38 @@ class TestImageCaptionSupport(unittest.TestCase):
 		self.assertIn("<em>This is the caption</em>", result)
 		self.assertNotIn("{width=420}", result)
 
+	def test_image_with_align_metadata(self):
+		"""Image align metadata should render as paragraph text-align, not visible text."""
+		result = render_markdown("![Alt text](/files/test.jpg)\n{align=center}")
+
+		self.assertIn('<img src="/files/test.jpg"', result)
+		self.assertIn("text-align:center", result)
+		self.assertNotIn("{align=center}", result)
+
+	def test_image_with_width_and_align_metadata(self):
+		"""Width and align should be parsed together from a single metadata block."""
+		result = render_markdown("![Alt text](/files/test.jpg)\n{width=320 align=right}")
+
+		self.assertIn('width="320"', result)
+		self.assertIn("text-align:right", result)
+		self.assertNotIn("{width=320 align=right}", result)
+
+	def test_image_with_full_align_overrides_width(self):
+		"""Full-width alignment should stretch the image and drop the pixel width."""
+		result = render_markdown("![Alt text](/files/test.jpg)\n{width=320 align=full}")
+
+		self.assertIn("width:100%", result)
+		self.assertNotIn('width="320"', result)
+		self.assertNotIn("{width=320 align=full}", result)
+
+	def test_image_with_align_metadata_and_caption(self):
+		"""Align metadata should coexist with caption rendering."""
+		result = render_markdown("![Alt text](/files/test.jpg)\n{align=center}\n*This is the caption*")
+
+		self.assertIn("text-align:center", result)
+		self.assertIn("<em>This is the caption</em>", result)
+		self.assertNotIn("{align=center}", result)
+
 	def test_video_markdown_renders_as_block_not_inline_caption_pattern(self):
 		"""Video markdown should render as a block and not merge with following italic text."""
 		content = """![Demo Video](/files/demo-video.mp4)

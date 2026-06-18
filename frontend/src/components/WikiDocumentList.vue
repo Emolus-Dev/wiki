@@ -53,26 +53,19 @@
 
     <div
       v-else
-      class="border border-outline-gray-2 rounded-2xl overflow-hidden bg-surface-white shadow-sm"
+      class="border border-outline-gray-2 rounded-xl overflow-hidden bg-surface-white"
     >
       <div
-        class="flex items-start justify-between gap-4 px-5 py-4 border-b border-outline-gray-1 bg-gradient-to-b from-surface-gray-1 to-surface-white"
+        class="flex items-center justify-between gap-3 px-3 py-2.5 border-b border-outline-gray-1"
       >
-        <div>
-          <p class="text-sm font-semibold text-ink-gray-8">
-            {{ __("Navigation Tree") }}
-          </p>
-          <p class="text-xs text-ink-gray-5 mt-1 max-w-sm leading-4">
-            {{ __("Drag, organize and open documents from here") }}
-          </p>
-        </div>
-        <p
-          class="text-xs text-ink-gray-5 whitespace-nowrap rounded-full bg-surface-gray-2 px-2.5 py-1"
-        >
-          {{ __("Root actions available above") }}
+        <p class="text-xs font-medium uppercase tracking-wide text-ink-gray-5">
+          {{ __("Navigation Tree") }}
+        </p>
+        <p class="text-xs text-ink-gray-4 whitespace-nowrap">
+          {{ __("Drag to organize") }}
         </p>
       </div>
-      <div class="px-1.5 py-3">
+      <div class="p-1.5">
         <NestedDraggable
           :key="treeKey"
           :items="treeData.children"
@@ -289,98 +282,98 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, toRef, onBeforeUnmount } from "vue";
-import { useStorage } from "@vueuse/core";
-import { toast, FormControl } from "frappe-ui";
-import NestedDraggable from "./NestedDraggable.vue";
-import { useChangeRequestStore } from "@/stores/changeRequest";
-import { useTreeDialogs } from "@/composables/useTreeDialogs";
-import LucideFilePlus from "~icons/lucide/file-plus";
-import LucideFileText from "~icons/lucide/file-text";
-import LucideFolderPlus from "~icons/lucide/folder-plus";
-import LucideAlertTriangle from "~icons/lucide/alert-triangle";
-import LucideLink from "~icons/lucide/link";
+import { useTreeDialogs } from '@/composables/useTreeDialogs';
+import { useChangeRequestStore } from '@/stores/changeRequest';
+import { useStorage } from '@vueuse/core';
+import { FormControl, toast } from 'frappe-ui';
+import { computed, onBeforeUnmount, ref, toRef, watch } from 'vue';
+import LucideAlertTriangle from '~icons/lucide/alert-triangle';
+import LucideFilePlus from '~icons/lucide/file-plus';
+import LucideFileText from '~icons/lucide/file-text';
+import LucideFolderPlus from '~icons/lucide/folder-plus';
+import LucideLink from '~icons/lucide/link';
+import NestedDraggable from './NestedDraggable.vue';
 
 const props = defineProps({
-  treeData: {
-    type: Object,
-    required: true,
-  },
-  changeTypeMap: {
-    type: Map,
-    default: () => new Map(),
-  },
-  spaceId: {
-    type: String,
-    required: true,
-  },
-  rootNode: {
-    type: String,
-    required: true,
-  },
-  selectedPageId: {
-    type: String,
-    default: null,
-  },
-  selectedDraftKey: {
-    type: String,
-    default: null,
-  },
+	treeData: {
+		type: Object,
+		required: true,
+	},
+	changeTypeMap: {
+		type: Map,
+		default: () => new Map(),
+	},
+	spaceId: {
+		type: String,
+		required: true,
+	},
+	rootNode: {
+		type: String,
+		required: true,
+	},
+	selectedPageId: {
+		type: String,
+		default: null,
+	},
+	selectedDraftKey: {
+		type: String,
+		default: null,
+	},
 });
 
-const emit = defineEmits(["refresh", "reorder-state-change"]);
+const emit = defineEmits(['refresh', 'reorder-state-change']);
 const treeKey = computed(() => {
-  const getNodeIds = (nodes) => {
-    if (!nodes) return "";
-    const keys = nodes.map((n) => n.doc_key).sort();
-    const childKeys = nodes
-      .filter((n) => n.children?.length)
-      .map((n) => n.doc_key + ":" + getNodeIds(n.children))
-      .sort();
-    return keys.join(",") + "|" + childKeys.join(";");
-  };
-  return getNodeIds(props.treeData?.children);
+	const getNodeIds = (nodes) => {
+		if (!nodes) return '';
+		const keys = nodes.map((n) => n.doc_key).sort();
+		const childKeys = nodes
+			.filter((n) => n.children?.length)
+			.map((n) => n.doc_key + ':' + getNodeIds(n.children))
+			.sort();
+		return keys.join(',') + '|' + childKeys.join(';');
+	};
+	return getNodeIds(props.treeData?.children);
 });
 
 const totalDocumentCount = computed(() => {
-  const countNodes = (nodes = []) =>
-    nodes.reduce((total, node) => {
-      return total + 1 + countNodes(node.children || []);
-    }, 0);
+	const countNodes = (nodes = []) =>
+		nodes.reduce((total, node) => {
+			return total + 1 + countNodes(node.children || []);
+		}, 0);
 
-  return countNodes(props.treeData?.children || []);
+	return countNodes(props.treeData?.children || []);
 });
 
 const crStore = useChangeRequestStore();
-const expandedNodes = useStorage("wiki-tree-expanded-nodes", {});
+const expandedNodes = useStorage('wiki-tree-expanded-nodes', {});
 
 const {
-  showCreateDialog,
-  createTitle,
-  createIsGroup,
-  showDeleteDialog,
-  deleteNode,
-  deleteChildCount,
-  showRenameDialog,
-  renameTitle,
-  renameNode,
-  showExternalLinkDialog,
-  externalLinkTitle,
-  externalLinkUrl,
-  showEditExternalLinkDialog,
-  editExternalLinkTitle,
-  editExternalLinkUrl,
-  openCreateDialog,
-  openDeleteDialog,
-  createDocument,
-  deleteDocument,
-  openRenameDialog,
-  renameDocument,
-  openExternalLinkDialog,
-  createExternalLink,
-  openEditExternalLinkDialog,
-  updateExternalLink,
-} = useTreeDialogs(toRef(props, "spaceId"), expandedNodes, emit);
+	showCreateDialog,
+	createTitle,
+	createIsGroup,
+	showDeleteDialog,
+	deleteNode,
+	deleteChildCount,
+	showRenameDialog,
+	renameTitle,
+	renameNode,
+	showExternalLinkDialog,
+	externalLinkTitle,
+	externalLinkUrl,
+	showEditExternalLinkDialog,
+	editExternalLinkTitle,
+	editExternalLinkUrl,
+	openCreateDialog,
+	openDeleteDialog,
+	createDocument,
+	deleteDocument,
+	openRenameDialog,
+	renameDocument,
+	openExternalLinkDialog,
+	createExternalLink,
+	openEditExternalLinkDialog,
+	updateExternalLink,
+} = useTreeDialogs(toRef(props, 'spaceId'), expandedNodes, emit);
 
 let reorderTimer = null;
 let pendingReorder = null;
@@ -388,94 +381,94 @@ let reorderInFlight = false;
 const isDragActive = ref(false);
 const isReorderBusy = ref(false);
 const isReorderActive = computed(
-  () => isDragActive.value || isReorderBusy.value,
+	() => isDragActive.value || isReorderBusy.value,
 );
 
 watch(
-  isReorderActive,
-  (value) => {
-    emit("reorder-state-change", value);
-  },
-  { immediate: true },
+	isReorderActive,
+	(value) => {
+		emit('reorder-state-change', value);
+	},
+	{ immediate: true },
 );
 
 function handleDragStateChange(isDragging) {
-  isDragActive.value = isDragging;
+	isDragActive.value = isDragging;
 }
 
 function handleTreeUpdate(payload) {
-  if (payload.type === "refresh") {
-    emit("refresh");
-    return;
-  }
+	if (payload.type === 'refresh') {
+		emit('refresh');
+		return;
+	}
 
-  if (payload.type === "added" || payload.type === "moved") {
-    isReorderBusy.value = true;
-    pendingReorder = payload;
-    if (reorderTimer) clearTimeout(reorderTimer);
-    reorderTimer = setTimeout(() => {
-      reorderTimer = null;
-      flushReorder();
-    }, 1000);
-  }
+	if (payload.type === 'added' || payload.type === 'moved') {
+		isReorderBusy.value = true;
+		pendingReorder = payload;
+		if (reorderTimer) clearTimeout(reorderTimer);
+		reorderTimer = setTimeout(() => {
+			reorderTimer = null;
+			flushReorder();
+		}, 1000);
+	}
 }
 
 async function flushReorder() {
-  if (reorderInFlight) return;
-  if (!pendingReorder) {
-    if (!reorderTimer) isReorderBusy.value = false;
-    return;
-  }
+	if (reorderInFlight) return;
+	if (!pendingReorder) {
+		if (!reorderTimer) isReorderBusy.value = false;
+		return;
+	}
 
-  const payload = pendingReorder;
-  pendingReorder = null;
-  reorderInFlight = true;
+	const payload = pendingReorder;
+	pendingReorder = null;
+	reorderInFlight = true;
 
-  try {
-    await applyReorder(payload);
-  } catch (error) {
-    emit("refresh");
-  } finally {
-    reorderInFlight = false;
-    if (pendingReorder) {
-      flushReorder();
-    } else if (!reorderTimer) {
-      isReorderBusy.value = false;
-    }
-  }
+	try {
+		await applyReorder(payload);
+	} catch (error) {
+		emit('refresh');
+	} finally {
+		reorderInFlight = false;
+		if (pendingReorder) {
+			flushReorder();
+		} else if (!reorderTimer) {
+			isReorderBusy.value = false;
+		}
+	}
 }
 
 async function applyReorder(payload) {
-  if (!(await crStore.ensureChangeRequest(props.spaceId))) {
-    toast.error(__("Could not create change request"));
-    return;
-  }
+	if (!(await crStore.ensureChangeRequest(props.spaceId))) {
+		toast.error(__('Could not create change request'));
+		return;
+	}
 
-  const siblingKeys = payload.siblings.map((s) => s.doc_key);
-  await crStore.movePage(
-    crStore.currentChangeRequest.name,
-    payload.item.doc_key,
-    payload.newParent,
-    payload.newIndex,
-  );
-  await crStore.reorderChildren(
-    crStore.currentChangeRequest.name,
-    payload.newParent,
-    siblingKeys,
-  );
-  toast.success(__("Documents reordered"));
-  emit("refresh");
+	const siblingKeys = payload.siblings.map((s) => s.doc_key);
+	await crStore.movePage(
+		crStore.currentChangeRequest.name,
+		payload.item.doc_key,
+		payload.newParent,
+		payload.newIndex,
+	);
+	await crStore.reorderChildren(
+		crStore.currentChangeRequest.name,
+		payload.newParent,
+		siblingKeys,
+	);
+	toast.success(__('Documents reordered'));
+	emit('refresh');
 }
 
 onBeforeUnmount(() => {
-  if (reorderTimer) {
-    clearTimeout(reorderTimer);
-    reorderTimer = null;
-  }
-  pendingReorder = null;
-  reorderInFlight = false;
-  isDragActive.value = false;
-  isReorderBusy.value = false;
-  emit("reorder-state-change", false);
+	if (reorderTimer) {
+		clearTimeout(reorderTimer);
+		reorderTimer = null;
+	}
+	pendingReorder = null;
+	reorderInFlight = false;
+	isDragActive.value = false;
+	isReorderBusy.value = false;
+	emit('reorder-state-change', false);
 });
 </script>

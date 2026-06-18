@@ -161,7 +161,9 @@ IMAGE_PATTERN = re.compile(
 )
 
 IMAGE_WITH_METADATA_PATTERN = re.compile(
-	r'^!\[(?P<alt>[^\]]*)\]\((?P<url>[^)"\s]+)(?:\s+"(?P<title>[^"]*)")?\)[ \t]*(?:\n\{width=(?P<width>\d+)\})?(?:\n\*(?P<caption>[^\n*][^\n]*?)\*)?[ \t]*$',
+	r'^!\[(?P<alt>[^\]]*)\]\((?P<url>[^)"\s]+)(?:\s+"(?P<title>[^"]*)")?\)[ \t]*'
+	r"(?:\n\{(?P<meta>[^}\n]*(?:width|align)=[^}\n]*)\})?"
+	r"(?:\n\*(?P<caption>[^\n*][^\n]*?)\*)?[ \t]*$",
 	re.MULTILINE,
 )
 
@@ -253,22 +255,42 @@ def _replace_video_placeholders(html: str, videos: list[dict], placeholder_prefi
 	return html
 
 
+ALLOWED_IMAGE_ALIGNMENTS = ("left", "center", "right", "full")
+
+
 def _generate_image_html(
 	url: str,
 	alt: str = "",
 	title: str = "",
 	width: str | None = None,
 	caption: str = "",
+	align: str = "",
 ) -> str:
 	src = quote(url, safe="/:#?&=%@+~,;.-_")
 	safe_alt = _remove_script_tags(alt)
 	safe_title = _remove_script_tags(title)
 	title_attr = f' title="{safe_title}"' if safe_title else ""
-	width_attr = f' width="{int(width)}"' if width else ""
-	img_html = f'<img src="{src}" alt="{safe_alt}"{title_attr}{width_attr} />'
+
+	align = (align or "").lower()
+	if align not in ALLOWED_IMAGE_ALIGNMENTS:
+		align = ""
+
+	# Full width overrides any explicit pixel width.
+	if align == "full":
+		width_attr = ""
+		style_attr = ' style="width:100%;height:auto"'
+	else:
+		width_attr = f' width="{int(width)}"' if width else ""
+		style_attr = ""
+
+	img_html = f'<img src="{src}" alt="{safe_alt}"{title_attr}{width_attr}{style_attr} />'
+
+	# Wrapping paragraph carries the horizontal alignment.
+	p_attr = f' style="text-align:{align}"' if align in ("center", "right") else ""
+
 	if caption:
-		return f"<p>{img_html}<em>{escape(caption)}</em></p>"
-	return f"<p>{img_html}</p>"
+		return f"<p{p_attr}>{img_html}<em>{escape(caption)}</em></p>"
+	return f"<p{p_attr}>{img_html}</p>"
 
 
 def _process_images_with_metadata(content: str) -> tuple[str, list[dict], str]:
@@ -280,13 +302,18 @@ def _process_images_with_metadata(content: str) -> tuple[str, list[dict], str]:
 		if _is_video_url(url):
 			return match.group(0)
 
+		meta = match.group("meta") or ""
+		width_match = re.search(r"width=(\d+)", meta)
+		align_match = re.search(r"align=(left|center|right|full)", meta)
+
 		idx = len(images)
 		images.append(
 			{
 				"url": url,
 				"alt": match.group("alt") or "",
 				"title": match.group("title") or "",
-				"width": match.group("width") or "",
+				"width": width_match.group(1) if width_match else "",
+				"align": align_match.group(1) if align_match else "",
 				"caption": match.group("caption") or "",
 			}
 		)
@@ -304,6 +331,7 @@ def _replace_image_placeholders(html: str, images: list[dict], placeholder_prefi
 			image["title"],
 			image["width"],
 			image["caption"],
+			image.get("align", ""),
 		)
 		html = html.replace(f"<p>{placeholder}</p>", image_html)
 		html = html.replace(placeholder, image_html)
