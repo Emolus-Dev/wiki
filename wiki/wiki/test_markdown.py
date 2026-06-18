@@ -193,11 +193,12 @@ class TestImageCaptionSupport(unittest.TestCase):
 		self.assertNotIn("{width=420}", result)
 
 	def test_image_with_align_metadata(self):
-		"""Image align metadata should render as paragraph text-align, not visible text."""
+		"""Center alignment should move the image via auto margins, not just the caption."""
 		result = render_markdown("![Alt text](/files/test.jpg)\n{align=center}")
 
 		self.assertIn('<img src="/files/test.jpg"', result)
-		self.assertIn("text-align:center", result)
+		self.assertIn("margin-left:auto", result)
+		self.assertIn("margin-right:auto", result)
 		self.assertNotIn("{align=center}", result)
 
 	def test_image_with_width_and_align_metadata(self):
@@ -205,6 +206,9 @@ class TestImageCaptionSupport(unittest.TestCase):
 		result = render_markdown("![Alt text](/files/test.jpg)\n{width=320 align=right}")
 
 		self.assertIn('width="320"', result)
+		# Right alignment pushes the (block) image to the right edge.
+		self.assertIn("margin-left:auto", result)
+		self.assertIn("margin-right:0", result)
 		self.assertIn("text-align:right", result)
 		self.assertNotIn("{width=320 align=right}", result)
 

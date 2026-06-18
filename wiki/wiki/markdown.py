@@ -275,17 +275,25 @@ def _generate_image_html(
 	if align not in ALLOWED_IMAGE_ALIGNMENTS:
 		align = ""
 
-	# Full width overrides any explicit pixel width.
+	# Horizontal alignment is applied to the image via margins (the rendered
+	# <img> is a block element, so text-align on the wrapper would only move the
+	# caption, not the image itself). Full width overrides any explicit width.
+	img_styles: list[str] = []
 	if align == "full":
 		width_attr = ""
-		style_attr = ' style="width:100%;height:auto"'
+		img_styles += ["width:100%", "height:auto"]
 	else:
 		width_attr = f' width="{int(width)}"' if width else ""
-		style_attr = ""
+		if align == "center":
+			img_styles += ["display:block", "margin-left:auto", "margin-right:auto"]
+		elif align == "right":
+			img_styles += ["display:block", "margin-left:auto", "margin-right:0"]
+
+	style_attr = f' style="{";".join(img_styles)}"' if img_styles else ""
 
 	img_html = f'<img src="{src}" alt="{safe_alt}"{title_attr}{width_attr}{style_attr} />'
 
-	# Wrapping paragraph carries the horizontal alignment.
+	# Keep the caption visually aligned with the image.
 	p_attr = f' style="text-align:{align}"' if align in ("center", "right") else ""
 
 	if caption:
