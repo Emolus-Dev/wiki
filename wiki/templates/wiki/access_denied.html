@@ -1,0 +1,35 @@
+{% extends "templates/wiki/layout.html" %}
+
+{% block title %}{{ _("No access") }}{% endblock %}
+
+{% block head %}
+<link rel="icon" href="/assets/wiki/favicon.png">
+{% endblock %}
+
+{% block content %}
+<main data-wiki-access-denied data-wiki-access-guest="{{ '1' if is_guest else '0' }}"
+      class="flex-1 min-w-0 flex items-center justify-center px-4 py-16">
+    <div class="w-full max-w-md text-center">
+        <div class="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--surface-gray-2)] text-[var(--ink-gray-7)]">
+            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="5" y="11" width="14" height="10" rx="2"></rect>
+                <path d="M8 11V8a4 4 0 0 1 8 0v3"></path>
+            </svg>
+        </div>
+        <h1 class="text-2xl font-semibold text-[var(--ink-gray-9)]">{{ _("You don't have access to read this wiki") }}</h1>
+        {% if is_guest %}
+        <p class="mt-3 text-base text-[var(--ink-gray-6)]">{{ _("This wiki is only available to people with permission. Sign in if you have an account.") }}</p>
+        <a href="{{ login_url }}"
+           class="mt-6 inline-flex items-center justify-center px-4 py-2 text-sm-medium rounded-6 bg-[var(--ink-gray-9)] text-[var(--surface-base)] hover:opacity-90">
+            {{ _("Log in") }}
+        </a>
+        {% else %}
+        <p class="mt-3 text-base text-[var(--ink-gray-6)]">{{ _("Your account does not have permission to read this wiki.") }}</p>
+        <a href="/"
+           class="mt-6 inline-flex items-center justify-center px-4 py-2 text-sm-medium rounded-6 bg-[var(--ink-gray-9)] text-[var(--surface-base)] hover:opacity-90">
+            {{ _("Go to home") }}
+        </a>
+        {% endif %}
+    </div>
+</main>
+{% endblock %}

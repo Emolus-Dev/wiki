@@ -2381,13 +2381,65 @@ class TestCrawlerEndpoints(WikiDocumentTestBase):
 		self.assertNotIn(page.route, response.headers.get("Location", ""))
 
 	def test_space_html_route_does_not_leak_a_restricted_first_page(self):
-		"""Same for the reader's own redirect, which shares the resolver."""
+		"""A visitor who can't read the space gets an access page, not the first page's route."""
 		space, page = self._make_space("HTML Restricted Redirect", guest_readable=False)
 
 		response = _make_request(self.TEST_CLIENT, "get", f"/{space.route}")
 
-		self.assertEqual(response.status_code, 404)
+		self.assertEqual(response.status_code, 403)
+		body = response.get_data(as_text=True)
+		self.assertIn("data-wiki-access-denied", body)
+		self.assertNotIn(page.route, body)
+		self.assertNotIn(page.title, body)
 		self.assertNotIn(page.route, response.headers.get("Location", ""))
+
+	def test_restricted_page_shows_access_page_without_its_content(self):
+		"""Guest and a logged-in user without the role see the access page, not the document.
+
+		An empty role list is open to every logged-in user, so the space names a
+		role this account does not hold.
+		"""
+		role = "_Test Wiki Access Holder"
+		if not frappe.db.exists("Role", role):
+			frappe.get_doc({"doctype": "Role", "role_name": role, "desk_access": 0}).insert()
+
+		root = create_test_wiki_document(self, "Access Root", is_group=True)
+		page = create_test_wiki_document(
+			self,
+			"Access Secret Page",
+			parent=root.name,
+			slug=self._unique("secret"),
+			content="SECRET_BODY_SHOULD_NOT_LEAK",
+		)
+		create_test_wiki_space(
+			self, "Access Space", self._unique("access"), root.name, roles=[(role, "Read")]
+		)
+		outsider = f"wiki-outsider-{frappe.generate_hash(length=6)}@example.com"
+		frappe.get_doc(
+			{"doctype": "User", "email": outsider, "first_name": "Outsider", "send_welcome_email": 0}
+		).insert()
+		self.addCleanup(frappe.delete_doc, "User", outsider, force=1)
+		frappe.db.commit()  # nosemgrep: frappe-semgrep-rules.rules.frappe-manual-commit
+
+		guest = _make_request(self.TEST_CLIENT, "get", f"/{page.route}")
+		self.assertEqual(guest.status_code, 403)
+		guest_body = guest.get_data(as_text=True)
+		self.assertIn('data-wiki-access-guest="1"', guest_body)
+		self.assertIn("/login?redirect-to=", guest_body)
+		self.assertNotIn("SECRET_BODY_SHOULD_NOT_LEAK", guest_body)
+		self.assertNotIn(page.title, guest_body)
+
+		frappe.set_user(outsider)
+		self.addCleanup(frappe.set_user, "Administrator")
+		frappe.local.preload_assets = {"style": [], "script": [], "icons": []}
+		renderer = WikiDocumentRenderer(path=page.route)
+		self.assertTrue(renderer.can_render())
+		denied = renderer.render()
+		self.assertEqual(denied.status_code, 403)
+		denied_body = denied.get_data(as_text=True)
+		self.assertIn('data-wiki-access-guest="0"', denied_body)
+		self.assertNotIn("/login?redirect-to=", denied_body)
+		self.assertNotIn("SECRET_BODY_SHOULD_NOT_LEAK", denied_body)
 
 	def test_page_routed_with_md_suffix_still_renders_html(self):
 		"""A page legitimately slugged "<name>.md" keeps its own URL as HTML."""

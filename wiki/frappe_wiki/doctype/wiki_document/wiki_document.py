@@ -401,9 +401,9 @@ class WikiDocument(NestedSet):
 	def check_space_access(self, ptype="read", user=None):
 		"""Gate content access by the owning Wiki Space's role configuration.
 
-		On failure we raise a 404 (DoesNotExistError) rather than PermissionError
-		so we don't leak the existence of restricted pages to unauthorized users
-		(especially anonymous Guests).
+		The public reader shows an access page instead of calling this. PDF,
+		markdown and navigation JSON still raise a 404 so they don't hand the
+		page body to someone who can't read the space.
 		"""
 		from wiki.permissions import can_read_space, can_write_space
 
@@ -804,19 +804,32 @@ class WikiDocumentRenderer(BaseRenderer):
 		if landing_route:
 			redirect_to_landing_page("/" + landing_route)
 
+		# A space URL the visitor can't read has no landing redirect. Show the
+		# access page here so they don't fall through to a generic 404.
+		if route_is_unreadable(self.path):
+			self.access_denied = True
+			return True
+
 		return False
 
 	def render(self):
+		if getattr(self, "access_denied", False):
+			return build_access_denied_response(self)
+
 		doc = frappe.get_cached_doc("Wiki Document", self.wiki_doc_name)
 
 		# Return plain markdown for AI agents and other markdown-aware clients
-		accept = frappe.request.headers.get("Accept", "")
+		request = getattr(frappe.local, "request", None)
+		accept = request.headers.get("Accept", "") if request is not None else ""
 		if "text/markdown" in accept:
 			doc.check_space_access("read")
 			doc.check_published()
 			response = build_markdown_response(doc)
 			response.headers["Vary"] = "Accept"
 			return response
+
+		if not reader_may_read(doc):
+			return build_access_denied_response(self)
 
 		context = doc.get_web_context()
 
@@ -1034,13 +1047,72 @@ def get_landing_redirect_for_route(route: str) -> str | None:
 	return first_page["route"]
 
 
+def reader_may_read(doc) -> bool:
+	"""Whether the current user may see this document in the public reader.
+
+	Orphan documents stay readable, matching ``check_space_access``.
+	"""
+	from wiki.permissions import can_read_space
+
+	space = doc.get_space_name()
+	if not space:
+		return True
+	return can_read_space(space)
+
+
+def route_is_unreadable(route: str) -> bool:
+	"""True when ``route`` is a published wiki group or space this user can't read.
+
+	Does not look up the landing page, so the answer can't leak a private route.
+	"""
+	from wiki.permissions import can_read_space
+
+	group = frappe.db.get_value(
+		"Wiki Document", {"route": route, "is_group": 1}, ["wiki_space"], as_dict=True
+	)
+	if group:
+		space = group.wiki_space
+	else:
+		space = frappe.db.get_value("Wiki Space", {"route": route, "is_published": 1}, "name")
+
+	if not space or not frappe.db.get_value("Wiki Space", space, "is_published"):
+		return False
+	return not can_read_space(space)
+
+
+def build_access_denied_response(renderer) -> Response:
+	"""HTML page for a visitor who may not read the wiki. No page body, no title."""
+	from urllib.parse import quote_plus
+
+	request = getattr(frappe.local, "request", None)
+	target = getattr(request, "path", None) or "/"
+	is_guest = frappe.session.user == "Guest"
+	html = frappe.render_template(
+		"templates/wiki/access_denied.html",
+		{
+			"hide_chrome": True,
+			"csrf_token": "",
+			"head_html": "",
+			"disable_indexing": True,
+			"canonical_url": None,
+			"breadcrumbs": None,
+			"enable_view_tracking": False,
+			"is_guest": is_guest,
+			"login_url": f"/login?redirect-to={quote_plus(target)}",
+		},
+	)
+	response = renderer.build_response(html, http_status_code=403)
+	response.headers["X-Robots-Tag"] = "noindex"
+	response.headers["Cache-Control"] = "private, no-store"
+	return response
+
+
 def get_landing_page_for_route(route: str) -> dict | None:
 	"""The page a group / Wiki Space route should redirect to, for this user.
 
 	Returns None when the caller may not read the owning space. The check has to
 	happen *before* the redirect: a Location header naming the space's first
-	page would hand a private route to a visitor who is then 404'd when they
-	follow it.
+	page would hand a private route to a visitor who cannot read it.
 	"""
 	from wiki.permissions import can_read_space
 
