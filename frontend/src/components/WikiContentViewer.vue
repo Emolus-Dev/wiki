@@ -14,17 +14,18 @@ import {
 	TableHeader,
 	TableRow,
 } from '@tiptap/extension-table';
-import { CodeBlock, EditorContent, useEditor } from 'frappe-ui/editor';
+import { EditorContent, useEditor } from 'frappe-ui/editor';
 import { ref, watch } from 'vue';
 import { CalloutBlock } from './tiptap-extensions/callout-block.js';
+import { CodeGroup, WikiCodeBlock } from './tiptap-extensions/code-group.js';
 import { IframeBlock } from './tiptap-extensions/iframe-block.js';
 import { WikiImage } from './tiptap-extensions/image-extension.js';
 import { WikiLink } from './tiptap-extensions/link-extension.js';
 import { MermaidBlock } from './tiptap-extensions/mermaid-block.js';
 import { PdfBlock } from './tiptap-extensions/pdf-block.js';
 import { PreserveBlankLines } from './tiptap-extensions/preserve-blank-lines.js';
-import { VideoBlock } from './tiptap-extensions/video-block.js';
 import { WikiUnderline } from './tiptap-extensions/underline-extension.js';
+import { VideoBlock } from './tiptap-extensions/video-block.js';
 import { wikiMarkdown } from './tiptap-extensions/wiki-markdown.js';
 import { wikiStarterKit } from './tiptap-extensions/wiki-starterkit.js';
 
@@ -66,7 +67,8 @@ const editor = useEditor({
 		TableHeader,
 		TaskList,
 		TaskItem.configure({ nested: true }),
-		CodeBlock,
+		WikiCodeBlock,
+		CodeGroup,
 		CalloutBlock,
 		IframeBlock,
 		MermaidBlock,

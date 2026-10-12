@@ -119,6 +119,14 @@ export const SLASH_COMMANDS = [
 		},
 	},
 	{
+		title: 'Code Group',
+		icon: 'lucide-square-code',
+		group: 'Insert',
+		command: ({ editor, range }) => {
+			editor.chain().focus().deleteRange(range).setCodeGroup().run();
+		},
+	},
+	{
 		title: 'Table',
 		icon: 'lucide-table',
 		group: 'Insert',

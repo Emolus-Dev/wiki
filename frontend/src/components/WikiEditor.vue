@@ -81,7 +81,6 @@ import { SPACE_TREE_KEY, crumbRoute, trailToNode } from '@/lib/spaceTree';
 import { useDraftWorkspaceStore } from '@/stores/draftWorkspace';
 import { useSpaceStore } from '@/stores/space';
 import {
-	CodeBlock,
 	EditorContent,
 	EditorTableMenu,
 	Emoji,
@@ -96,6 +95,7 @@ import WikiBubbleMenu from './tiptap-extensions/WikiBubbleMenu.vue';
 import WikiToolbar from './tiptap-extensions/WikiToolbar.vue';
 // Import custom extensions
 import { CalloutBlock } from './tiptap-extensions/callout-block.js';
+import { CodeGroup, WikiCodeBlock } from './tiptap-extensions/code-group.js';
 import { IframeBlock } from './tiptap-extensions/iframe-block.js';
 import { isEmbedUrlPaste } from './tiptap-extensions/iframe-embed.js';
 import { WikiImage } from './tiptap-extensions/image-extension.js';
@@ -106,8 +106,8 @@ import {
 	PageLinks,
 	docKeyFromHref,
 	findPageByTitle,
-	pickerItems,
 	linkablePages,
+	pickerItems,
 } from './tiptap-extensions/page-links.js';
 import {
 	dataUrlToFile,
@@ -121,8 +121,8 @@ import {
 	SlashCommands,
 	filterCommands,
 } from './tiptap-extensions/slash-commands.js';
-import { VideoBlock } from './tiptap-extensions/video-block.js';
 import { WikiUnderline } from './tiptap-extensions/underline-extension.js';
+import { VideoBlock } from './tiptap-extensions/video-block.js';
 import { wikiMarkdown } from './tiptap-extensions/wiki-markdown.js';
 import { wikiStarterKit } from './tiptap-extensions/wiki-starterkit.js';
 
@@ -216,7 +216,9 @@ function linkedPage(href) {
 		(candidate) => candidate.doc_key === docKey,
 	)?.at(-1);
 	const target = node && crumbRoute(node, route.params.spaceId);
-	return target ? { title: node.title, href: router.resolve(target).href } : null;
+	return target
+		? { title: node.title, href: router.resolve(target).href }
+		: null;
 }
 
 const AUTOSAVE_DELAY = 10 * 1000;
@@ -865,7 +867,8 @@ const editor = useEditor({
 					? 'Write the callout…'
 					: 'Type "/" for commands, or start writing...',
 		}),
-		CodeBlock,
+		WikiCodeBlock,
+		CodeGroup,
 		// Custom extensions
 		CalloutBlock,
 		IframeBlock,
