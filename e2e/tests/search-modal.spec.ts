@@ -195,4 +195,55 @@ test.describe('Search Modal', () => {
 		await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 		await expect(page).toHaveURL(new RegExp(`/${hostPage.route}$`));
 	});
+	test('picking a result scrolls to the match and marks it', async ({
+		page,
+		wiki,
+	}) => {
+		const filler = Array.from(
+			{ length: 80 },
+			(_, i) => `Filler paragraph ${i} to push the match below the fold.`,
+		).join('\n\n');
+		const space = await wiki.space({
+			pages: [
+				{ title: 'Focus Host', content: 'Host page.' },
+				{
+					title: 'Focus Target',
+					content: `${filler}\n\n## Needle Section\n\nThe unmistakable zebrafish lives here.`,
+				},
+			],
+		});
+		const hostPage = space.page('Focus Host');
+		const targetPage = space.page('Focus Target');
+
+		await page.route(SEARCH_API, (route) =>
+			route.fulfill({
+				json: {
+					message: {
+						results: [
+							{
+								name: 'stub-focus',
+								title: 'Focus Target',
+								route: targetPage.route,
+								content: 'The unmistakable <mark>zebrafish</mark> lives here.',
+								score: 1,
+							},
+						],
+						total: 1,
+					},
+				},
+			}),
+		);
+
+		await page.setViewportSize({ width: 1280, height: 800 });
+		await page.goto(`/${hostPage.route}`);
+		await page.waitForLoadState('networkidle');
+
+		await page.getByRole('button', { name: 'Open search' }).click();
+		await page.locator(SEARCH_INPUT).fill('zebrafish');
+		await page.getByTestId('search-result').first().click();
+
+		const hit = page.locator('#wiki-content mark.wiki-hit').first();
+		await expect(hit).toHaveText('zebrafish');
+		await expect(hit).toBeInViewport();
+	});
 });

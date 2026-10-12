@@ -1,7 +1,7 @@
 # Reader: TOC Flash, Search Focus and Wider Search
 
 Date: 2026-10-12
-Status: **In progress**
+Status: **Implemented.** Front end verified on a static page with the real CSS and script; Python merge helper checked outside Frappe; Frappe-backed tests and e2e written but **not run** (no bench).
 
 ## Goal
 

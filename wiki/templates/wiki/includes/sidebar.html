@@ -154,12 +154,17 @@
                 }
             },
 
-            async navigateTo(route, pushState = true) {
-                if (route === this.currentRoute) return;
+            // `highlight` is the search query that sent the reader here: once the
+            // page is in place the first match is scrolled to and marked.
+            async navigateTo(route, pushState = true, highlight = '') {
+                if (route === this.currentRoute) {
+                    if (highlight) window.wikiFocusMatch?.(highlight);
+                    return;
+                }
 
                 // Check prefetch cache first
                 if (this.prefetchCache[route]) {
-                    this.showPage(route, this.prefetchCache[route], pushState);
+                    this.showPage(route, this.prefetchCache[route], pushState, highlight);
                     return;
                 }
 
@@ -177,7 +182,7 @@
                     const data = await response.json();
 
                     if (data.message) {
-                        this.showPage(route, data.message, pushState);
+                        this.showPage(route, data.message, pushState, highlight);
                     } else {
                         throw new Error('Invalid response');
                     }
@@ -189,7 +194,7 @@
                 }
             },
 
-            showPage(route, data, pushState) {
+            showPage(route, data, pushState, highlight = '') {
                 const previousUrl = window.location.origin + '/' + this.currentRoute;
                 this.updateContent(data);
                 this.currentRoute = route;
@@ -199,6 +204,8 @@
                 // Only after the URL changes: the view log reads the page path
                 // from the Referer header. Absent when view tracking is off.
                 window.wikiLogView?.(previousUrl);
+                // After updateContent, which resets the scroll to the top.
+                if (highlight) window.wikiFocusMatch?.(highlight);
             },
 
             updateContent(data) {

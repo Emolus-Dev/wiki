@@ -855,3 +855,62 @@ body.wiki-pdf-modal-open {
   text-decoration: underline;
 }
 
+
+/* ---------- Where a click or a search sent you ----------
+   Both fade out on their own: a flash on the heading a TOC link jumped to, and
+   a lighter wash on search matches (page-focus.js unwraps them after a few
+   seconds). */
+:root {
+  --wiki-flash: rgb(250 204 21 / 0.32);
+}
+
+[data-theme='dark'] {
+  --wiki-flash: rgb(250 204 21 / 0.22);
+}
+
+@keyframes wiki-flash {
+  0%,
+  35% {
+    background-color: var(--wiki-flash);
+    box-shadow: 0 0 0 0.35rem var(--wiki-flash);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: 0 0 0 0.35rem transparent;
+  }
+}
+
+@keyframes wiki-hit {
+  0%,
+  60% {
+    background-color: var(--wiki-flash);
+    box-shadow: 0 0 0 0.125rem var(--wiki-flash);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: 0 0 0 0.125rem transparent;
+  }
+}
+
+.prose .wiki-flash {
+  border-radius: 0.375rem;
+  animation: wiki-flash 1.8s ease-out;
+}
+
+.prose mark.wiki-hit {
+  color: inherit;
+  border-radius: 0.25rem;
+  animation: wiki-hit 5.5s ease-out forwards;
+}
+
+/* No fade for people who asked for less motion: matches stay marked until
+   page-focus.js unwraps them, and the heading flash is skipped. */
+@media (prefers-reduced-motion: reduce) {
+  .prose .wiki-flash {
+    animation: none;
+  }
+  .prose mark.wiki-hit {
+    animation: none;
+    background-color: var(--wiki-flash);
+  }
+}

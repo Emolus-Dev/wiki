@@ -110,7 +110,7 @@
                     <ul class="mt-3 mb-2">
                         <template x-for="(result, index) in results" :key="index">
                             <li class="px-2.5">
-                                <a :href="'/' + result.route"
+                                <a :href="'/' + result.route + '?q=' + encodeURIComponent(query)"
                                    data-testid="search-result"
                                    @click.prevent="navigateTo(result.route)"
                                    @mouseenter="selectedIndex = matchedThemes.length + index"
@@ -284,8 +284,9 @@
             },
 
             navigateTo(route) {
+                const query = this.query;
                 this.close();
-                Alpine.store('navigation').navigateTo(route);
+                Alpine.store('navigation').navigateTo(route, true, query);
             },
 
             init() {
@@ -321,7 +322,7 @@
                     e.preventDefault();
                     const route = pages[this.selectedIndex - themes.length].route;
                     if (e.metaKey || e.ctrlKey) {
-                        window.open('/' + route, '_blank', 'noopener');
+                        window.open('/' + route + '?q=' + encodeURIComponent(this.query), '_blank', 'noopener');
                     } else {
                         this.navigateTo(route);
                     }
