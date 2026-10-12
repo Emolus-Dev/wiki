@@ -1,6 +1,12 @@
+import re
+
 import frappe
 
 from wiki.telemetry import capture
+
+# FTS wraps the match in these. Everything else in a snippet is document text.
+_MARK_OPEN = "\ue000"
+_MARK_CLOSE = "\ue001"
 
 
 @frappe.whitelist(allow_guest=True)  # nosemgrep: frappe-semgrep-rules.rules.security.guest-whitelisted-method
@@ -33,15 +39,36 @@ def search(query: str, space: str | None = None) -> dict:
 		"results": [
 			{
 				"name": r["name"],
-				"title": r["title"],
+				"title": _clean_snippet(r["title"]),
 				"route": r.get("route", ""),
-				"content": r["content"],
+				"content": _clean_snippet(r["content"]),
 				"score": r["score"],
 			}
 			for r in hits
 		],
 		"total": len(hits),
 	}
+
+
+def _clean_snippet(text: str | None) -> str:
+	"""Turn an FTS snippet into readable prose without another database read.
+
+	The index still holds markdown on pages that have not been reindexed, and
+	the parent indexer flattens headings onto one line before wiki can strip
+	them. Cleaning the handful of snippets already returned is enough: no extra
+	query, no full-document load.
+	"""
+	if not text:
+		return ""
+
+	text = text.replace("<mark>", _MARK_OPEN).replace("</mark>", _MARK_CLOSE)
+	text = re.sub(r"<[^>]+>", " ", text)
+	text = re.sub(r"(?:^|\s)#{1,6}(?=\s|$)", " ", text)
+	text = re.sub(r"`+", "", text)
+	text = re.sub(r"\*{1,3}", "", text)
+	text = re.sub(r"(?:^|\s)[-*_]{3,}(?=\s|$)", " ", text)
+	text = re.sub(r"\s+", " ", text).strip()
+	return text.replace(_MARK_OPEN, "<mark>").replace(_MARK_CLOSE, "</mark>")
 
 
 def _filter_hits_by_space_visibility(hits: list[dict]) -> list[dict]:

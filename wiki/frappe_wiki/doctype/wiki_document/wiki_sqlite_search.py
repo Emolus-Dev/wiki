@@ -50,7 +50,11 @@ class WikiSQLiteSearch(SQLiteSearch):
 		super().index_doc(doctype, docname)
 
 	def _strip_markdown(self, text):
-		"""Convert markdown to plain text for cleaner search indexing"""
+		"""Convert markdown to plain text for cleaner search indexing.
+
+		The parent indexer flattens newlines before this runs, so markers have
+		to match mid-string (`` ## Title ``) as well as at the start of a line.
+		"""
 		if not text:
 			return text
 
@@ -70,18 +74,18 @@ class WikiSQLiteSearch(SQLiteSearch):
 		# Convert links [text](url) to just text
 		text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
 
-		# Remove headers (# ## ### etc.)
-		text = re.sub(r"^#{1,6}\s+", "", text, flags=re.MULTILINE)
+		# Headers, at line start or already flattened onto one line.
+		text = re.sub(r"(?:^|\s)#{1,6}(?=\s)", " ", text)
 
 		# Remove bold/italic markers
 		text = re.sub(r"\*{1,3}([^*]+)\*{1,3}", r"\1", text)
 		text = re.sub(r"_{1,3}([^_]+)_{1,3}", r"\1", text)
 
 		# Remove blockquotes
-		text = re.sub(r"^>\s+", "", text, flags=re.MULTILINE)
+		text = re.sub(r"(?:^|\s)>\s+", " ", text)
 
 		# Remove horizontal rules
-		text = re.sub(r"^[-*_]{3,}\s*$", "", text, flags=re.MULTILINE)
+		text = re.sub(r"(?:^|\s)[-*_]{3,}(?=\s|$)", " ", text)
 
 		# Remove HTML tags
 		text = re.sub(r"<[^>]+>", " ", text)

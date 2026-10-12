@@ -37,7 +37,7 @@
              x-transition:leave-start="opacity-100 scale-100"
              x-transition:leave-end="opacity-50 scale-[0.98]"
              @click.stop
-             class="flex flex-col w-full max-w-xl bg-[var(--surface-elevation-1)] rounded-7 shadow-xl overflow-hidden">
+             class="flex flex-col w-full max-w-2xl bg-[var(--surface-elevation-1)] rounded-7 shadow-xl overflow-hidden">
 
             <!-- Search Input -->
             <div class="relative">
@@ -54,7 +54,7 @@
             </div>
 
             <!-- Results -->
-            <div class="max-h-96 overflow-auto border-t border-[var(--outline-gray-1)] [[data-theme=dark]_&]:border-[var(--outline-gray-2)]">
+            <div class="max-h-[32rem] overflow-auto border-t border-[var(--outline-gray-1)] [[data-theme=dark]_&]:border-[var(--outline-gray-2)]">
                 <template x-if="matchedThemes.length > 0">
                     <div class="mt-3 mb-2" data-testid="search-actions">
                         <div class="px-4.5 py-1.5 text-sm text-[var(--ink-gray-5)]">{{ _("Actions") }}</div>
@@ -117,9 +117,10 @@
                                    :class="selectedIndex === matchedThemes.length + index ? 'bg-[var(--surface-gray-3)]' : ''"
                                    class="flex w-full min-w-0 items-start gap-3 rounded-4 px-2 py-2 outline-none cursor-pointer">
                                     {{ render_icon("file-text", "mt-0.5 shrink-0 text-[var(--ink-gray-6)]") }}
-                                    <span class="flex min-w-0 flex-1 flex-col gap-1">
-                                        <span class="text-base font-medium text-[var(--ink-gray-7)] overflow-hidden text-ellipsis whitespace-nowrap [&_mark]:bg-transparent [&_mark]:text-[var(--ink-gray-9)] [&_mark]:font-semibold" x-html="result.title"></span>
-                                        <span class="text-p-sm text-[var(--ink-gray-5)] line-clamp-2 [&_mark]:bg-transparent [&_mark]:text-[var(--ink-gray-8)] [&_mark]:font-semibold" x-html="result.content"></span>
+                                    <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+                                        <span class="text-base font-medium text-[var(--ink-gray-7)] overflow-hidden text-ellipsis whitespace-nowrap [&_mark]:rounded-sm [&_mark]:bg-[var(--surface-gray-4)] [&_mark]:px-0.5 [&_mark]:text-[var(--ink-gray-9)] [&_mark]:font-semibold" x-html="result.title"></span>
+                                        <span class="truncate text-xs text-[var(--ink-gray-4)]" x-show="result.route" x-text="result.route.split('/').join(' / ')"></span>
+                                        <span class="text-p-sm text-[var(--ink-gray-5)] line-clamp-3 [&_mark]:rounded-sm [&_mark]:bg-[var(--surface-gray-4)] [&_mark]:px-0.5 [&_mark]:text-[var(--ink-gray-9)] [&_mark]:font-semibold" x-html="result.content"></span>
                                     </span>
                                 </a>
                             </li>
