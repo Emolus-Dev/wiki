@@ -7,11 +7,21 @@
 // every tab of the site, so the log can be read from another tab (DevTools >
 // Application > Local storage > `wiki:trace`).
 //
-// Cheap on purpose: a ring of 80 short entries, written only around steps that
-// are already expensive (parsing, saving, loading a page).
+// Off by default. Turn it on from DevTools on any tab of the site with
+// `localStorage.setItem('wiki:debug', '1')` (and off by removing it). Two rare,
+// important events are always logged because they mean something already went
+// wrong: a content-ready loop being stopped and a page re-saved before submit.
+//
+// Cheap when on: a ring of 80 short entries, written only around steps that are
+// already expensive (parsing, saving, loading a page).
 
 const KEY = 'wiki:trace';
+const FLAG = 'wiki:debug';
 const LIMIT = 80;
+const ALWAYS = new Set([
+	'editor:contentReady:loop-stopped',
+	'draft:verify:resave',
+]);
 
 function storage() {
 	try {
@@ -25,6 +35,7 @@ export function trace(event, detail) {
 	const store = storage();
 	if (!store) return;
 	try {
+		if (!ALWAYS.has(event) && store.getItem(FLAG) !== '1') return;
 		const log = JSON.parse(store.getItem(KEY) || '[]');
 		log.push({
 			t: new Date().toISOString().slice(11, 23),

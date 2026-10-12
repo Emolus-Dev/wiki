@@ -66,6 +66,8 @@ without an `:end` is the step that never finished. Steps covered: editor create 
 mount, paste, markdown canonicalize, `getMarkdown`, autosave, save request,
 draft persist, hydrate, page load, and any task over 500 ms (`longtask`).
 
+It is **off by default**: turn it on with `localStorage.setItem('wiki:debug', '1')` from DevTools on any tab of the site. Two rare events are always logged (`editor:contentReady:loop-stopped`, `draft:verify:resave`).
+
 To read it after a freeze, from another tab of the same site (localStorage is
 shared): DevTools > Application > Local storage > `wiki:trace`, or in that tab's
 console: `copy(localStorage.getItem('wiki:trace'))`.

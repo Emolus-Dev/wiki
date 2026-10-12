@@ -6,6 +6,7 @@ globalThis.localStorage = {
 	getItem: (k) => (store.has(k) ? store.get(k) : null),
 	setItem: (k, v) => store.set(k, String(v)),
 };
+store.set('wiki:debug', '1');
 const { readTrace, timed, timedAsync, trace } = await import(
 	'./freezeTrace.js'
 );
@@ -20,6 +21,7 @@ test('trace appends entries and keeps only the latest 80', () => {
 
 test('timed logs a start before running and an end after, returning the result', () => {
 	store.clear();
+	store.set('wiki:debug', '1');
 	let seenAtRun;
 	const result = timed('work', () => {
 		seenAtRun = readTrace().map((entry) => entry.e);
@@ -35,6 +37,7 @@ test('timed logs a start before running and an end after, returning the result',
 
 test('a step that never finishes leaves its start as the last entry', () => {
 	store.clear();
+	store.set('wiki:debug', '1');
 	trace('other:end');
 	trace('hang:start');
 	assert.equal(readTrace().at(-1).e, 'hang:start');
@@ -42,6 +45,7 @@ test('a step that never finishes leaves its start as the last entry', () => {
 
 test('timed still logs the end when the step throws', () => {
 	store.clear();
+	store.set('wiki:debug', '1');
 	assert.throws(() =>
 		timed('boom', () => {
 			throw new Error('x');
@@ -55,6 +59,7 @@ test('timed still logs the end when the step throws', () => {
 
 test('timedAsync logs the end when the promise settles', async () => {
 	store.clear();
+	store.set('wiki:debug', '1');
 	await timedAsync('later', async () => 1);
 	assert.deepEqual(
 		readTrace().map((entry) => entry.e),
@@ -96,4 +101,24 @@ test('a burst limiter lets a few calls through, then refuses until the window pa
 	);
 	time += 2500;
 	assert.equal(allow(), true);
+});
+
+test('nothing is logged unless debugging is on, except the events that mean trouble', () => {
+	// The previous test removed it.
+	globalThis.localStorage = {
+		getItem: (k) => (store.has(k) ? store.get(k) : null),
+		setItem: (k, v) => store.set(k, String(v)),
+	};
+	store.clear();
+	trace('editor:paste');
+	assert.deepEqual(readTrace(), []);
+	trace('editor:contentReady:loop-stopped', { x: 1 });
+	trace('draft:verify:resave');
+	assert.deepEqual(
+		readTrace().map((entry) => entry.e),
+		['editor:contentReady:loop-stopped', 'draft:verify:resave'],
+	);
+	store.set('wiki:debug', '1');
+	trace('editor:paste');
+	assert.equal(readTrace().at(-1).e, 'editor:paste');
 });
