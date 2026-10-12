@@ -14,6 +14,7 @@
                 <div class="mx-auto w-full max-w-3xl px-8">
                     <slot name="title" />
                     <EditorContent :editor="editor" :class="contentClass" />
+                    <EditorAttachments :editor="editor" :readonly="readonly" @attach="openAttachPicker" />
                 </div>
                 <EditorTableOfContents v-if="showTocRail" :editor="editor" variant="rail" />
             </div>
@@ -27,6 +28,13 @@
         </div>
 
         <!-- Hidden file input for slash command image upload -->
+        <input
+            ref="attachFileInput"
+            type="file"
+            class="hidden-file-input"
+            data-testid="editor-attach-input"
+            @change="handleAttachFileSelect"
+        />
         <input
             ref="slashImageInput"
             type="file"
@@ -79,6 +87,7 @@ import {
 	Emoji,
 	useEditor,
 } from 'frappe-ui/editor';
+import EditorAttachments from './EditorAttachments.vue';
 import EditorTableOfContents from './EditorTableOfContents.vue';
 import LinkPopup from './tiptap-extensions/LinkPopup.vue';
 import PageLinkList from './tiptap-extensions/PageLinkList.vue';
@@ -229,6 +238,7 @@ const fileUploader = useFileUpload();
 // Refs for file input and link popup
 const containerRef = ref(null);
 const slashImageInput = ref(null);
+const attachFileInput = ref(null);
 let linkPopupInstance = null;
 let linkPopupApp = null;
 
@@ -549,6 +559,42 @@ function handleSlashImageSelect(event) {
 	}
 	// Reset input so same file can be selected again
 	event.target.value = '';
+}
+
+/**
+ * Attach any file: upload it, then link it on a line of its own. The reader and
+ * the attachments list below the editor both pick it up from the link.
+ */
+function openAttachPicker() {
+	attachFileInput.value?.click();
+}
+
+async function handleAttachFileSelect(event) {
+	const file = event.target.files?.[0];
+	event.target.value = '';
+	const ed = editor.value;
+	if (!file || !ed) return;
+
+	try {
+		const url = await uploadFile(file);
+		ed.chain()
+			.focus('end')
+			.insertContent([
+				{
+					type: 'paragraph',
+					content: [
+						{
+							type: 'text',
+							text: file.name,
+							marks: [{ type: 'link', attrs: { href: url } }],
+						},
+					],
+				},
+			])
+			.run();
+	} catch {
+		// uploadFile already told the user.
+	}
 }
 
 /**
@@ -1035,6 +1081,7 @@ onMounted(() => {
 	);
 	// Listen for PDF upload events (toolbar + slash command)
 	document.addEventListener('wiki-editor-upload-pdf', handlePdfUploadEvent);
+	document.addEventListener('wiki-editor-attach-file', openAttachPicker);
 });
 
 onUnmounted(() => {
@@ -1044,6 +1091,7 @@ onUnmounted(() => {
 		handleSlashImageUploadEvent,
 	);
 	document.removeEventListener('wiki-editor-upload-pdf', handlePdfUploadEvent);
+	document.removeEventListener('wiki-editor-attach-file', openAttachPicker);
 	// Nodes leave with the editor, so its uploads can no longer reach the page.
 	draftStore.clearUploads(editorUploadIds);
 	// Hide any open link popup

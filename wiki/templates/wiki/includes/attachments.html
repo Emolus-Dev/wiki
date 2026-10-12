@@ -1,0 +1,27 @@
+{% from "templates/wiki/macros/buttons.html" import render_icon %}
+{#- Files linked from the page body, as download cards. Mirrored by
+    renderAttachments in includes/sidebar.html, which redraws it on client-side
+    navigation — edit both. -#}
+<section id="wiki-attachments" class="mt-10 {{ '' if attachments else 'hidden' }}" aria-labelledby="wiki-attachments-title">
+{% if attachments %}
+    <h2 id="wiki-attachments-title" class="flex items-center gap-2 text-lg font-semibold text-[var(--ink-gray-9)]">
+        {{ _("Attachments") }}
+        <span class="rounded-full bg-[var(--surface-gray-2)] px-2 py-0.5 text-xs font-medium text-[var(--ink-gray-6)]">{{ attachments | length }}</span>
+    </h2>
+    <ul class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {% for file in attachments %}
+        <li>
+            <a href="{{ file.url }}" download
+               class="wiki-attachment group flex items-center gap-3 rounded-6 border border-[var(--outline-gray-2)] bg-[var(--surface-base)] p-3 no-underline transition-colors hover:bg-[var(--surface-gray-1)]">
+                <span class="wiki-attachment-chip" data-kind="{{ file.kind }}">{{ (file.extension or "file")[:4] | upper }}</span>
+                <span class="min-w-0 flex-1">
+                    <span class="block truncate text-sm font-medium text-[var(--ink-gray-8)]">{{ file.name }}</span>
+                    {% if file.size %}<span class="block text-xs text-[var(--ink-gray-5)]">{{ file.size }}</span>{% endif %}
+                </span>
+                {{ render_icon("download", "shrink-0 text-[var(--ink-gray-5)] group-hover:text-[var(--ink-gray-8)]") }}
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+{% endif %}
+</section>

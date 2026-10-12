@@ -110,6 +110,15 @@ export const SLASH_COMMANDS = [
 		},
 	},
 	{
+		title: 'File',
+		icon: 'lucide-paperclip',
+		group: 'Media',
+		command: ({ editor, range }) => {
+			editor.chain().focus().deleteRange(range).run();
+			document.dispatchEvent(new CustomEvent('wiki-editor-attach-file'));
+		},
+	},
+	{
 		title: 'Table',
 		icon: 'lucide-table',
 		group: 'Insert',

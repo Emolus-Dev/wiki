@@ -83,6 +83,8 @@
             {{ rendered_content | safe }}
         </div>
 
+        {% if not hide_chrome %}{% include "templates/wiki/includes/attachments.html" %}{% endif %}
+
         <!-- Previous/Next Navigation — frappe-ui docs PrevNextBtns (subtle/md pills) -->
         <nav id="wiki-nav-buttons" class="mt-10">
             {% if prev_doc or next_doc %}

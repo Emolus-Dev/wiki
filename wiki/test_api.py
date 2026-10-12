@@ -1309,3 +1309,22 @@ class TestWikiWebpConversion(FrappeTestCase):
 		self.assertTrue(url.endswith(".webp"))
 		with open(taken_path, "rb") as f:
 			self.assertEqual(f.read(), b"the other request's image")
+
+
+class TestGetFileSizes(FrappeTestCase):
+	def test_returns_sizes_for_known_files_and_ignores_other_urls(self):
+		from wiki.api import get_file_sizes
+
+		file_doc = frappe.get_doc(
+			{
+				"doctype": "File",
+				"file_name": "attachment-size-test.txt",
+				"content": b"x" * 2048,
+				"is_private": 0,
+			}
+		).insert()
+
+		sizes = get_file_sizes([file_doc.file_url, "/files/missing.txt", "https://example.com/files/a.pdf"])
+
+		self.assertEqual(sizes, {file_doc.file_url: "2.0 KB"})
+		file_doc.delete()

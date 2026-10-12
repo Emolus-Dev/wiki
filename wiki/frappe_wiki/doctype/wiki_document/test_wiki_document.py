@@ -1968,6 +1968,7 @@ class TestGetPageData(WikiDocumentTestBase):
 				"route",
 				"rendered_content",
 				"toc_headings",
+				"attachments",
 				"raw_markdown",
 				"prev_doc",
 				"next_doc",

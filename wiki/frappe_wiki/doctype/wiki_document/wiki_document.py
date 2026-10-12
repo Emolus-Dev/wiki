@@ -18,6 +18,7 @@ from werkzeug.wrappers import Response
 
 from wiki.telemetry import capture, reader_config
 from wiki.utils import apply_public_language, fingerprint_js_url
+from wiki.wiki.attachments import get_page_attachments
 from wiki.wiki.markdown import render_markdown, render_markdown_with_toc
 
 WIKI_DOCUMENT_PRINT_FORMAT = "Standard Wiki Document"
@@ -513,6 +514,7 @@ class WikiDocument(NestedSet):
 			"route": self.route,
 			"rendered_content": rendered_content,
 			"toc_headings": toc_headings,
+			"attachments": get_page_attachments(self.content),
 			"raw_markdown": self.content or "",
 			"prev_doc": adjacent_docs["prev"],
 			"next_doc": adjacent_docs["next"],
@@ -545,6 +547,7 @@ class WikiDocument(NestedSet):
 			"favicon": None,
 			"rendered_content": rendered_content,
 			"toc_headings": toc_headings,
+			"attachments": get_page_attachments(self.content),
 			"head_html": frappe.get_cached_value("Wiki Settings", "Wiki Settings", "head_html"),
 			"raw_markdown": self.content or "",
 			"nested_tree": [],

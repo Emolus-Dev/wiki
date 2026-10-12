@@ -63,6 +63,26 @@ def get_translations():
 	return get_all_translations(language)
 
 
+@frappe.whitelist()
+def get_file_sizes(urls: list[str] | str) -> dict[str, str]:
+	"""Human-readable sizes of uploaded files by `file_url`, for the editor's
+	attachments list. Sizes only: the files themselves stay behind their own
+	permissions."""
+	from wiki.wiki.attachments import format_file_size
+
+	if isinstance(urls, str):
+		urls = frappe.parse_json(urls)
+
+	urls = [
+		url for url in (urls or []) if isinstance(url, str) and url.startswith(("/files/", "/private/files/"))
+	]
+	if not urls:
+		return {}
+
+	rows = frappe.get_all("File", filters={"file_url": ("in", urls[:50])}, fields=["file_url", "file_size"])
+	return {row.file_url: format_file_size(row.file_size) for row in rows}
+
+
 def _to_webp(path_or_url: str) -> str:
 	"""Swap any file extension for `.webp` (works for both fs paths and URLs)."""
 	return os.path.splitext(path_or_url)[0] + ".webp"
