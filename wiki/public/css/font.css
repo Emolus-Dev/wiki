@@ -54,3 +54,13 @@
   src: url('/assets/wiki/fonts/Inter-Italic.var.woff2?v=3.19') format('woff2') tech('variations');
   unicode-range: U+0000-05FF, U+0700-1FFF, U+2C00-2FFF, U+4E00-9FFF, U+AC00-D7AF;
 }
+
+/* Display face for page titles and h1/h2 (SIL OFL, Newsreader Project Authors) */
+@font-face {
+  font-family: 'Newsreader';
+  font-weight: 200 800;
+  font-display: swap;
+  font-style: normal;
+  src: url('/assets/wiki/fonts/Newsreader.var.woff2?v=1') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
