@@ -6,6 +6,7 @@ import {
 	memoizeLast,
 	onEditorFlushRequest,
 	requestEditorFlush,
+	savedBaseline,
 } from './editorContentSync.js';
 
 /**
@@ -129,3 +130,29 @@ test(
 		sync.cancel();
 	}),
 );
+
+test('saved text that is already the snapshot is the baseline, without normalizing it', () => {
+	let normalized = 0;
+	const normalize = (text) => {
+		normalized += 1;
+		return `${text}+`;
+	};
+	assert.equal(savedBaseline('page', 'page', normalize), 'page');
+	assert.equal(normalized, 0);
+});
+
+test('a page that does not settle under normalizing is clean once saved verbatim', () => {
+	// normalize(x) != x even for its own output: each pass adds a mark.
+	const normalize = (text) => `${text}.`;
+	const snapshot = 'C1';
+	// The server holds exactly what was sent. The old comparison normalized it
+	// again and called the page changed for ever.
+	assert.notEqual(normalize(snapshot), snapshot);
+	assert.equal(savedBaseline(snapshot, snapshot, normalize), snapshot);
+});
+
+test('text the server stored in its own shape is still normalized before comparing', () => {
+	const normalize = (text) => text.trim();
+	assert.equal(savedBaseline('page', '  page \n', normalize), 'page');
+	assert.equal(savedBaseline('other', 'page', normalize), 'page');
+});

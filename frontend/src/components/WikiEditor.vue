@@ -76,6 +76,7 @@ import {
 	createTrailingScheduler,
 	memoizeLast,
 	onEditorFlushRequest,
+	savedBaseline,
 } from '@/lib/editorContentSync';
 import { SPACE_TREE_KEY, crumbRoute, trailToNode } from '@/lib/spaceTree';
 import { useDraftWorkspaceStore } from '@/stores/draftWorkspace';
@@ -965,6 +966,11 @@ function normalizeMarkdown(content) {
 
 const normalizedSavedContent = memoizeLast(normalizeMarkdown);
 
+// What the editor's snapshot is compared with; see savedBaseline.
+function baselineFor(current) {
+	return savedBaseline(current, props.savedContent, normalizedSavedContent);
+}
+
 // Keyed on the doc, not the markdown string: the doc is immutable, and the
 // cache must also skip the serialize step.
 const markdownForDoc = memoizeLast(() =>
@@ -998,7 +1004,7 @@ const allowReport = createBurstLimiter({ windowMs: 2000, max: 8 });
 function emitContentReady() {
 	const currentContent = getMarkdown();
 	if (currentContent === undefined) return;
-	const savedContent = normalizedSavedContent(props.savedContent);
+	const savedContent = baselineFor(currentContent);
 
 	if (
 		lastReported &&
@@ -1045,7 +1051,7 @@ function reportContentChange() {
 	if (currentContent === undefined) return;
 	emitContentChange();
 
-	if (currentContent === normalizedSavedContent(props.savedContent)) return;
+	if (currentContent === baselineFor(currentContent)) return;
 
 	autosaveTimer = setTimeout(() => {
 		autosaveTimer = null;
@@ -1064,7 +1070,7 @@ async function autoSave() {
 	const currentContent = getMarkdown();
 	if (currentContent === undefined) return;
 	emitContentChange();
-	if (currentContent === normalizedSavedContent(props.savedContent)) return;
+	if (currentContent === baselineFor(currentContent)) return;
 
 	emit('save', currentContent);
 	document.dispatchEvent(new CustomEvent('wiki-editor-after-save'));
@@ -1093,7 +1099,7 @@ function saveToDB() {
 	const markdown = getMarkdown();
 	if (markdown !== undefined) {
 		emitContentChange();
-		if (markdown !== normalizedSavedContent(props.savedContent)) {
+		if (markdown !== baselineFor(markdown)) {
 			emit('save', markdown);
 		}
 		// "Save" means all of the user's work, not just this page.

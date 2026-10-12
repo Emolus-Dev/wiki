@@ -116,3 +116,22 @@ the base branch:
    each open page first and saves any page whose text differs
    (`serverNeedsContent`); if that save fails, nothing is submitted or merged.
    Logged as `draft:verify:resave`.
+
+## Why "Save your changes before submitting" never cleared
+
+The editor's snapshot is `canonicalize(serialize(doc))`. After a save the store
+holds that exact text as its baseline, but the editor compared its snapshot with
+`canonicalize(baseline)`, one more pass. For a page where canonicalizing twice
+does not give the same text (the user's), the saved page read as changed again:
+dirty for ever, autosave re-sending identical text every ten seconds, Submit and
+Merge blocked, and the content-ready loop above.
+
+`savedBaseline` (lib/editorContentSync.js) compares the saved text as it is first,
+and only normalizes it when it is not already the snapshot, so a page the server
+holds verbatim is clean after one save. Text the server stored in its own shape is
+normalized as before. A page that does not settle under normalizing costs one
+redundant save on first open, then is clean.
+
+Still unknown: which construct in that page does not settle (round-trip checks
+over 64 constructs and all pairs found none). `editor:contentReady:loop-stopped`
+in `wiki:trace` carries the first difference if it recurs.
