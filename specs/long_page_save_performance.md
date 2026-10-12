@@ -96,3 +96,23 @@ Not yet known: which construct in the user's page makes the saved text change
 shape on every pass. My round-trip checks over 64 constructs and every pair of
 them (8,192 combinations, compared as text, six passes) found none that fails to
 settle; `loop-stopped` carries the first difference, which names it.
+
+## Data loss on submit (reported after the loop fix)
+
+After "Submit for review" a long page had no content and was not in the wiki.
+Two ways the editor could lose a page that exists only in this browser, both on
+the base branch:
+
+1. **Restoring drafts trusted the store's baseline.** `restorePersistedDrafts`
+   deleted a persisted draft when it equalled the baseline stored with it
+   (`draft.savedContent`). That baseline is the store's belief about the server;
+   with the content-ready loop it could be rebased onto the local text, so the
+   draft looked "already saved" and was deleted without the server having it.
+   Now a draft is dropped only when the **server's own text** equals it
+   (`shouldDropPersistedDraft`); with the server unreadable it is kept. A phantom
+   draft restored this way saves the same text once and is dropped next time.
+2. **Submit and merge trusted the buffer.** They judged "is there unsaved work"
+   from the buffer's dirty flag alone. `verifyPagesSaved` now asks the server for
+   each open page first and saves any page whose text differs
+   (`serverNeedsContent`); if that save fails, nothing is submitted or merged.
+   Logged as `draft:verify:resave`.

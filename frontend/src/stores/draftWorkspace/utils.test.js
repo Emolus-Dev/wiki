@@ -2,7 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { normalizeNode } from './treeModel.js';
-import { restoredDraftBuffer, toPublished } from './utils.js';
+import {
+	restoredDraftBuffer,
+	serverNeedsContent,
+	shouldDropPersistedDraft,
+	toPublished,
+} from './utils.js';
 
 test('toPublished treats server checkbox ints correctly', () => {
 	// Frappe sends 0/1 over JSON — 0 must read as unpublished (the old
@@ -54,4 +59,42 @@ test('restored draft buffer keeps published pages published', () => {
 	});
 
 	assert.equal(buffer.isPublished, true);
+});
+
+test('a persisted draft is dropped only when the server holds exactly that text', () => {
+	assert.equal(
+		shouldDropPersistedDraft({ content: 'same', serverContent: 'same' }),
+		true,
+	);
+	assert.equal(
+		shouldDropPersistedDraft({ content: 'mine', serverContent: 'theirs' }),
+		false,
+	);
+	assert.equal(
+		shouldDropPersistedDraft({ content: 'mine', serverContent: '' }),
+		false,
+	);
+});
+
+test('a draft is kept when the server could not be read', () => {
+	assert.equal(
+		shouldDropPersistedDraft({ content: 'mine', serverContent: null }),
+		false,
+	);
+	assert.equal(
+		shouldDropPersistedDraft({ content: 'mine', serverContent: undefined }),
+		false,
+	);
+});
+
+test('the server needs content when it differs from what the buffer shows', () => {
+	assert.equal(serverNeedsContent({ body: 'a', serverContent: 'b' }), true);
+	assert.equal(serverNeedsContent({ body: 'a', serverContent: '' }), true);
+	assert.equal(serverNeedsContent({ body: '', serverContent: 'a' }), true);
+	assert.equal(serverNeedsContent({ body: 'a', serverContent: 'a' }), false);
+});
+
+test('nothing is written when the buffer is empty of state or the server is unreadable', () => {
+	assert.equal(serverNeedsContent({ body: null, serverContent: 'a' }), false);
+	assert.equal(serverNeedsContent({ body: 'a', serverContent: null }), false);
 });

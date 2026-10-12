@@ -42,6 +42,19 @@ export function useChangeRequestActions() {
 		return null;
 	}
 
+	// Submit and merge hand the change request over for good, so they check that
+	// the server holds the pages as they look on screen first. Anything missing
+	// is saved on the spot; if that fails, nothing leaves.
+	async function confirmServerHasPages() {
+		const failures = await draftStore.verifyPagesSaved();
+		if (!failures.length) return true;
+		const error = failures[0];
+		toast.error(
+			error?.messages?.[0] || error?.message || __('Error saving draft'),
+		);
+		return false;
+	}
+
 	async function submitForReview() {
 		requestEditorFlush();
 		// Nothing offers a Save button any more, so an unsaved buffer is not the
@@ -62,6 +75,8 @@ export function useChangeRequestActions() {
 			toast.error(blockerMessage);
 			return;
 		}
+		// Ask the server, not the buffer, whether it has what the pages show.
+		if (!(await confirmServerHasPages())) return;
 		try {
 			const result = await crStore.submitForReview();
 			toast.success(__('Change request submitted for review'));
@@ -120,6 +135,7 @@ export function useChangeRequestActions() {
 			toast.error(blockerMessage);
 			return;
 		}
+		if (!(await confirmServerHasPages())) return;
 		const spaceId = spaceStore.spaceId;
 		const docKey = spaceStore.selectedDraftKey;
 		const changeRequestName = crStore.currentChangeRequest?.name;

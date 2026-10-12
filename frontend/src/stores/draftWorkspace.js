@@ -25,6 +25,8 @@ import {
 import {
 	errorMessage,
 	restoredDraftBuffer,
+	serverNeedsContent,
+	shouldDropPersistedDraft,
 	slugify,
 	toPublished,
 } from './draftWorkspace/utils';
@@ -338,12 +340,12 @@ export const useDraftWorkspaceStore = defineStore('draftWorkspace', () => {
 				if (resolver.isTempKey(docKey) || !node) return;
 
 				// Verify against the server copy before restoring. A persisted
-				// draft that matches the server has no real unsaved changes —
-				// it's a redundant/stale entry (e.g. left over from an earlier
-				// non-idempotent serialization). Restoring it as dirty would
-				// gate Submit/Merge on a phantom "unsaved changes" on every
-				// hydrate (and survive an IndexedDB clear once re-persisted), so
-				// drop it instead of reseeding dirty state.
+				// draft that matches the server has no real unsaved changes, so it
+				// is dropped rather than reseeded as dirty. Only the server's own
+				// text counts: the baseline stored with the draft is the store's
+				// belief about the server, and a draft equal to a wrong belief is
+				// the user's only copy. A phantom restored this way is harmless:
+				// it saves the same text once, and the next hydrate drops it.
 				let serverContent = null;
 				try {
 					const result = await transport.fetchPage(crName.value, docKey);
@@ -352,10 +354,7 @@ export const useDraftWorkspaceStore = defineStore('draftWorkspace', () => {
 					// Couldn't reach the server — fall through and restore
 					// conservatively so we never silently discard real work.
 				}
-				if (
-					content === draft.savedContent ||
-					(serverContent != null && content === serverContent)
-				) {
+				if (shouldDropPersistedDraft({ content, serverContent })) {
 					clearEditorDraft(crName.value, docKey);
 					return;
 				}
@@ -898,6 +897,39 @@ export const useDraftWorkspaceStore = defineStore('draftWorkspace', () => {
 		return results.filter((r) => r.status === 'rejected').map((r) => r.reason);
 	}
 
+	// Before a change request leaves this browser (submit, merge), make sure the
+	// server holds what each open page shows. The buffer's baseline is only the
+	// store's belief about the server, and a belief gone wrong reads as "saved"
+	// while the server has nothing; this asks the server instead. A page whose
+	// text differs is saved now. Failures come back for the caller to report.
+	async function verifyPagesSaved() {
+		if (!crName.value) return [];
+		const failures = [];
+		for (const page of Object.values(pageBuffers.pagesByKey)) {
+			const docKey = page?.docKey;
+			if (!docKey || resolver.isTempKey(docKey)) continue;
+			const body = page.localContent ?? page.content;
+
+			let serverContent = null;
+			try {
+				serverContent = (await transport.fetchPage(crName.value, docKey))
+					?.content;
+				serverContent ??= '';
+			} catch (_err) {
+				continue;
+			}
+			if (!serverNeedsContent({ body, serverContent })) continue;
+
+			trace('draft:verify:resave', { docKey, chars: body.length });
+			try {
+				await saveContent(docKey, body, page.title || null);
+			} catch (err) {
+				failures.push(err);
+			}
+		}
+		return failures;
+	}
+
 	async function doSaveContent(docKey, content, title) {
 		const page = pageBuffers.ensure(docKey, {
 			title: title || '',
@@ -1153,6 +1185,7 @@ export const useDraftWorkspaceStore = defineStore('draftWorkspace', () => {
 		moveNode,
 		saveContent,
 		flushDirtyPages,
+		verifyPagesSaved,
 		recordEditorContent,
 		reconcileEditorContent,
 		// queue helpers (used by upcoming mutation actions)

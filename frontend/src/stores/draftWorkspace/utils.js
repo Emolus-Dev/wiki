@@ -43,3 +43,21 @@ export function restoredDraftBuffer({
 		error: null,
 	};
 }
+
+// A persisted editor draft may be dropped only when the server already holds
+// exactly that text. The draft carries the baseline it was written against
+// (`savedContent`), but that baseline is the store's belief about the server,
+// not the server: when the belief is wrong (a save that never landed, a
+// rebase that adopted the local text) a draft equal to it is the user's only
+// copy, and dropping it loses work. Server unreachable: keep it.
+export function shouldDropPersistedDraft({ content, serverContent }) {
+	return serverContent != null && content === serverContent;
+}
+
+// Whether the server is missing text the user can see. `body` is what the
+// buffer shows (local edits, else the baseline); `serverContent` is what the
+// server returned. A server that cannot be read says nothing, so nothing is
+// written on its account.
+export function serverNeedsContent({ body, serverContent }) {
+	return body != null && serverContent != null && body !== serverContent;
+}
