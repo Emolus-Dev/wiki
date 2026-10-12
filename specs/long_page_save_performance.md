@@ -71,3 +71,28 @@ shared): DevTools > Application > Local storage > `wiki:trace`, or in that tab's
 console: `copy(localStorage.getItem('wiki:trace'))`.
 
 Remove (or gate behind a flag) once the cause is fixed.
+
+## The loop (found from the user's activity log)
+
+The log showed `draft:persist` -> `markdown:canonicalize` (~80 ms, 84 KB) ->
+`draft:persist` repeating without end: hundreds of thousands of entries. The
+editor reports `content-ready` (its snapshot plus the *normalized* saved content);
+the store rebases `page.content` onto the normalized text and persists the draft
+to IndexedDB; `page.content` is the `savedContent` prop, whose watcher reports
+again. It only stops when normalizing is a no-op, and for this page (raw saved
+content 84 KB, normalized 81 KB, so it is not) it kept going.
+
+Existing on the base branch, so inherited. Three changes:
+
+- The editor does not report identical snapshots twice, and stops reporting after
+  8 reports in 2 s (`editor:contentReady:loop-stopped`, with where the texts
+  differ). A loop is not editing.
+- The store skips a reconcile that would leave the page unchanged, so a no-op
+  report no longer rewrites the whole page to IndexedDB.
+- The first reports of an editor log fingerprints (`editor:contentReady`), so the
+  inputs of a loop can be told apart.
+
+Not yet known: which construct in the user's page makes the saved text change
+shape on every pass. My round-trip checks over 64 constructs and every pair of
+them (8,192 combinations, compared as text, six passes) found none that fails to
+settle; `loop-stopped` carries the first difference, which names it.

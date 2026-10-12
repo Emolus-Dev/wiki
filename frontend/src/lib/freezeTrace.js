@@ -81,3 +81,49 @@ export function readTrace() {
 		return [];
 	}
 }
+
+/** Length plus a short hash: enough to tell two long strings apart in a log. */
+export function fingerprint(text) {
+	const value = text ?? '';
+	let hash = 5381;
+	for (let i = 0; i < value.length; i++) {
+		hash = ((hash << 5) + hash + value.charCodeAt(i)) | 0;
+	}
+	return `${value.length}:${(hash >>> 0).toString(16)}`;
+}
+
+/** Where two strings first differ, with a little context from each. */
+export function firstDifference(a, b, context = 40) {
+	const left = a ?? '';
+	const right = b ?? '';
+	const limit = Math.min(left.length, right.length);
+	let at = 0;
+	while (at < limit && left[at] === right[at]) at++;
+	if (at === limit && left.length === right.length) return null;
+	const from = Math.max(at - context, 0);
+	return {
+		at,
+		a: left.slice(from, at + context),
+		b: right.slice(from, at + context),
+		lengths: [left.length, right.length],
+	};
+}
+
+/**
+ * Allow at most `max` calls per `windowMs`. For work that should happen once
+ * or twice but can be re-triggered by its own result: past the limit it is
+ * a loop, and the caller stops feeding it.
+ */
+export function createBurstLimiter({ windowMs, max, now = Date.now }) {
+	let windowStart = 0;
+	let count = 0;
+	return function allow() {
+		const time = now();
+		if (time - windowStart > windowMs) {
+			windowStart = time;
+			count = 0;
+		}
+		count += 1;
+		return count <= max;
+	};
+}

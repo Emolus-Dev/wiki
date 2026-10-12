@@ -67,3 +67,33 @@ test('tracing never throws without localStorage', async () => {
 	assert.doesNotThrow(() => trace('x'));
 	assert.deepEqual(readTrace(), []);
 });
+
+test('fingerprint tells different strings of the same length apart', async () => {
+	const { fingerprint } = await import('./freezeTrace.js');
+	assert.notEqual(fingerprint('- a\n- b'), fingerprint('* a\n* b'));
+	assert.equal(fingerprint('same'), fingerprint('same'));
+	assert.match(fingerprint('abc'), /^3:/);
+});
+
+test('firstDifference points at the first changed character', async () => {
+	const { firstDifference } = await import('./freezeTrace.js');
+	assert.equal(firstDifference('abc', 'abc'), null);
+	const diff = firstDifference('hello world', 'hello there', 3);
+	assert.equal(diff.at, 6);
+	assert.deepEqual(diff.lengths, [11, 11]);
+	assert.equal(diff.a, 'lo wor');
+	assert.equal(diff.b, 'lo the');
+	assert.equal(firstDifference('abc', 'abcd').at, 3);
+});
+
+test('a burst limiter lets a few calls through, then refuses until the window passes', async () => {
+	const { createBurstLimiter } = await import('./freezeTrace.js');
+	let time = 1000;
+	const allow = createBurstLimiter({ windowMs: 2000, max: 3, now: () => time });
+	assert.deepEqual(
+		[allow(), allow(), allow(), allow(), allow()],
+		[true, true, true, false, false],
+	);
+	time += 2500;
+	assert.equal(allow(), true);
+});

@@ -997,6 +997,18 @@ export const useDraftWorkspaceStore = defineStore('draftWorkspace', () => {
 	function reconcileEditorContent(docKey, content, savedContent, title) {
 		if (!docKey) return;
 		const realKey = resolver.resolveKey(docKey) || docKey;
+		// Already in this state: nothing to rebase and nothing new to persist.
+		// Without this a no-op report rewrote the whole page to IndexedDB.
+		const existing = pageBuffers.get(realKey);
+		const nextLocal = content === savedContent ? null : content;
+		if (
+			existing &&
+			existing.content === savedContent &&
+			existing.localContent === nextLocal &&
+			(title == null || existing.title === title)
+		) {
+			return;
+		}
 		const page = pageBuffers.reconcileEditorContent(
 			realKey,
 			content,

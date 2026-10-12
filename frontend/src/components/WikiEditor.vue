@@ -86,7 +86,13 @@ import {
 	Emoji,
 	useEditor,
 } from 'frappe-ui/editor';
-import { timed, trace } from '@/lib/freezeTrace';
+import {
+	createBurstLimiter,
+	fingerprint,
+	firstDifference,
+	timed,
+	trace,
+} from '@/lib/freezeTrace';
 import EditorAttachments from './EditorAttachments.vue';
 import EditorTableOfContents from './EditorTableOfContents.vue';
 import LinkPopup from './tiptap-extensions/LinkPopup.vue';
@@ -981,15 +987,48 @@ function emitContentChange(options = {}) {
 
 // The store compares editor-normalized snapshots. This keeps parser
 // round-trip differences from becoming phantom unsaved changes.
+// Reporting the editor's snapshots changes the store's saved content, which is
+// the prop this is keyed on, so it can feed itself. Two guards: identical
+// snapshots are not reported twice, and a burst of reports -- which is a loop,
+// not editing -- stops being fed and says why in the activity log.
+let lastReported = null;
+let reportedCount = 0;
+const allowReport = createBurstLimiter({ windowMs: 2000, max: 8 });
+
 function emitContentReady() {
 	const currentContent = getMarkdown();
 	if (currentContent === undefined) return;
-	emit(
-		'content-ready',
-		currentContent,
-		normalizedSavedContent(props.savedContent),
-		props.documentKey,
-	);
+	const savedContent = normalizedSavedContent(props.savedContent);
+
+	if (
+		lastReported &&
+		lastReported.content === currentContent &&
+		lastReported.saved === savedContent
+	) {
+		return;
+	}
+	lastReported = { content: currentContent, saved: savedContent };
+
+	// The first few reports are logged with fingerprints, so a loop's inputs
+	// can be told apart (same text, or one that keeps changing).
+	if (reportedCount < 6) {
+		reportedCount += 1;
+		trace('editor:contentReady', {
+			current: fingerprint(currentContent),
+			saved: fingerprint(savedContent),
+			raw: fingerprint(props.savedContent),
+		});
+	}
+
+	if (!allowReport()) {
+		trace('editor:contentReady:loop-stopped', {
+			rawVsSaved: firstDifference(props.savedContent, savedContent),
+			currentVsSaved: firstDifference(currentContent, savedContent),
+		});
+		return;
+	}
+
+	emit('content-ready', currentContent, savedContent, props.documentKey);
 }
 
 function handleContentChange() {
