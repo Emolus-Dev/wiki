@@ -72,8 +72,10 @@ const props = defineProps(nodeViewProps);
 const editor = toRaw(props.editor);
 
 // An editor's editability is fixed for its lifetime (a read-only page mounts a
-// read-only editor), so it is read once rather than followed.
-const editable = editor.isEditable;
+// read-only editor), so it is read once rather than followed. The option, not
+// `editor.isEditable`: that reaches through `editor.view`, which does not exist
+// yet while the editor is still creating its first node views.
+const editable = editor.options.editable !== false;
 
 const language = computed(() => props.node.attrs.language || '');
 const lineCount = computed(() => props.node.textContent.split('\n').length);
