@@ -155,3 +155,119 @@
 	-webkit-mask: var(--wiki-link-glyph) center / contain no-repeat;
 	mask: var(--wiki-link-glyph) center / contain no-repeat;
 }
+
+/* Page typography: serif display headings over the Inter body. */
+.wiki-editor-content h1,
+.wiki-editor-content h2 {
+	font-family: var(--font-display);
+	font-weight: 500;
+	letter-spacing: -0.01em;
+}
+
+/* Code blocks: dark in both themes, with a header bar that carries the
+   language and the copy button. frappe-ui's node view lays those out as a
+   hover-only corner overlay; this restyles that same element into a bar rather
+   than replacing the node view, so the language picker, copy and Tab handling
+   keep working. Rules sit at higher specificity than the stock light/dark
+   theme in CodeBlockComponent.css. */
+.wiki-editor-content .code-block-container {
+	position: relative;
+	margin: 1.5rem 0;
+	/* The bar's controls are frappe-ui components that read the page theme
+	   tokens; re-point them at the dark surface instead of restyling each. */
+	--ink-gray-4: var(--code-muted);
+	--ink-gray-5: var(--code-muted);
+	--ink-gray-6: var(--code-fg);
+	--ink-gray-7: var(--code-fg);
+	--ink-gray-8: var(--code-fg);
+	--ink-gray-9: var(--code-fg);
+	--surface-gray-2: var(--code-hover);
+	--surface-gray-3: var(--code-hover);
+	--outline-gray-2: var(--code-border);
+}
+
+.wiki-editor-content .code-block-container pre {
+	margin: 0;
+	padding: 3rem 1rem 0.875rem 0.75rem;
+	background: var(--code-bg);
+	color: var(--code-fg);
+	caret-color: var(--code-fg);
+	border-color: var(--code-border);
+	border-radius: 0.75rem;
+	font-size: 0.8125rem;
+}
+
+.wiki-editor-content .code-block-container > div.absolute {
+	inset: 1px 1px auto 1px;
+	height: 2.25rem;
+	padding: 0 0.375rem 0 0.5rem;
+	justify-content: space-between;
+	background: var(--code-bar);
+	border-bottom: 1px solid var(--code-border);
+	border-radius: 0.6875rem 0.6875rem 0 0;
+	opacity: 1;
+}
+
+/* Same GitHub-dark token colours the stock dark theme uses, pinned so a light
+   page theme does not bring back the light palette inside a dark block. */
+.wiki-editor-content .code-block-container .hljs-doctag,
+.wiki-editor-content .code-block-container .hljs-keyword,
+.wiki-editor-content .code-block-container .hljs-template-tag,
+.wiki-editor-content .code-block-container .hljs-template-variable,
+.wiki-editor-content .code-block-container .hljs-type,
+.wiki-editor-content .code-block-container .hljs-variable.language_ {
+	color: #ff7b72;
+}
+.wiki-editor-content .code-block-container .hljs-title,
+.wiki-editor-content .code-block-container .hljs-title.class_,
+.wiki-editor-content .code-block-container .hljs-title.function_ {
+	color: #d2a8ff;
+}
+.wiki-editor-content .code-block-container .hljs-attr,
+.wiki-editor-content .code-block-container .hljs-attribute,
+.wiki-editor-content .code-block-container .hljs-literal,
+.wiki-editor-content .code-block-container .hljs-meta,
+.wiki-editor-content .code-block-container .hljs-number,
+.wiki-editor-content .code-block-container .hljs-operator,
+.wiki-editor-content .code-block-container .hljs-variable,
+.wiki-editor-content .code-block-container .hljs-selector-attr,
+.wiki-editor-content .code-block-container .hljs-selector-class,
+.wiki-editor-content .code-block-container .hljs-selector-id {
+	color: #79c0ff;
+}
+.wiki-editor-content .code-block-container .hljs-regexp,
+.wiki-editor-content .code-block-container .hljs-string,
+.wiki-editor-content .code-block-container .hljs-meta .hljs-string {
+	color: #a5d6ff;
+}
+.wiki-editor-content .code-block-container .hljs-built_in,
+.wiki-editor-content .code-block-container .hljs-symbol {
+	color: #ffa657;
+}
+.wiki-editor-content .code-block-container .hljs-comment,
+.wiki-editor-content .code-block-container .hljs-code,
+.wiki-editor-content .code-block-container .hljs-formula {
+	color: #8b949e;
+}
+.wiki-editor-content .code-block-container .hljs-name,
+.wiki-editor-content .code-block-container .hljs-quote,
+.wiki-editor-content .code-block-container .hljs-selector-tag,
+.wiki-editor-content .code-block-container .hljs-selector-pseudo {
+	color: #7ee787;
+}
+.wiki-editor-content .code-block-container .hljs-subst,
+.wiki-editor-content .code-block-container .hljs-emphasis,
+.wiki-editor-content .code-block-container .hljs-strong {
+	color: var(--code-fg);
+}
+.wiki-editor-content .code-block-container .hljs-bullet {
+	color: #f2cc60;
+}
+.wiki-editor-content .code-block-container .hljs-addition {
+	color: #aff5b4;
+	background-color: #033a16;
+}
+.wiki-editor-content .code-block-container .hljs-deletion {
+	color: #ffdcd7;
+	background-color: #67060c;
+}

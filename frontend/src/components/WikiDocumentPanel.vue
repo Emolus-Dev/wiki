@@ -72,7 +72,7 @@
 										type="text"
 										v-model="editableTitle"
 										:readonly="readonly"
-										class="text-3xl-semibold text-ink-gray-9 bg-transparent border-none outline-none w-full min-w-0 flex-1 focus:ring-0 p-0 placeholder:text-ink-gray-4"
+										class="font-display text-3xl-semibold text-ink-gray-9 bg-transparent border-none outline-none w-full min-w-0 flex-1 focus:ring-0 p-0 placeholder:text-ink-gray-4"
 										:placeholder="__('Page title')"
 										@blur="saveTitleIfChanged"
 										@keydown.enter="$event.target.blur()"

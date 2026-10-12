@@ -1,7 +1,9 @@
 # Home Page and Editor/Reader Redesign
 
 Date: 2026-10-12
-Status: **In progress**
+Status: **Implemented** (frontend). Verified by building the app and by
+screenshots against a mocked API; the e2e specs are written but were **not run**
+(no bench in the authoring environment).
 
 ## Goal
 
@@ -37,13 +39,16 @@ Sidebar gets a **Home** item (first). Mobile bottom nav gets a Home tab.
 - Code blocks are dark in both themes, with a header bar (language label left,
   copy right, always visible) instead of the hover-only corner controls.
   Applies to the editor, the in-app preview and change-request previews (they
-  share `wiki-editor-content.css`) and to the reader (`.wiki-rendered`).
+  all render through `.wiki-editor-content`).
 - Syntax palette: GitHub-dark tokens already shipped by frappe-ui, on a warm
   near-black surface.
 - Page title / H1-H2 use the serif display face; page meta line unchanged.
 
 ## Out of scope
 
+- The public reader (`wiki/public/css`, generated from frappe-ui's code theme
+  by `scripts/generate-public-prose.mjs`) keeps its current code-block look.
+  Bringing it in line is a separate change to that pipeline.
 - Shared (server-side) snippets, attachments cards, favourites, version
   history -- visible in the mockup but need backend work.
 
@@ -53,3 +58,15 @@ Sidebar gets a **Home** item (first). Mobile bottom nav gets a Home tab.
 - e2e: Home renders for manager and Wiki User; `/overview` is manager-only;
   search box opens the palette; adding and copying a snippet.
 - Existing e2e that assumed `/` is the Overview are updated.
+
+## Progress log
+
+- Phase 1: Home page, `/overview` split, sidebar + mobile nav entry, snippets
+  composable (+ unit tests), e2e `home.spec.ts`; existing e2e that assumed `/`
+  was the Overview updated.
+- Phase 2: `wiki-editor-content.css` restyles frappe-ui's code-block node view
+  (the same element, so language picker, copy and Tab keep working); serif
+  display face on page title and h1/h2. The editor root *is* `.ProseMirror`, so
+  selectors are `.wiki-editor-content ...`, not `.wiki-editor-content .ProseMirror ...`.
+- Copy is Spanish-agnostic: strings go through `__()`; Spanish text needs the
+  translation catalogue (Crowdin) to be filled.
