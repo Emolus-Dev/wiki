@@ -1,13 +1,15 @@
 /**
  * Code group: consecutive code blocks shown as tabs.
  *
- * `WikiCodeBlock` is frappe-ui's code block plus a `label` (the tab title).
+ * `WikiCodeBlock` is frappe-ui's code block (keymaps, highlighting) with a
+ * lighter node view and a `label` (the tab title).
  * Markdown hooks live in code-group-markdown.js so they can be unit tested.
  */
 
 import { Node } from '@tiptap/core';
 import { VueNodeViewRenderer } from '@tiptap/vue-3';
 import { CodeBlock } from 'frappe-ui/editor';
+import CodeBlockView from './CodeBlockView.vue';
 import CodeGroupView from './CodeGroupView.vue';
 import {
 	codeGroupMarkdownTokenizer,
@@ -18,6 +20,11 @@ import {
 } from './code-group-markdown.js';
 
 export const WikiCodeBlock = CodeBlock.extend({
+	// Lighter than frappe-ui's own view; see CodeBlockView.vue.
+	addNodeView() {
+		return VueNodeViewRenderer(CodeBlockView);
+	},
+
 	addAttributes() {
 		return {
 			...this.parent?.(),

@@ -34,6 +34,21 @@ That parse was O(n^2):
   ends inside it. Tests prove it returns the same token as the original, across
   windows, nested lists and non-lists.
 
+## Second pass: loading and typing in a long page
+
+Measured in a production build with a realistic 1,600-line page (80 code blocks,
+40 tables, nested lists), the real `WikiEditor`:
+
+- Load is linear, about 2 ms per line (1,600 lines: ~3.9 s; 6,400 lines: ~14 s).
+- Code blocks dominate it: ~22 ms each, because frappe-ui's node view mounts a
+  Combobox, a tooltip and a button per block and listens to every transaction.
+  `CodeBlockView.vue` keeps the same markup and classes but uses plain buttons,
+  builds the language list only while it is open, and subscribes to nothing:
+  load 3.9 s -> 3.0 s.
+- Typing costs ~90 ms per key at that size, from the editor's per-transaction
+  work (toolbar `can()` checks, Vue re-renders, `getMarkdown` re-serialization),
+  not from code blocks.
+
 ## Not fixed
 
 Typing in a ~100 KB page costs ~55 ms per key (editor view update), with or
