@@ -11,6 +11,8 @@
  * Starlight's `:::type[Title]`.
  */
 
+import { startInParagraph } from './markdown-start.js';
+
 /**
  * Callout types that are supported
  */
@@ -71,7 +73,7 @@ export const calloutMarkdownTokenizer = {
 	level: 'block',
 
 	start(src) {
-		return src.indexOf(':::');
+		return startInParagraph(src, (text) => text.indexOf(':::'));
 	},
 
 	tokenize(src, _tokens, lexer) {

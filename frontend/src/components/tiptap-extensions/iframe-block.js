@@ -20,6 +20,7 @@ import {
 	normalizeEmbedUrl,
 	parseIframeAttrs,
 } from './iframe-embed.js';
+import { startInParagraph } from './markdown-start.js';
 
 // Pure embed-parsing helpers (providers, URL normalization, attr parsing) now
 // live in ./iframe-embed.js so they can be unit-tested without this Vue/TipTap
@@ -168,7 +169,7 @@ export const IframeBlock = Node.create({
 		level: 'block',
 
 		start(src) {
-			const idx = src.search(/<iframe\b/i);
+			const idx = startInParagraph(src, (text) => text.search(/<iframe\b/i));
 			return idx < 0 ? undefined : idx;
 		},
 

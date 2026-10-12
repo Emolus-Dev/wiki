@@ -10,6 +10,7 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { VueNodeViewRenderer } from '@tiptap/vue-3';
 import VideoBlockView from './VideoBlockView.vue';
+import { startInParagraph } from './markdown-start.js';
 import { isVideoUrl } from './media-urls.js';
 
 export { VIDEO_EXTENSIONS, isVideoUrl } from './media-urls.js';
@@ -138,7 +139,7 @@ export const VideoBlock = Node.create({
 
 		start(src) {
 			// Look for image-like syntax that could be a video
-			return src.indexOf('![');
+			return startInParagraph(src, (text) => text.indexOf('!['));
 		},
 
 		tokenize(src) {

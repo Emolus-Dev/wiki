@@ -12,6 +12,7 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { VueNodeViewRenderer } from '@tiptap/vue-3';
 import PdfBlockView from './PdfBlockView.vue';
+import { startInParagraph } from './markdown-start.js';
 import { isPdfUrl } from './media-urls.js';
 
 export { isPdfUrl } from './media-urls.js';
@@ -122,7 +123,7 @@ export const PdfBlock = Node.create({
 		level: 'block',
 
 		start(src) {
-			return src.indexOf('![');
+			return startInParagraph(src, (text) => text.indexOf('!['));
 		},
 
 		tokenize(src) {

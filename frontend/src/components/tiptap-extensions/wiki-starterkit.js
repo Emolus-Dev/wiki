@@ -1,4 +1,16 @@
+import { OrderedList } from '@tiptap/extension-list';
 import { StarterKit } from '@tiptap/starter-kit';
+import { boundedListTokenize } from './markdown-start.js';
+
+// StarterKit and every `.configure()` of its ordered list share this one
+// tokenizer object, so replacing its function once covers them all.
+const orderedListTokenizer = OrderedList.config.markdownTokenizer;
+if (!orderedListTokenizer.bounded) {
+	orderedListTokenizer.tokenize = boundedListTokenize(
+		orderedListTokenizer.tokenize,
+	);
+	orderedListTokenizer.bounded = true;
+}
 
 /**
  * Shared StarterKit configuration for the wiki editor (WikiEditor.vue) and the

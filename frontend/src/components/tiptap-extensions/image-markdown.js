@@ -1,3 +1,4 @@
+import { startInParagraph } from './markdown-start.js';
 /**
  * Markdown tokenizer and serializer for the image node.
  *
@@ -37,10 +38,12 @@ export const imageCaptionTokenizer = {
 	level: 'block',
 
 	start(src) {
-		const indexes = [src.indexOf('!['), src.indexOf('<picture>')].filter(
-			(index) => index !== -1,
-		);
-		return indexes.length ? Math.min(...indexes) : -1;
+		return startInParagraph(src, (text) => {
+			const indexes = [text.indexOf('!['), text.indexOf('<picture>')].filter(
+				(index) => index !== -1,
+			);
+			return indexes.length ? Math.min(...indexes) : -1;
+		});
 	},
 
 	tokenize(src) {

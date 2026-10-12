@@ -17,6 +17,8 @@
  * title. The reader (wiki/wiki/markdown.py) reads the same syntax.
  */
 
+import { startInParagraph } from './markdown-start.js';
+
 /** `json site_config.json` -> language `json`, label `site_config.json`. */
 export function splitFenceInfo(info) {
 	const text = (info || '').trim();
@@ -59,7 +61,7 @@ export const codeGroupMarkdownTokenizer = {
 	level: 'block',
 
 	start(src) {
-		return src.indexOf(':::code-group');
+		return startInParagraph(src, (text) => text.indexOf(':::code-group'));
 	},
 
 	tokenize(src, _tokens, lexer) {

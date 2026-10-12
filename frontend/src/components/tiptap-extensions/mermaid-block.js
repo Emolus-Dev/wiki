@@ -8,6 +8,7 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { VueNodeViewRenderer } from '@tiptap/vue-3';
 import MermaidBlockView from './MermaidBlockView.vue';
+import { startInParagraph } from './markdown-start.js';
 import { parseMermaidFence, renderMermaidFence } from './mermaid-markdown.js';
 
 export const DEFAULT_MERMAID_CODE = 'flowchart TD\n  A[Start] --> B[End]';
@@ -81,11 +82,13 @@ export const MermaidBlock = Node.create({
 		level: 'block',
 
 		start(src) {
-			const backtickIndex = src.indexOf('```mermaid');
-			const tildeIndex = src.indexOf('~~~mermaid');
-			if (backtickIndex < 0) return tildeIndex < 0 ? undefined : tildeIndex;
-			if (tildeIndex < 0) return backtickIndex;
-			return Math.min(backtickIndex, tildeIndex);
+			return startInParagraph(src, (text) => {
+				const backtickIndex = text.indexOf('```mermaid');
+				const tildeIndex = text.indexOf('~~~mermaid');
+				if (backtickIndex < 0) return tildeIndex < 0 ? undefined : tildeIndex;
+				if (tildeIndex < 0) return backtickIndex;
+				return Math.min(backtickIndex, tildeIndex);
+			});
 		},
 
 		tokenize(src) {
