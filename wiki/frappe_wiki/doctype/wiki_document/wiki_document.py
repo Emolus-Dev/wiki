@@ -17,7 +17,7 @@ from frappe.website.website_components.metatags import MetaTags
 from werkzeug.wrappers import Response
 
 from wiki.telemetry import capture, reader_config
-from wiki.utils import apply_public_language, fingerprint_js_url
+from wiki.utils import apply_public_language, fingerprint_js_url, reader_lang
 from wiki.wiki.attachments import get_page_attachments
 from wiki.wiki.markdown import render_markdown, render_markdown_with_toc
 
@@ -842,6 +842,7 @@ class WikiDocumentRenderer(BaseRenderer):
 		frappe.db.commit()  # nosemgrep
 
 		context["csrf_token"] = csrf_token
+		context["html_lang"] = reader_lang()
 		context["enable_view_tracking"] = frappe.get_website_settings("enable_view_tracking")
 		context["fingerprint_js_url"] = fingerprint_js_url()
 		context["telemetry"] = reader_config()
@@ -1096,6 +1097,7 @@ def build_access_denied_response(renderer) -> Response:
 		"templates/wiki/access_denied.html",
 		{
 			"hide_chrome": True,
+			"html_lang": reader_lang(),
 			"csrf_token": "",
 			"head_html": "",
 			"disable_indexing": True,
