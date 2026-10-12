@@ -14,6 +14,17 @@
 				<template #nav>
 					<MobileNav>
 						<MobileNavItem
+							:label="__('Home')"
+							:route="{ name: 'Home' }"
+							:active="route.name === 'Home'"
+						>
+							<template #default="{ active }">
+								<span
+									class="lucide-house size-6"
+									:class="active ? 'text-ink-gray-8' : 'text-ink-gray-5'" aria-hidden="true" />
+							</template>
+						</MobileNavItem>
+						<MobileNavItem
 							v-if="userStore.isWikiManager"
 							:label="__('Overview')"
 							:route="{ name: 'Overview' }"
