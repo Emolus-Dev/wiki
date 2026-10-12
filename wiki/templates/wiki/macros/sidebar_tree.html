@@ -12,7 +12,7 @@
                 <li class="wiki-item {{ 'is-group' if node.is_group else 'is-page' }}">
                     {% if node.is_group %}
                         {# Group/folder item #}
-                        <button class="wiki-item-content group w-full flex items-center {{ row_geometry }} px-2 text-[var(--ink-gray-7)] transition-colors duration-200 cursor-pointer hover:bg-[var(--surface-gray-2)] hover:text-[var(--ink-gray-8)]"
+                        <button class="wiki-item-content group w-full flex items-center {{ row_geometry }} px-2 text-[var(--ink-gray-7)] transition-colors duration-200 cursor-pointer hover:bg-[var(--surface-gray-2)] hover:text-[var(--ink-gray-8)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--outline-gray-4)]"
                                 @click="toggleNode('{{ node.name }}')"
                                 :aria-expanded="isExpanded('{{ node.name }}')"
                                 aria-controls="{{ node.name }}-children"
@@ -32,6 +32,10 @@
                                 </svg>
                             </span>
                             <span class="wiki-title {{ row_text_medium }} truncate">{{ node.title }}</span>
+                            {# How much is inside, so a collapsed branch says whether it is worth opening. #}
+                            {% if node.children %}
+                            <span class="wiki-count ml-auto pl-2 text-[11px] tabular-nums text-[var(--ink-gray-4)] group-hover:text-[var(--ink-gray-5)]" aria-hidden="true">{{ node.children | length }}</span>
+                            {% endif %}
                         </button>
                     {% elif node.is_external_link %}
                         {# External link item #}
@@ -56,13 +60,18 @@
                            @click.prevent="$store.navigation.navigateTo({{ node.route | tojson | forceescape }})"
                            @mouseenter="$store.navigation.prefetch({{ node.route | tojson | forceescape }})"
                            @mouseleave="$store.navigation.cancelPrefetch()"
-                           class="wiki-item-content wiki-link group w-full flex items-center {{ row_geometry }} px-2 text-[var(--ink-gray-7)] no-underline transition-colors duration-200"
-                           :class="$store.navigation.currentRoute === {{ node.route | tojson | forceescape }} ? 'bg-[var(--surface-gray-2)] text-[var(--ink-gray-8)]' : 'hover:bg-[var(--surface-gray-2)] hover:text-[var(--ink-gray-8)]'"
+                           class="wiki-item-content wiki-link group w-full flex items-center {{ row_geometry }} px-2 text-[var(--ink-gray-7)] no-underline transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--outline-gray-4)]"
+                           :class="$store.navigation.currentRoute === {{ node.route | tojson | forceescape }} ? 'is-current bg-[var(--surface-gray-2)] text-[var(--ink-gray-9)] font-medium' : 'hover:bg-[var(--surface-gray-2)] hover:text-[var(--ink-gray-8)]'"
                            :aria-current="$store.navigation.currentRoute === {{ node.route | tojson | forceescape }} ? 'page' : false"
                            title="{{ node.title }}"
                            data-route="{{ node.route }}"
                            data-node-id="{{ node.name }}">
                             <span class="wiki-title {{ row_text }} truncate {{ 'pl-5' if level == 0 else '' }}">{{ node.title }}</span>
+                            {# Marks where you are, even in a long column where the tint is easy to miss. #}
+                            <span class="wiki-current-dot ml-auto size-1.5 shrink-0 rounded-full bg-[var(--ink-green-5)]"
+                                  x-show="$store.navigation.currentRoute === {{ node.route | tojson | forceescape }}"
+                                  x-cloak
+                                  aria-hidden="true"></span>
                         </a>
                     {% endif %}
 

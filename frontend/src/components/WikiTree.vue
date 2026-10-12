@@ -12,7 +12,7 @@
 	>
 		<template #item="{ node }">
 			<div
-				class="group flex min-h-10 min-w-0 flex-1 items-center gap-1.5 py-1.5"
+				class="group flex min-h-9 min-w-0 flex-1 items-center gap-1.5 py-1"
 				:class="getRowClasses(node)"
 				:data-selected="isSelected(node) || undefined"
 				@click.stop="handleRowClick(node)"
@@ -35,7 +35,7 @@
 				<span v-else class="lucide-file-text size-4 text-ink-gray-5 shrink-0" aria-hidden="true" />
 
 				<div class="flex min-w-0 flex-1 flex-col">
-					<span class="text-sm truncate" :class="getTitleClass(node)">
+					<span class="text-sm truncate" :class="[getTitleClass(node), isSelected(node) && 'font-medium !text-ink-gray-9']">
 						<template v-for="(seg, i) in titleParts(node)" :key="i"><mark v-if="seg.matched" class="bg-surface-amber-2 text-ink-gray-9 rounded-1">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template>
 					</span>
 					<!-- Why it matched, when the route hit but the title didn't. -->
@@ -43,6 +43,16 @@
 						<template v-for="(seg, i) in routeParts(node)" :key="i"><mark v-if="seg.matched" class="bg-surface-amber-2 text-ink-gray-9 rounded-1">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template>
 					</span>
 				</div>
+
+				<!-- How much is inside a group, so a collapsed branch says whether it
+				     is worth opening. Not while searching: results are a flat list. -->
+				<span
+					v-if="node.is_group && !searchActive && node.children?.length"
+					class="shrink-0 text-xs tabular-nums text-ink-gray-4"
+					aria-hidden="true"
+				>
+					{{ node.children.length }}
+				</span>
 
 				<!-- The tree is a navigation column: a word per row makes it a
 				     list of labels rather than a list of pages. Every state here
@@ -451,5 +461,7 @@ onBeforeUnmount(() => {
    can't reach its parent), keyed off the data-selected marker inside it. */
 .wiki-tree [data-slot='row']:has([data-selected]) {
 	background-color: var(--surface-gray-3);
+	/* An accent edge, so the open page still reads in a long column. */
+	box-shadow: inset 2px 0 0 var(--ink-gray-8);
 }
 </style>

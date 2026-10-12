@@ -10,7 +10,7 @@ in the editor and on the published page.
 
 ## Syntax
 
-```
+````
 :::code-group
 ```bash
 bench restart
@@ -19,7 +19,7 @@ bench restart
 {}
 ```
 :::
-```
+````
 
 Words after the language on a fence are the block's **label** (the tab title);
 without one the tab is named by its language. A labelled fence outside a group

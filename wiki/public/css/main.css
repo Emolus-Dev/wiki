@@ -1016,3 +1016,13 @@ body.wiki-pdf-modal-open {
 .prose .wiki-code-group .code-block-lang {
   display: none;
 }
+
+/* ---------- Sidebar tree ---------- */
+/* The branch you are hovering lights its guide rail, so the eye can follow a
+   level down to its last row. */
+.wiki-item:hover > .wiki-children {
+  border-color: var(--outline-gray-3);
+}
+.wiki-children {
+  transition: border-color 0.15s ease;
+}
