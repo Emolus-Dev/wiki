@@ -1043,3 +1043,29 @@ class TestThemeAwareImages(unittest.TestCase):
 		result = render_markdown('<picture>\n  <img src="/files/shot.png" alt="" data-align="x">\n</picture>')
 
 		self.assertNotIn('data-align="x" />', result)
+
+
+class TestCodeGroup(unittest.TestCase):
+	GROUP = "```bash\nbench restart\n```\n```json site_config.json\n{}\n```"
+
+	def test_a_code_group_wraps_its_blocks_and_keeps_their_labels(self):
+		result = render_markdown(f"Intro\n\n:::code-group\n{self.GROUP}\n:::\n\nAfter")
+
+		self.assertIn('<div class="wiki-code-group">', result)
+		self.assertIn('<code class="language-bash">', result)
+		self.assertIn('<pre data-label="site_config.json"><code class="language-json">', result)
+		self.assertIn("<p>Intro</p>", result)
+		self.assertIn("<p>After</p>", result)
+		self.assertNotIn(":::", result)
+
+	def test_a_plain_fence_is_untouched_and_a_label_alone_does_not_change_its_language(self):
+		result = render_markdown("```python\nprint(1)\n```")
+
+		self.assertIn('<pre><code class="language-python">', result)
+		self.assertNotIn("wiki-code-group", result)
+		self.assertNotIn("data-label", result)
+
+	def test_a_labelled_fence_outside_a_group_still_highlights_by_its_language(self):
+		result = render_markdown("```json site_config.json\n{}\n```")
+
+		self.assertIn('class="language-json"', result)

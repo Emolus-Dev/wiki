@@ -69,6 +69,51 @@ function initCodeBlocks() {
         // Insert toolbar inside pre element
         pre.appendChild(toolbar);
     });
+
+    initCodeGroups();
+}
+
+// Consecutive fences wrapped in `.wiki-code-group` become one block with tabs.
+// A tab is named by the fence's label (```json site_config.json), else by its
+// language. The blocks stay in the page; only the active one is shown.
+function initCodeGroups() {
+    document.querySelectorAll('.wiki-code-group').forEach(function(group) {
+        if (group.dataset.tabsReady) return;
+        const blocks = Array.from(group.children).filter(function(el) {
+            return el.tagName === 'PRE';
+        });
+        if (blocks.length < 2) return;
+        group.dataset.tabsReady = '1';
+
+        const bar = document.createElement('div');
+        bar.className = 'wiki-code-group-tabs';
+        bar.setAttribute('role', 'tablist');
+
+        const tabs = blocks.map(function(pre, index) {
+            const code = pre.querySelector('code');
+            const tab = document.createElement('button');
+            tab.type = 'button';
+            tab.className = 'wiki-code-group-tab';
+            tab.setAttribute('role', 'tab');
+            tab.textContent = pre.dataset.label || (code && code.dataset.language) || 'auto';
+            tab.addEventListener('click', function() { select(index); });
+            bar.appendChild(tab);
+            return tab;
+        });
+
+        function select(active) {
+            blocks.forEach(function(pre, index) {
+                pre.classList.toggle('is-active-tab', index === active);
+            });
+            tabs.forEach(function(tab, index) {
+                tab.classList.toggle('is-active', index === active);
+                tab.setAttribute('aria-selected', index === active ? 'true' : 'false');
+            });
+        }
+
+        group.insertBefore(bar, group.firstChild);
+        select(0);
+    });
 }
 
 // Initialize on page load

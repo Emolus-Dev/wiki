@@ -947,3 +947,72 @@ body.wiki-pdf-modal-open {
   background: var(--surface-amber-2);
   color: var(--ink-amber-7);
 }
+
+/* ---------- Code group: fenced blocks shown as tabs ----------
+   code-blocks.js adds the tab bar and marks the active block. The group is one
+   dark card; each block loses its own frame, and its toolbar (copy) moves up to
+   sit at the right end of the tab bar. */
+.prose .wiki-code-group {
+  position: relative;
+  margin: 1.5rem 0;
+  overflow: hidden;
+  border: 1px solid var(--code-border);
+  border-radius: 0.75rem;
+  background: var(--code-bg);
+}
+
+.prose .wiki-code-group-tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.25rem;
+  height: 2.25rem;
+  padding: 0 4rem 0 0.5rem;
+  overflow-x: auto;
+  background: var(--code-bar);
+  border-bottom: 1px solid var(--code-border);
+}
+
+.prose .wiki-code-group-tab {
+  height: 100%;
+  padding: 0 0.75rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--code-muted);
+  font-size: 0.75rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.prose .wiki-code-group-tab:hover {
+  color: var(--code-fg);
+}
+
+.prose .wiki-code-group-tab.is-active {
+  color: var(--code-fg);
+  border-bottom-color: var(--ink-green-5, #4ade80);
+}
+
+.prose .wiki-code-group > pre.code-block-enhanced.code-block-enhanced {
+  position: static;
+  margin: 0;
+  padding-top: 0.875rem;
+  border: 0;
+  border-radius: 0;
+}
+
+.prose .wiki-code-group-tabs ~ pre:not(.is-active-tab) {
+  display: none;
+}
+
+.prose .wiki-code-group .code-block-toolbar {
+  inset: 0 0 auto auto;
+  width: auto;
+  background: none;
+  border: 0;
+  padding: 0 0.375rem;
+}
+
+.prose .wiki-code-group .code-block-lang {
+  display: none;
+}

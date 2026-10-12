@@ -157,6 +157,44 @@ def _process_callouts_with_placeholders(content):
 	return content, callouts, placeholder_prefix
 
 
+# A code group is consecutive fenced blocks shown as tabs:
+#   :::code-group
+#   ```bash
+#   ...
+#   ```
+#   ```json site_config.json
+#   ...
+#   ```
+#   :::
+CODE_GROUP_PATTERN = re.compile(
+	r"^[ \t]*:::code-group[ \t]*\n(?P<content>[\s\S]*?)\n[ \t]*:::[ \t]*$",
+	re.MULTILINE,
+)
+
+
+def _process_code_groups_with_placeholders(content):
+	"""Swap code groups for placeholders, like callouts, so their fences are
+	rendered on their own and wrapped afterwards."""
+	groups = []
+	placeholder_prefix = "WIKICODEGROUPPLACEHOLDER"
+
+	def replacer(match):
+		idx = len(groups)
+		groups.append(match.group("content").strip())
+		return _standalone_block(match, f"{placeholder_prefix}{idx}END")
+
+	return CODE_GROUP_PATTERN.sub(replacer, content), groups, placeholder_prefix
+
+
+def _replace_code_group_placeholders(html, groups, placeholder_prefix, render_inner):
+	for idx, body in enumerate(groups):
+		placeholder = f"{placeholder_prefix}{idx}END"
+		group_html = f'<div class="wiki-code-group">{render_inner(body)}</div>\n'
+		html = html.replace(f"<p>{placeholder}</p>", group_html)
+		html = html.replace(placeholder, group_html)
+	return html
+
+
 def _replace_callout_placeholders(html, callouts, placeholder_prefix, render_inner):
 	"""Replace callout placeholders with actual HTML after markdown rendering."""
 	for idx, callout in enumerate(callouts):
@@ -508,7 +546,7 @@ def _build_markdown() -> MarkdownIt:
 		.use(tasklists_plugin, enabled=True)
 	)
 
-	def _render_codeblock_html(content: str, lang: str = "") -> str:
+	def _render_codeblock_html(content: str, lang: str = "", label: str = "") -> str:
 		# Trim trailing whitespace the author left inside the fence — spaces,
 		# tabs, and blank lines all render as phantom empty rows in <pre>.
 		content = content.rstrip() + "\n"
@@ -519,12 +557,15 @@ def _build_markdown() -> MarkdownIt:
 		if lang == "mermaid":
 			return f'<pre class="mermaid">{escapeHtml(content)}</pre>\n'
 		cls = f' class="language-{escapeHtml(lang)}"' if lang else ""
-		return f"<pre><code{cls}>{escapeHtml(content)}</code></pre>\n"
+		# Words after the language name label the block, e.g. ```json site_config.json.
+		# Only a code group shows them, as its tab titles.
+		pre_attrs = f' data-label="{escapeHtml(label)}"' if label else ""
+		return f"<pre{pre_attrs}><code{cls}>{escapeHtml(content)}</code></pre>\n"
 
 	def fence_rstrip(tokens, idx, options, env):
 		tok = tokens[idx]
-		lang = next(iter((tok.info or "").split()), "")
-		return _render_codeblock_html(tok.content, lang)
+		lang, _, label = (tok.info or "").strip().partition(" ")
+		return _render_codeblock_html(tok.content, lang, label.strip())
 
 	def code_block_rstrip(tokens, idx, options, env):
 		return _render_codeblock_html(tokens[idx].content)
@@ -694,6 +735,9 @@ def render_markdown_with_toc(content: str) -> tuple[str, list]:
 
 	processed_content = _encode_image_url_spaces(content)
 	processed_content = _escape_table_inline_code_pipes(processed_content)
+	processed_content, code_groups, code_group_prefix = _process_code_groups_with_placeholders(
+		processed_content
+	)
 	processed_content, callouts, callout_prefix = _process_callouts_with_placeholders(processed_content)
 	processed_content, videos, video_prefix = _process_videos_with_placeholders(processed_content)
 	processed_content, pdfs, pdf_prefix = _process_pdfs_with_placeholders(processed_content)
@@ -704,6 +748,7 @@ def render_markdown_with_toc(content: str) -> tuple[str, list]:
 	html = md.renderer.render(tokens, md.options, env)
 
 	html = _replace_callout_placeholders(html, callouts, callout_prefix, md.render)
+	html = _replace_code_group_placeholders(html, code_groups, code_group_prefix, md.render)
 	html = _replace_video_placeholders(html, videos, video_prefix)
 	html = _replace_pdf_placeholders(html, pdfs, pdf_prefix)
 
