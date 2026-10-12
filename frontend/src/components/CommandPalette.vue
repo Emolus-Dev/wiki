@@ -93,7 +93,7 @@
 				v-if="!flatItems.length"
 				class="px-2 py-6 text-center text-base text-ink-gray-5"
 			>
-				{{ pages.loading ? __('Searching…') : __('No results') }}
+				{{ pages.loading || contentSearch.loading ? __('Searching…') : __('No results') }}
 			</p>
 		</div>
 
@@ -146,7 +146,11 @@ import { useRecentPages } from '../composables/useRecentPages';
 import { useSpaceSettings } from '../composables/useSpaceSettings';
 import { useTheme } from '../composables/useTheme';
 import { useWikiSettings } from '../composables/useWikiSettings';
-import { MIN_SERVER_QUERY, buildResultGroups } from '../lib/commandPalette';
+import {
+	MIN_CONTENT_QUERY,
+	MIN_SERVER_QUERY,
+	buildResultGroups,
+} from '../lib/commandPalette';
 import SpaceAvatar from './SpaceAvatar.vue';
 
 const router = useRouter();
@@ -201,6 +205,11 @@ const spaces = useList({
 });
 
 const pages = createResource({ url: 'wiki.api.search.search_pages' });
+const contentSearch = createResource({
+	url: 'wiki.api.search.search_content',
+});
+// The query the content rows answer, so rows for an older one are not shown.
+const contentQuery = ref('');
 
 watch(showCommandPalette, (open) => {
 	if (open && !spaces.data) spaces.fetch();
@@ -211,6 +220,16 @@ watchDebounced(
 	(value) => {
 		const q = value.trim();
 		if (q.length >= MIN_SERVER_QUERY) pages.submit({ query: q });
+		if (q.length >= MIN_CONTENT_QUERY) {
+			contentSearch
+				.submit({ query: q })
+				.then(() => {
+					contentQuery.value = q;
+				})
+				.catch(() => {});
+		} else {
+			contentQuery.value = '';
+		}
 	},
 	{ debounce: 300 },
 );
@@ -268,6 +287,16 @@ function pathInSpace(page) {
 }
 
 const pageItems = computed(() => (pages.data || []).map(toPageItem));
+
+const contentItems = computed(() => ({
+	query: contentQuery.value,
+	items: (contentSearch.data || []).map((page) => ({
+		...toPageItem(page),
+		// The matching text, not the URL: that is why this row is here.
+		subtitle: page.snippet || page.space_name,
+		scoreScale: 1,
+	})),
+}));
 
 const recentItems = computed(() =>
 	recentPages.value
@@ -388,12 +417,14 @@ const groups = computed(() =>
 		jumpTo,
 		spaces: spaceItems.value,
 		pages: pageItems.value,
+		content: contentItems.value,
 		recent: recentItems.value,
 		actions: actionItems.value,
 		titles: {
 			jump: __('Jump to'),
 			spaces: __('Spaces'),
 			pages: __('Pages'),
+			content: __('In page content'),
 			recent: __('Recent'),
 			actions: __('Actions'),
 		},

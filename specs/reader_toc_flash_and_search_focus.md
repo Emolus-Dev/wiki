@@ -28,3 +28,13 @@ Status: **Implemented.** Front end verified on a static page with the real CSS a
 - Browser: verified on a static page with the real CSS and script.
 - e2e (needs a bench): search -> click result -> `mark.wiki-hit` visible and in
   viewport; TOC click adds `wiki-flash` to the heading.
+
+## Addendum: content search in the editor palette
+
+`wiki.api.search.search_content` (authenticated) finds pages by title and body
+text for the Cmd/Ctrl+K palette, drafts and unpublished pages included, with a
+snippet around the first match. SQL narrows on the longest word, Python checks
+every word case- and accent-insensitively; at most 100 candidates are read. The
+palette shows the hits in an "In page content" group after the URL matches,
+holding back rows that answer an earlier query. Requires 3+ characters.
+Not done: scrolling the editor to the match (the reader already does this).

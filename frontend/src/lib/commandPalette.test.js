@@ -162,3 +162,27 @@ test('matches only the theme named in the query', () => {
 		['actions', ['Theme: Dark']],
 	]);
 });
+
+test('lists pages whose text matched, once, after the path matches', () => {
+	const content = {
+		query: 'howto',
+		items: [
+			{ key: 'page:3', label: 'Onboarding', subtitle: '…the howto…' },
+			{ key: 'page:7', label: 'Runbook', subtitle: '…howto steps…' },
+		],
+	};
+	assert.deepEqual(labels(build('howto', { content })), [
+		['pages', ['Onboarding']],
+		['content', ['Runbook']],
+	]);
+});
+
+test('holds back text matches that answer an earlier query', () => {
+	const content = {
+		query: 'dep',
+		items: [{ key: 'page:7', label: 'Runbook' }],
+	};
+	assert.deepEqual(labels(build('deploy', { content })), [
+		['pages', ['Deploying to production']],
+	]);
+});

@@ -6,6 +6,8 @@ const MATCH_THRESHOLD = 0.3;
 const PATH_THRESHOLD = 0.5;
 
 export const MIN_SERVER_QUERY = 2;
+// Body-text search reads page content, so it waits for a longer query.
+export const MIN_CONTENT_QUERY = 3;
 
 /**
  * Turn the palette's sources into the groups it renders, in order.
@@ -20,7 +22,7 @@ export const MIN_SERVER_QUERY = 2;
  */
 export function buildResultGroups(
 	query,
-	{ jumpTo, spaces, pages, recent, actions, titles },
+	{ jumpTo, spaces, pages, content, recent, actions, titles },
 ) {
 	const q = (query || '').trim();
 	if (!q) {
@@ -51,8 +53,29 @@ export function buildResultGroups(
 					? rank(q, pages, { key: 'path', threshold: PATH_THRESHOLD })
 					: [],
 		},
+		{
+			id: 'content',
+			title: titles.content,
+			items: contentItems(q, pages, content),
+		},
 	];
 	return groups.filter((group) => group.items.length);
+}
+
+/**
+ * Pages whose text matched. The server already filtered and ordered them, so
+ * nothing is re-ranked here. `content` carries the query it answers: rows for
+ * an earlier query are held back rather than shown against the wrong text.
+ * A page already listed by its path is not listed twice.
+ */
+function contentItems(q, pages, content) {
+	if (!content || content.query !== q) return [];
+	const listed = new Set(
+		rank(q, pages || [], { key: 'path', threshold: PATH_THRESHOLD }).map(
+			(page) => page.key,
+		),
+	);
+	return content.items.filter((item) => !listed.has(item.key));
 }
 
 function rank(
