@@ -405,7 +405,7 @@
     "@floating-ui/utils" "^0.2.11"
     vue-demi ">=0.13.0"
 
-"@framework/ui@link:../../frappe/ui":
+"@framework/ui@link:./vendor/framework-ui":
   version "0.0.0"
   uid ""
 

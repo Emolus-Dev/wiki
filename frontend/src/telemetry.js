@@ -1,7 +1,7 @@
 import { watch } from 'vue';
 
-import { useTelemetry as useFrameworkTelemetry } from '@framework/ui/telemetry/index.ts';
-import { fetchBootConfig } from '@framework/ui/telemetry/pulse.ts';
+import { useTelemetry as useFrameworkTelemetry } from '../vendor/framework-ui/src/telemetry/index.ts';
+import { fetchBootConfig } from '../vendor/framework-ui/src/telemetry/pulse.ts';
 
 export function useTelemetry() {
 	const telemetry = useFrameworkTelemetry();

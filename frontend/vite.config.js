@@ -1,5 +1,5 @@
 import path from 'node:path';
-import frameworkUI from '@framework/ui/vite';
+import frameworkUI from './vendor/framework-ui/vite/index.js';
 import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vite';
 
