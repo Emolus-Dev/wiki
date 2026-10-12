@@ -8,6 +8,7 @@
   "general_tab",
   "section_break_vefv",
   "default_wiki_space",
+  "public_language",
   "table_of_contents_section",
   "enable_table_of_contents",
   "auto_convert_images_to_webp",
@@ -52,6 +53,14 @@
    "fieldname": "default_wiki_space",
    "fieldtype": "Autocomplete",
    "label": "Default Wiki Space"
+  },
+  {
+   "default": "es",
+   "description": "Language of published pages for visitors who are not logged in. Logged-in users see their own language.",
+   "fieldname": "public_language",
+   "fieldtype": "Link",
+   "label": "Public Pages Language",
+   "options": "Language"
   },
   {
    "fieldname": "section_break_vefv",

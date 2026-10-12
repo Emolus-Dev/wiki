@@ -35,6 +35,7 @@ jinja = {
 		"wiki.utils.get_asset_hash",
 		"wiki.utils.lucide_svg",
 		"wiki.utils.space_mark",
+		"wiki.utils.reader_lang",
 	]
 }
 

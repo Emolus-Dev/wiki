@@ -4,3 +4,662 @@ This wiki is only available to people with permission. Sign in if you have an ac
 Your account does not have permission to read this wiki.,Tu cuenta no tiene permiso para leer esta wiki.
 Log in,Iniciar sesión
 Go to home,Ir al inicio
+Sync in progress,Sincronización en curso
+Sync started — pulling the latest from GitHub,Sincronización iniciada: obteniendo lo último de GitHub
+Could not start sync,No se pudo iniciar la sincronización
+Read-only,Solo lectura
+View live,Ver en vivo
+Page settings,Ajustes de la página
+Edit on GitHub,Editar en GitHub
+Page actions,Acciones de la página
+Page title,Título de la página
+Unsaved changes,Cambios sin guardar
+Rename Page,Renombrar página
+Title,Título
+Cancel,Cancelar
+Rename,Renombrar
+Delete,Eliminar
+Untitled,Sin título
+The page is removed from the space when this change request is merged.,La página se elimina del espacio cuando se fusiona esta solicitud de cambios.
+Save Delete Draft,Guardar borrador de eliminación
+Unpublish,Despublicar
+Publish,Publicar
+Error updating title,Error al actualizar el título
+Error creating draft,Error al crear el borrador
+Error updating publish status,Error al actualizar el estado de publicación
+Error saving draft,Error al guardar el borrador
+No active change request,No hay una solicitud de cambios activa
+Change space logo,Cambiar el logo del espacio
+Icons,Íconos
+Generate,Generar
+Replace,Reemplazar
+Upload,Subir
+Use this image,Usar esta imagen
+Remove,Quitar
+"PNG or SVG, shown at a small size.","PNG o SVG, se muestra en tamaño pequeño."
+Icon,Ícono
+Could not generate a logo,No se pudo generar un logo
+Failed to upload logo,Error al subir el logo
+Loading…,Cargando…
+No matches,Sin coincidencias
+Load more…,Cargar más…
+Open page analytics,Abrir analíticas de la página
+{0} min read,{0} min de lectura
+1 view in last 30 days,1 visita en los últimos 30 días
+{0} views in last 30 days,{0} visitas en los últimos 30 días
+Edited {0},Editado {0}
+Synced from GitHub,Sincronizado desde GitHub
+Sync now,Sincronizar ahora
+More actions,Más acciones
+Discard local failed changes and adopt server state,Descartar los cambios locales fallidos y adoptar el estado del servidor
+Reload latest,Recargar lo último
+Discard,Descartar
+Merge,Fusionar
+Approved! Ready to merge.,¡Aprobado! Listo para fusionar.
+Pending Changes,Cambios pendientes
+No pending changes,No hay cambios pendientes
+Close,Cerrar
+Never synced,Nunca sincronizado
+Last synced {0},Última sincronización {0}
+Could not reload from server,No se pudo recargar desde el servidor
+Reload latest before merging,Recarga lo último antes de fusionar
+Resolve failed changes before merging,Resuelve los cambios fallidos antes de fusionar
+Wait for uploads to finish before merging,Espera a que terminen las cargas antes de fusionar
+Remove failed uploads before merging,Quita las cargas fallidas antes de fusionar
+Wait for pending changes to sync before merging,Espera a que se sincronicen los cambios pendientes antes de fusionar
+Save your changes before merging,Guarda tus cambios antes de fusionar
+Please wait for reordering to finish before merging,Espera a que termine el reordenamiento antes de fusionar
+View changes ({0}),Ver cambios ({0})
+Discard Changes,Descartar cambios
+Drafting Changes,Redactando cambios
+In Review,En revisión
+Changes Requested,Cambios solicitados
+Approved,Aprobado
+Merged,Fusionado
+Rejected,Rechazado
+Change Request,Solicitud de cambios
+{0} {1} changed,{0} {1} con cambios
+page,página
+pages,páginas
+Frappe Wiki,Frappe Wiki
+Search,Buscar
+Pinned to top,Fijado arriba
+Restricted access,Acceso restringido
+No Wiki Spaces,No hay espacios de wiki
+New Space,Nuevo espacio
+Spaces,Espacios
+Unpublished,Sin publicar
+Unpin from top,Quitar de arriba
+Pin to top,Fijar arriba
+Space settings,Ajustes del espacio
+Copy link,Copiar enlace
+{0} pinned,{0} fijado
+{0} unpinned,{0} desfijado
+Link copied,Enlace copiado
+Settings,Ajustes
+Toggle Theme,Cambiar tema
+Log out,Cerrar sesión
+Home,Inicio
+Overview,Resumen
+All Spaces,Todos los espacios
+Change Requests,Solicitudes de cambios
+On this page,En esta página
+Tab icons,Íconos de pestañas
+Assign Reviewer,Asignar revisor
+"Assign this change request to a reviewer. They will be notified and it will appear in their ""Assigned to me"" list.","Asigna esta solicitud de cambios a un revisor. Recibirá una notificación y aparecerá en su lista ""Asignadas a mí""."
+Search people...,Buscar personas...
+Assign,Asignar
+Reviewer assigned,Revisor asignado
+Error assigning reviewer,Error al asignar el revisor
+Submit for review,Enviar a revisión
+Reload latest before submitting,Recarga lo último antes de enviar
+Resolve failed changes before submitting,Resuelve los cambios fallidos antes de enviar
+Wait for uploads to finish before submitting,Espera a que terminen las cargas antes de enviar
+Remove failed uploads before submitting,Quita las cargas fallidas antes de enviar
+Wait for pending changes to sync before submitting,Espera a que se sincronicen los cambios pendientes antes de enviar
+{0} pending {1} will be sent for review.,{0} {1} pendiente(s) se enviarán a revisión.
+change,cambio
+changes,cambios
+Submit,Enviar
+Search pages...,Buscar páginas...
+Clear search,Borrar búsqueda
+"No pages match ""{0}""","Ninguna página coincide con ""{0}"""
+No pages yet,Aún no hay páginas
+No pages have synced from the repository yet,Aún no se ha sincronizado ninguna página desde el repositorio
+Create your first page to get started,Crea tu primera página para empezar
+New page,Nueva página
+Add a group or link,Agregar un grupo o enlace
+Route,Ruta
+space/page-url,espacio/url-de-la-pagina
+Save,Guardar
+Are you sure you want to delete this,¿Seguro que quieres eliminar este
+group,grupo
+"It stays in your draft, marked as deleted, until the change request is merged.","Permanece en tu borrador, marcado como eliminado, hasta que se fusione la solicitud de cambios."
+Warning,Advertencia
+This group contains,Este grupo contiene
+child document,documento hijo
+child documents,documentos hijos
+that will also be deleted.,que también se eliminarán.
+Rename Group,Renombrar grupo
+Change Title,Cambiar título
+Name,Nombre
+Enter group name,Ingresa el nombre del grupo
+Enter page title,Ingresa el título de la página
+Add External Link,Agregar enlace externo
+Enter link title,Ingresa el título del enlace
+URL,URL
+https://example.com,https://ejemplo.com
+Edit External Link,Editar enlace externo
+New Group,Nuevo grupo
+External Link,Enlace externo
+Create New Group,Crear nuevo grupo
+Create New Page,Crear nueva página
+Menu,Menú
+Back to All Spaces,Volver a Todos los espacios
+Space actions,Acciones del espacio
+View live site,Ver el sitio en vivo
+Collapse,Contraer
+Expand,Expandir
+Sync failed — edit again or delete to recover,Falló la sincronización: edita de nuevo o elimina para recuperar
+Sync failed,Falló la sincronización
+Syncing…,Sincronizando…
+Deleted in this draft. Merge to remove it for everyone.,Eliminado en este borrador. Fusiona para eliminarlo para todos.
+Deleted,Eliminado
+Error restoring page,Error al restaurar la página
+Restore,Restaurar
+New Page,Nueva página
+Danger,Zona de peligro
+Tab Icon,Ícono de pestaña
+Load more,Cargar más
+Subject,Asunto
+Status,Estado
+Assigned to,Asignado a
+Modified,Modificado
+No Space,Sin espacio
+Create Wiki Space,Crear espacio de wiki
+Create,Crear
+Space Name,Nombre del espacio
+My Wiki Space,Mi espacio de wiki
+my-wiki-space,mi-espacio-de-wiki
+"The URL path for this wiki space (e.g., /my-wiki-space)","La ruta URL de este espacio de wiki (p. ej., /mi-espacio-de-wiki)"
+Synced from GitHub?,¿Sincronizado desde GitHub?
+Connecting to GitHub…,Conectando con GitHub…
+Connect your GitHub account to pick a repository (private repos supported).,Conecta tu cuenta de GitHub para elegir un repositorio (se admiten repositorios privados).
+Connect GitHub,Conectar GitHub
+The GitHub App is not installed on any account yet. Install it on the account and repositories you want to sync.,La app de GitHub aún no está instalada en ninguna cuenta. Instálala en la cuenta y los repositorios que quieras sincronizar.
+Install GitHub App,Instalar la app de GitHub
+GitHub Account or Organization,Cuenta u organización de GitHub
+Select an account or organization,Selecciona una cuenta u organización
+Install the GitHub App on another account or organization,Instalar la app de GitHub en otra cuenta u organización
+Add,Agregar
+Loading repositories…,Cargando repositorios…
+Repository,Repositorio
+Search repositories…,Buscar repositorios…
+Branch,Rama
+main,main
+Docs folder,Carpeta de documentos
+docs,docs
+Folder in the repo to sync. Supports nested paths like docs/guide.,Carpeta del repositorio a sincronizar. Admite rutas anidadas como docs/guia.
+"Wiki Space ""{0}"" created successfully.","El espacio de wiki ""{0}"" se creó correctamente."
+Could not verify the branch on GitHub.,No se pudo verificar la rama en GitHub.
+Route is required.,La ruta es obligatoria.
+Please pick a GitHub repository,Elige un repositorio de GitHub
+Please pick or enter a branch,Elige o ingresa una rama
+"Branch ""{0}"" does not exist in {1}.","La rama ""{0}"" no existe en {1}."
+View space,Ver espacio
+Search results,Resultados de búsqueda
+Searching…,Buscando…
+No results,Sin resultados
+to navigate,para navegar
+to select,para seleccionar
+to close,para cerrar
+to open,para abrir
+New space,Nuevo espacio
+Toggle theme,Cambiar tema
+Theme: Dark,Tema: oscuro
+Theme: Light,Tema: claro
+Jump to,Ir a
+Pages,Páginas
+Recent,Recientes
+Actions,Acciones
+Pulling the latest pages from GitHub. This will only take a moment.,Obteniendo las últimas páginas de GitHub. Solo tomará un momento.
+Pick a page to edit,Elige una página para editar
+Choose a page from the tree on the left.,Elige una página del árbol de la izquierda.
+Nothing synced yet,Aún no hay nada sincronizado
+Create your first page,Crea tu primera página
+No pages have come across from the repository.,No ha llegado ninguna página desde el repositorio.
+This space doesn't have any pages yet.,Este espacio aún no tiene páginas.
+Draft,Borrador
+Group name,Nombre del grupo
+Group,Grupo
+This is a draft group.,Este es un grupo en borrador.
+Groups organize pages but have no content.,Los grupos organizan páginas pero no tienen contenido.
+Draft not found,Borrador no encontrado
+Edit Route,Editar ruta
+page-route,ruta-de-la-pagina
+Update,Actualizar
+Change route,Cambiar ruta
+Delete Draft,Eliminar borrador
+Error updating route,Error al actualizar la ruta
+Error deleting draft,Error al eliminar el borrador
+Close page settings,Cerrar ajustes de la página
+General,General
+From the repo,Del repositorio
+space/section/page,espacio/seccion/pagina
+Published,Publicado
+Visible on the public site,Visible en el sitio público
+Disable Indexing,Desactivar indexación
+Prevent search engines from indexing this page,Evitar que los buscadores indexen esta página
+Social preview,Vista previa social
+Meta title,Meta título
+Leave empty to use the page title,Déjalo vacío para usar el título de la página
+Meta description,Meta descripción
+A short summary shown in search results and link previews,Un resumen corto que se muestra en los resultados de búsqueda y en las vistas previas de enlaces
+Meta image,Meta imagen
+Uploading...,Subiendo...
+Upload image,Subir imagen
+Recommended 1200×630,Recomendado 1200×630
+Preview,Vista previa
+No description set,Sin descripción
+Auto-generated from the page metadata. Upload an image to override it.,Generada automáticamente a partir de los metadatos de la página. Sube una imagen para reemplazarla.
+Details,Detalles
+Words,Palabras
+Reading time,Tiempo de lectura
+{0} min,{0} min
+Last edited,Última edición
+Edited by,Editado por
+View in Desk,Ver en Desk
+Recommended: 150-160 characters ({0} so far),Recomendado: 150-160 caracteres ({0} hasta ahora)
+Failed to upload image,Error al subir la imagen
+Page settings saved,Ajustes de la página guardados
+Error saving page settings,Error al guardar los ajustes de la página
+"Shown in the sidebar, the switcher and the reader header","Se muestra en la barra lateral, el selector y el encabezado del lector"
+Space name,Nombre del espacio
+Route Prefix,Prefijo de ruta
+Make this wiki space publicly accessible,Hacer público este espacio de wiki
+Space Logo,Logo del espacio
+Shown in the reader header and on generated social preview images,Se muestra en el encabezado del lector y en las imágenes de vista previa social generadas
+Clone Space,Clonar espacio
+Create a new space with the same structure,Crea un nuevo espacio con la misma estructura
+Clone,Clonar
+Delete Space,Eliminar espacio
+Permanently delete this space and all its pages,Elimina de forma permanente este espacio y todas sus páginas
+Delete Space {0},Eliminar el espacio {0}
+This cannot be undone. Deleting the space also removes:,Esto no se puede deshacer. Eliminar el espacio también elimina:
+Their revision history,Su historial de revisiones
+Every change request,Todas las solicitudes de cambios
+Click to copy,Clic para copiar
+Type {0} to confirm,Escribe {0} para confirmar
+All its pages,Todas sus páginas
+1 page,1 página
+{0} pages,{0} páginas
+Pages live under /{0}/…,Las páginas viven bajo /{0}/…
+Failed to rename the space,Error al renombrar el espacio
+Space name copied,Nombre del espacio copiado
+Could not copy the space name,No se pudo copiar el nombre del espacio
+Failed to delete the space,Error al eliminar el espacio
+Space,Espacio
+Navigation,Navegación
+Access,Acceso
+Beta,Beta
+Analytics,Analíticas
+Git Sync,Sincronización con Git
+Not connected to a repository,No está conectado a un repositorio
+A space is connected to GitHub when it is created. A connected space is read-only in the editor — its pages come from the repository.,Un espacio se conecta a GitHub al crearse. Un espacio conectado es de solo lectura en el editor: sus páginas vienen del repositorio.
+Search role to add,Buscar rol para agregar
+No roles found,No se encontraron roles
+Role,Rol
+No roles configured (open to all logged-in users).,No hay roles configurados (abierto a todos los usuarios con sesión).
+Readable by all logged-in users if no roles are set. Add the Guest role for public/anonymous access.,Legible por todos los usuarios con sesión si no hay roles. Agrega el rol Guest para acceso público/anónimo.
+Only space admins can change access control.,Solo los administradores del espacio pueden cambiar el control de acceso.
+Accept Contributions,Aceptar contribuciones
+Collect Feedback,Recopilar comentarios
+Show a feedback widget on wiki pages to collect user reactions,Muestra un widget de comentarios en las páginas de la wiki para recoger reacciones
+Let readers propose edits via change requests. Users with write access can always edit.,Permite a los lectores proponer ediciones mediante solicitudes de cambios. Quienes tienen acceso de escritura siempre pueden editar.
+"Synced spaces are read-only, so contributions are always off.","Los espacios sincronizados son de solo lectura, por lo que las contribuciones siempre están desactivadas."
+Contributions enabled,Contribuciones activadas
+Contributions disabled,Contribuciones desactivadas
+Failed to update contributions setting,Error al actualizar el ajuste de contribuciones
+Failed to update the feedback setting,Error al actualizar el ajuste de comentarios
+Access control updated,Control de acceso actualizado
+Failed to update access control,Error al actualizar el control de acceso
+No repository configured,No hay repositorio configurado
+Docs Folder,Carpeta de documentos
+Pages are read from this folder in the repository,Las páginas se leen de esta carpeta del repositorio
+Pages are read from the repository root,Las páginas se leen de la raíz del repositorio
+Last Synced,Última sincronización
+Never,Nunca
+View commit on GitHub,Ver commit en GitHub
+Real-time Sync,Sincronización en tiempo real
+Pushes to the repository sync automatically via this webhook URL:,Los pushes al repositorio se sincronizan automáticamente mediante esta URL de webhook:
+Copy webhook URL,Copiar URL del webhook
+Sync History,Historial de sincronización
+Webhook,Webhook
+No sync runs yet,Aún no hay sincronizaciones
+Configuration (.wiki.json),Configuración (.wiki.json)
+No .wiki.json in the repo — the page tree is inferred from the docs folder.,No hay .wiki.json en el repositorio: el árbol de páginas se infiere de la carpeta de documentos.
+Webhook URL copied,URL del webhook copiada
+Could not copy URL,No se pudo copiar la URL
+No changes,Sin cambios
+Show in Space Switcher,Mostrar en el selector de espacios
+List this space in the switcher and on the overview page,Muestra este espacio en el selector y en la página de resumen
+Order,Orden
+Lower numbers come first; spaces that tie are ordered by name,Los números menores van primero; los espacios empatados se ordenan por nombre
+Failed to update the switcher,Error al actualizar el selector
+Failed to update the order,Error al actualizar el orden
+Page,Página
+Show the whole space,Mostrar todo el espacio
+Views,Visitas
+New visitors,Visitantes nuevos
+Views over time,Visitas en el tiempo
+Top pages,Páginas más vistas
+No views in this range,No hay visitas en este rango
+Top referrers,Principales referencias
+Last 7 days,Últimos 7 días
+Last 30 days,Últimos 30 días
+Last 90 days,Últimos 90 días
+Last 180 days,Últimos 180 días
+Last 12 months,Últimos 12 meses
+Custom range,Rango personalizado
+{0} to {1},{0} a {1}
+Click a week to see its days,Haz clic en una semana para ver sus días
+Click a month to see its days,Haz clic en un mes para ver sus días
+Direct,Directo
+Page views are not being recorded,No se están registrando las visitas a las páginas
+Tracking counts visits to published pages and stores a device fingerprint for each visitor. It applies to the whole site.,El seguimiento cuenta las visitas a las páginas publicadas y guarda una huella del dispositivo de cada visitante. Se aplica a todo el sitio.
+Ask a Wiki Manager to turn on page view tracking.,Pide a un Wiki Manager que active el seguimiento de visitas.
+Turn on tracking,Activar seguimiento
+Enable Table of Contents,Activar tabla de contenidos
+Show an auto-generated table of contents on wiki pages,Muestra una tabla de contenidos generada automáticamente en las páginas de la wiki
+Auto Convert Image to WebP,Convertir imágenes a WebP automáticamente
+Automatically convert uploaded PNG/JPEG images to WebP to reduce page size,Convierte automáticamente las imágenes PNG/JPEG subidas a WebP para reducir el tamaño de la página
+Auto Generate Meta Images,Generar meta imágenes automáticamente
+Generate a branded social preview image for pages that have no Meta Image uploaded,Genera una imagen de vista previa social con la marca para las páginas sin meta imagen
+Enable Feedback,Activar comentarios
+Show a feedback widget on every wiki page to collect ratings and comments,Muestra un widget de comentarios en cada página de la wiki para recoger valoraciones y comentarios
+Feedback Submission Limit,Límite de envíos de comentarios
+Hourly rate limit on feedback submissions,Límite por hora de envíos de comentarios
+Enable View Tracking,Activar seguimiento de visitas
+"Count visits to published pages, which is what the Overview reports","Cuenta las visitas a las páginas publicadas, que es lo que reporta el Resumen"
+Wiki Settings,Ajustes de Wiki
+Feedback,Comentarios
+Header & Robots,Encabezado y robots
+GitHub Sync,Sincronización con GitHub
+"Configure a GitHub App so Wiki Spaces can sync from GitHub repositories, including private ones. Access tokens are minted on demand from the App private key — no per-space secrets are stored.","Configura una app de GitHub para que los espacios de wiki se sincronicen desde repositorios de GitHub, incluidos los privados. Los tokens de acceso se generan bajo demanda a partir de la clave privada de la app: no se guardan secretos por espacio."
+Create GitHub App,Crear app de GitHub
+App ID,ID de la app
+Client ID,ID de cliente
+App Public Link,Enlace público de la app
+"Public installation link, e.g. https://github.com/apps/your-app/installations/new","Enlace público de instalación, p. ej. https://github.com/apps/tu-app/installations/new"
+Secrets,Secretos
+Stored secrets are never shown. Leave a field blank to keep its current value.,Los secretos guardados nunca se muestran. Deja un campo en blanco para conservar su valor actual.
+Enter client secret,Ingresa el secreto de cliente
+Client Secret,Secreto de cliente
+Configured,Configurado
+Not set,Sin definir
+Enter webhook secret,Ingresa el secreto del webhook
+Webhook Secret,Secreto del webhook
+PEM-encoded private key generated for the GitHub App,Clave privada en formato PEM generada para la app de GitHub
+Configured — paste a new key to replace,Configurada: pega una nueva clave para reemplazarla
+Paste PEM private key,Pega la clave privada PEM
+Private Key,Clave privada
+Save Secrets,Guardar secretos
+Configuration saved,Configuración guardada
+Failed to save configuration,Error al guardar la configuración
+Secrets updated,Secretos actualizados
+Failed to save secrets,Error al guardar los secretos
+<head> HTML,HTML de <head>
+Injected into the <head> of all public wiki pages,Se inserta en el <head> de todas las páginas públicas de la wiki
+Access Denied,Acceso denegado
+You don't have permission to access the Wiki.,No tienes permiso para acceder a la Wiki.
+Please contact your administrator to request access.,Contacta a tu administrador para solicitar acceso.
+Reload latest before {0},Recarga lo último antes de {0}
+Resolve failed changes before {0},Resuelve los cambios fallidos antes de {0}
+Wait for uploads to finish before {0},Espera a que terminen las cargas antes de {0}
+Remove failed uploads before {0},Quita las cargas fallidas antes de {0}
+Wait for pending changes to sync before {0},Espera a que se sincronicen los cambios pendientes antes de {0}
+Save your changes before {0},Guarda tus cambios antes de {0}
+submitting,enviar
+Change request submitted for review,Solicitud de cambios enviada a revisión
+Error submitting for review,Error al enviar a revisión
+Change request archived,Solicitud de cambios archivada
+Error archiving change request,Error al archivar la solicitud de cambios
+merging,fusionar
+Change request merged,Solicitud de cambios fusionada
+Merge conflict — resolve it to continue,Conflicto de fusión: resuélvelo para continuar
+Error merging change request,Error al fusionar la solicitud de cambios
+This route is already in use,Esta ruta ya está en uso
+Title is required,El título es obligatorio
+Name is required,El nombre es obligatorio
+URL is required,La URL es obligatoria
+Error updating external link,Error al actualizar el enlace externo
+Saving…,Guardando…
+Failed to update the space logo,Error al actualizar el logo del espacio
+New,Nuevo
+Reordered,Reordenado
+New group to be created,Nuevo grupo por crear
+New external link added,Nuevo enlace externo agregado
+New page to be created,Nueva página por crear
+Content or metadata updated,Contenido o metadatos actualizados
+Will be deleted,Se eliminará
+Order updated,Orden actualizado
+Search spaces...,Buscar espacios...
+No spaces found,No se encontraron espacios
+Last Updated,Última actualización
+{0} change requests in review,{0} solicitudes de cambios en revisión
+All,Todos
+No wiki spaces available,No hay espacios de wiki disponibles
+Create your first wiki space to get started,Crea tu primer espacio de wiki para empezar
+Create your first wiki space from the sidebar to get started,Crea tu primer espacio de wiki desde la barra lateral para empezar
+Back,Atrás
+by,por
+Resolve & Merge,Resolver y fusionar
+Approve,Aprobar
+Withdraw,Retirar
+Merge Conflicts,Conflictos de fusión
+The following documents have conflicting changes. Choose which version to keep for each conflict.,Los siguientes documentos tienen cambios en conflicto. Elige qué versión conservar en cada conflicto.
+resolved,resueltos
+Conflicts,Conflictos
+Keep Main,Conservar principal
+Keep Your Changes,Conservar mis cambios
+Changes,Cambios
+Diff,Diferencias
+Current,Actual
+No published version yet.,Aún no hay una versión publicada.
+Proposed,Propuesto
+No changes in this change request.,No hay cambios en esta solicitud de cambios.
+Approve & Merge,Aprobar y fusionar
+This will approve the change request and immediately merge it into the live wiki. This cannot be undone. Are you sure?,Esto aprobará la solicitud de cambios y la fusionará de inmediato en la wiki en vivo. No se puede deshacer. ¿Seguro?
+Request Changes,Solicitar cambios
+Please provide feedback explaining what needs to change. This is sent back to the author.,Escribe comentarios que expliquen qué debe cambiar. Se enviarán de vuelta al autor.
+Enter your feedback...,Escribe tus comentarios...
+Reject Change Request,Rechazar solicitud de cambios
+Rejecting is final — this change request cannot be merged. Please explain why it is being rejected.,Rechazar es definitivo: esta solicitud de cambios no se podrá fusionar. Explica por qué se rechaza.
+Reason,Motivo
+Enter the reason for rejection...,Escribe el motivo del rechazo...
+Reject,Rechazar
+Assign reviewer,Asignar revisor
+Error loading conflicts,Error al cargar los conflictos
+Position,Posición
+Error loading diff,Error al cargar las diferencias
+Change request approved,Solicitud de cambios aprobada
+Error approving change request,Error al aprobar la solicitud de cambios
+Please provide feedback,Escribe tus comentarios
+Requested changes,Cambios solicitados
+Error requesting changes,Error al solicitar cambios
+Conflicts resolved and change request merged,Conflictos resueltos y solicitud de cambios fusionada
+Error resolving conflicts,Error al resolver los conflictos
+Please provide a reason,Indica un motivo
+Change request rejected,Solicitud de cambios rechazada
+Error rejecting change request,Error al rechazar la solicitud de cambios
+Change request withdrawn,Solicitud de cambios retirada
+Error withdrawing change request,Error al retirar la solicitud de cambios
+Open change requests by space,Solicitudes de cambios abiertas por espacio
+Right now,Ahora mismo
+Open,Abiertas
+Page views,Visitas a páginas
+Views by space,Visitas por espacio
+7 days,7 días
+30 days,30 días
+90 days,90 días
+Open change requests,Solicitudes de cambios abiertas
+All spaces,Todos los espacios
+No change,Sin cambios
+My Change Requests,Mis solicitudes de cambios
+No Change Requests,No hay solicitudes de cambios
+You have not created any change requests yet. Edit a wiki page to get started.,Aún no has creado ninguna solicitud de cambios. Edita una página de la wiki para empezar.
+Assigned to me,Asignadas a mí
+Nothing assigned to you,No tienes nada asignado
+Change requests assigned to you for review will appear here.,Las solicitudes de cambios que te asignen para revisión aparecerán aquí.
+All in review,Todas en revisión
+No change requests in review,No hay solicitudes de cambios en revisión
+There are no change requests waiting for review.,No hay solicitudes de cambios esperando revisión.
+1 change request,1 solicitud de cambios
+{0} change requests,{0} solicitudes de cambios
+What do you need to pick up today?,¿Qué necesitas retomar hoy?
+"Search pages, snippets and attachments…","Buscar en páginas, snippets y adjuntos…"
+View all,Ver todas
+Recently edited,Editado recientemente
+Pinned snippets,Snippets fijados
+Pin the commands you reach for most. They stay in this browser.,Fija los comandos que más usas. Se quedan en este navegador.
+Remove snippet,Quitar snippet
+Copy code,Copiar código
+Pin a snippet,Fijar un snippet
+Pin,Fijar
+Restart bench,Reiniciar bench
+Code,Código
+bench restart,bench restart
+"Hello, {0}","Hola, {0}"
+Hello,Hola
+Add some code to pin,Agrega código para fijar
+Update Wiki Space Routes,Actualizar rutas del espacio de wiki
+Current Base Route,Ruta base actual
+New Base Route,Nueva ruta base
+Enter new route (without leading slash),Ingresa la nueva ruta (sin barra inicial)
+Update Routes,Actualizar rutas
+Clone Wiki Space,Clonar espacio de wiki
+New Space Route,Ruta del nuevo espacio
+Start Cloning,Iniciar clonación
+Cloning started in background,La clonación comenzó en segundo plano
+Error starting clone,Error al iniciar la clonación
+This wiki space is synced from GitHub and is read-only.,Este espacio de wiki está sincronizado desde GitHub y es de solo lectura.
+Only space editors can create or change tabs.,Solo los editores del espacio pueden crear o cambiar pestañas.
+Wiki,Wiki
+This method is only meant for developer mode,Este método solo está pensado para el modo desarrollador
+Please log in to connect your GitHub account.,Inicia sesión para conectar tu cuenta de GitHub.
+GitHub authorization failed: {0},Falló la autorización de GitHub: {0}
+Invalid or expired GitHub authorization. Please try connecting again.,Autorización de GitHub inválida o vencida. Intenta conectar de nuevo.
+Please log in to create a GitHub App.,Inicia sesión para crear una app de GitHub.
+You are not permitted to configure the GitHub App.,No tienes permiso para configurar la app de GitHub.
+GitHub App creation failed: {0},Falló la creación de la app de GitHub: {0}
+Invalid or expired GitHub App creation. Please try again.,Creación de la app de GitHub inválida o vencida. Inténtalo de nuevo.
+"Repository tree for {0} is too large (>100,000 entries) and was truncated by GitHub.",El árbol del repositorio {0} es demasiado grande (>100.000 entradas) y GitHub lo truncó.
+Invalid {0}: {1},{0} inválido: {1}
+{0} must be a JSON object.,{0} debe ser un objeto JSON.
+Repository and branch are required for git sync.,El repositorio y la rama son obligatorios para la sincronización con git.
+Invalid webhook signature.,Firma de webhook inválida.
+Git Sync cannot be toggled after a space is created.,La sincronización con Git no se puede activar ni desactivar después de crear el espacio.
+This Wiki Space is not git-synced.,Este espacio de wiki no está sincronizado con git.
+Route cannot be empty,La ruta no puede estar vacía
+New route is the same as current route,La nueva ruta es igual a la actual
+This Wiki Space has no root group. Migrate to Version 3 first.,Este espacio de wiki no tiene grupo raíz. Migra primero a la Versión 3.
+Route '{0}' is already used by another Wiki Space,La ruta '{0}' ya la usa otro espacio de wiki
+Invalid feedback submission parameters,Parámetros de envío de comentarios inválidos
+Wiki Page doctype is deprecated and will be deleted in a future release. Please migrate to Wiki Document (Version 3 structure).,El doctype Wiki Page está obsoleto y se eliminará en una versión futura. Migra a Wiki Document (estructura de la Versión 3).
+File {0} does not exist,El archivo {0} no existe
+Wiki Document,Documento de wiki
+Broken Link,Enlace roto
+Page not found,Página no encontrada
+Not permitted to view wiki analytics,No tienes permiso para ver las analíticas de la wiki
+Not permitted to read the page view tracking setting,No tienes permiso para leer el ajuste de seguimiento de visitas
+Not permitted to change page view tracking,No tienes permiso para cambiar el seguimiento de visitas
+Interval must be one of {0},El intervalo debe ser uno de {0}
+From Date must be on or before To Date,La fecha inicial debe ser anterior o igual a la fecha final
+Date range cannot be longer than {0} days,El rango de fechas no puede superar {0} días
+"Pass either a space or a document, not both","Indica un espacio o un documento, no ambos"
+Not permitted to view analytics for this space,No tienes permiso para ver las analíticas de este espacio
+You do not have permission to reorder this document,No tienes permiso para reordenar este documento
+GitHub App is not configured in Wiki Settings.,La app de GitHub no está configurada en los Ajustes de Wiki.
+GitHub did not return an access token: {0},GitHub no devolvió un token de acceso: {0}
+GitHub account is not connected.,La cuenta de GitHub no está conectada.
+Not permitted to read Wiki Settings.,No tienes permiso para leer los Ajustes de Wiki.
+Not permitted to configure the GitHub App.,No tienes permiso para configurar la app de GitHub.
+Preparing…,Preparando…
+Download,Descargar
+Copied!,¡Copiado!
+Copy,Copiar
+Copy page,Copiar página
+Copy page as Markdown for LLMs,Copiar la página como Markdown para LLMs
+Open in ChatGPT,Abrir en ChatGPT
+Ask ChatGPT about this page,Pregunta a ChatGPT sobre esta página
+Open in Claude,Abrir en Claude
+Ask Claude about this page,Pregunta a Claude sobre esta página
+Last updated {0},Última actualización {0}
+Edit,Editar
+More page actions,Más acciones de la página
+Download this page as a PDF,Descargar esta página como PDF
+Switch wiki space,Cambiar de espacio de wiki
+Open search,Abrir búsqueda
+Search documentation,Buscar en la documentación
+Was this helpful?,¿Te resultó útil?
+Bad,Mal
+Ok,Regular
+Good,Bien
+Feedback rating,Valoración
+Anything you'd like to add?,¿Algo que quieras agregar?
+Thanks!,¡Gracias!
+Open navigation menu,Abrir el menú de navegación
+Close sidebar,Cerrar la barra lateral
+Search navigation,Buscar en la navegación
+No results for,No hay resultados para
+Type to search documentation,Escribe para buscar en la documentación
+new tab,pestaña nueva
+This wiki space is not accepting contributions.,Este espacio de wiki no acepta contribuciones.
+This change request is {0} and cannot be changed.,Esta solicitud de cambios está {0} y no se puede modificar.
+This change request is {0} and is locked for editing.,Esta solicitud de cambios está {0} y está bloqueada para edición.
+Only a group can be marked as a tab.,Solo un grupo puede marcarse como pestaña.
+Only a top-level group can be marked as a tab. Nested tabs are not supported.,Solo un grupo de nivel superior puede marcarse como pestaña. No se admiten pestañas anidadas.
+Document not found in change request,Documento no encontrado en la solicitud de cambios
+A tab must stay at the top level. Remove the tab flag first to move it.,Una pestaña debe permanecer en el nivel superior. Quita primero la marca de pestaña para moverla.
+You do not have access to this wiki space.,No tienes acceso a este espacio de wiki.
+Not permitted,No permitido
+create_node operation requires temp_key,La operación create_node requiere temp_key
+create_node operation requires title,La operación create_node requiere title
+update_node operation requires doc_key,La operación update_node requiere doc_key
+update_content operation requires doc_key,La operación update_content requiere doc_key
+update_content operation requires content,La operación update_content requiere content
+delete_node operation requires doc_key,La operación delete_node requiere doc_key
+restore_node operation requires doc_key,La operación restore_node requiere doc_key
+move_node operation requires doc_key,La operación move_node requiere doc_key
+Unknown operation type: {0},Tipo de operación desconocido: {0}
+operations must be a non-empty list,operations debe ser una lista no vacía
+base_version must be an integer,base_version debe ser un entero
+This draft has changed elsewhere. Reload latest.,Este borrador cambió en otro lugar. Recarga lo último.
+Each operation must be an object,Cada operación debe ser un objeto
+Operation is missing 'type',A la operación le falta 'type'
+There are no changes to submit for review.,No hay cambios para enviar a revisión.
+You do not have permission to review change requests in this space.,No tienes permiso para revisar solicitudes de cambios en este espacio.
+Approved this change request.,Aprobó esta solicitud de cambios.
+Your change request “{0}” was approved.,Tu solicitud de cambios “{0}” fue aprobada.
+Please provide feedback explaining what needs to change.,Escribe comentarios que expliquen qué debe cambiar.
+Requested changes: {0},Cambios solicitados: {0}
+Changes were requested on your change request “{0}”.,Se solicitaron cambios en tu solicitud de cambios “{0}”.
+Please provide a reason for rejecting this change request.,Indica un motivo para rechazar esta solicitud de cambios.
+Rejected this change request: {0},Rechazó esta solicitud de cambios: {0}
+Your change request “{0}” was rejected.,Tu solicitud de cambios “{0}” fue rechazada.
+Only the author can withdraw this change request.,Solo el autor puede retirar esta solicitud de cambios.
+You do not have permission to merge change requests in this space.,No tienes permiso para fusionar solicitudes de cambios en este espacio.
+You do not have permission to view merge conflicts in this space.,No tienes permiso para ver los conflictos de fusión en este espacio.
+Resolution must be 'ours' or 'theirs'.,La resolución debe ser 'ours' o 'theirs'.
+You do not have permission to resolve conflicts in this space.,No tienes permiso para resolver conflictos en este espacio.
+Cannot resolve conflicts for a finalized Change Request.,No se pueden resolver conflictos de una solicitud de cambios finalizada.
+Conflict is already resolved.,El conflicto ya está resuelto.
+You do not have permission to merge in this space.,No tienes permiso para fusionar en este espacio.
+{0} conflict(s) still unresolved.,Quedan {0} conflicto(s) sin resolver.
+{0} new conflict(s) detected during merge retry.,Se detectaron {0} conflicto(s) nuevo(s) al reintentar la fusión.
+Merge conflicts detected,Se detectaron conflictos de fusión
+Your change request “{0}” was merged.,Tu solicitud de cambios “{0}” fue fusionada.
+Another page with the route '{0}' already exists: {1},Ya existe otra página con la ruta '{0}': {1}
+You don't have permission to edit this page,No tienes permiso para editar esta página
+You don't have permission to delete this document,No tienes permiso para eliminar este documento
+You don't have permission to delete child document: {0},No tienes permiso para eliminar el documento hijo: {0}

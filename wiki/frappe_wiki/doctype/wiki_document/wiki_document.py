@@ -17,7 +17,7 @@ from frappe.website.website_components.metatags import MetaTags
 from werkzeug.wrappers import Response
 
 from wiki.telemetry import capture, reader_config
-from wiki.utils import fingerprint_js_url
+from wiki.utils import apply_public_language, fingerprint_js_url
 from wiki.wiki.markdown import render_markdown, render_markdown_with_toc
 
 WIKI_DOCUMENT_PRINT_FORMAT = "Standard Wiki Document"
@@ -813,6 +813,8 @@ class WikiDocumentRenderer(BaseRenderer):
 		return False
 
 	def render(self):
+		apply_public_language()
+
 		if getattr(self, "access_denied", False):
 			return build_access_denied_response(self)
 

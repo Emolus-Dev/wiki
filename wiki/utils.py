@@ -52,6 +52,23 @@ def _lucide_table() -> dict:
 		return {}
 
 
+def apply_public_language():
+	"""Make the reader speak the configured public language to visitors who are
+	not logged in. Logged-in users keep their own language, which Frappe has
+	already put on the request. Call before anything is translated."""
+	if frappe.session.user != "Guest":
+		return
+
+	language = frappe.db.get_single_value("Wiki Settings", "public_language")
+	if language and language != frappe.local.lang:
+		frappe.local.lang = language
+
+
+def reader_lang() -> str:
+	"""Language code for the reader's `<html lang>`."""
+	return (frappe.local.lang or "en").replace("_", "-")
+
+
 def get_tailwindcss_hash():
 	tailwindcss_path = frappe.get_app_path("wiki", "public/css/tailwind.css")
 	content = open(tailwindcss_path).read()
