@@ -221,6 +221,143 @@ body {
   height: 14px;
 }
 
+/* ---------- Code block surface ----------
+   Dark in both themes, with a header bar carrying the language and the copy
+   button, matching the SPA editor's code blocks (frontend/src/index.css and
+   wiki-editor-content.css). Selectors are doubled on `.code-block-enhanced`
+   so they beat frappe-ui-code.css's light/dark theme regardless of order. */
+:root {
+  --font-display: 'Newsreader', 'Source Serif 4', 'Iowan Old Style', Georgia,
+    'Times New Roman', serif;
+  --code-bg: #1d1c1a;
+  --code-bar: #262522;
+  --code-border: #34322e;
+  --code-fg: #e8e6e1;
+  --code-muted: #9a968d;
+  --code-hover: rgb(255 255 255 / 0.09);
+}
+
+.prose pre.code-block-enhanced.code-block-enhanced {
+  margin: 1.5rem 0;
+  padding: 3rem 1rem 0.875rem 0.75rem;
+  background: var(--code-bg);
+  color: var(--code-fg);
+  border-color: var(--code-border);
+  border-radius: 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.prose pre.code-block-enhanced > code,
+.prose pre.code-block-enhanced > code.hljs {
+  background: none;
+  color: inherit;
+  padding: 0;
+}
+
+.prose pre.code-block-enhanced .code-block-gutter {
+  color: var(--code-muted);
+}
+
+.prose .code-block-toolbar {
+  inset: 0 0 auto 0;
+  height: 2.25rem;
+  padding: 0 0.375rem 0 0.875rem;
+  justify-content: space-between;
+  background: var(--code-bar);
+  border-bottom: 1px solid var(--code-border);
+  border-radius: 0.6875rem 0.6875rem 0 0;
+  opacity: 1;
+}
+
+.prose .code-block-lang {
+  padding: 0;
+  color: var(--code-muted);
+}
+
+.prose .code-block-copy {
+  color: var(--code-muted);
+}
+
+.prose .code-block-copy:hover,
+.prose .code-block-copy:active {
+  background-color: var(--code-hover);
+  color: var(--code-fg);
+}
+
+/* GitHub-dark token colours, pinned so a light page theme does not bring the
+   light palette back inside the dark block. */
+.prose pre.code-block-enhanced .hljs-doctag,
+.prose pre.code-block-enhanced .hljs-keyword,
+.prose pre.code-block-enhanced .hljs-template-tag,
+.prose pre.code-block-enhanced .hljs-template-variable,
+.prose pre.code-block-enhanced .hljs-type,
+.prose pre.code-block-enhanced .hljs-variable.language_ {
+  color: #ff7b72;
+}
+.prose pre.code-block-enhanced .hljs-title,
+.prose pre.code-block-enhanced .hljs-title.class_,
+.prose pre.code-block-enhanced .hljs-title.function_ {
+  color: #d2a8ff;
+}
+.prose pre.code-block-enhanced .hljs-attr,
+.prose pre.code-block-enhanced .hljs-attribute,
+.prose pre.code-block-enhanced .hljs-literal,
+.prose pre.code-block-enhanced .hljs-meta,
+.prose pre.code-block-enhanced .hljs-number,
+.prose pre.code-block-enhanced .hljs-operator,
+.prose pre.code-block-enhanced .hljs-variable,
+.prose pre.code-block-enhanced .hljs-selector-attr,
+.prose pre.code-block-enhanced .hljs-selector-class,
+.prose pre.code-block-enhanced .hljs-selector-id {
+  color: #79c0ff;
+}
+.prose pre.code-block-enhanced .hljs-regexp,
+.prose pre.code-block-enhanced .hljs-string,
+.prose pre.code-block-enhanced .hljs-meta .hljs-string {
+  color: #a5d6ff;
+}
+.prose pre.code-block-enhanced .hljs-built_in,
+.prose pre.code-block-enhanced .hljs-symbol {
+  color: #ffa657;
+}
+.prose pre.code-block-enhanced .hljs-comment,
+.prose pre.code-block-enhanced .hljs-code,
+.prose pre.code-block-enhanced .hljs-formula {
+  color: #8b949e;
+}
+.prose pre.code-block-enhanced .hljs-name,
+.prose pre.code-block-enhanced .hljs-quote,
+.prose pre.code-block-enhanced .hljs-selector-tag,
+.prose pre.code-block-enhanced .hljs-selector-pseudo {
+  color: #7ee787;
+}
+.prose pre.code-block-enhanced .hljs-subst,
+.prose pre.code-block-enhanced .hljs-emphasis,
+.prose pre.code-block-enhanced .hljs-strong,
+.prose pre.code-block-enhanced .hljs-section {
+  color: var(--code-fg);
+}
+.prose pre.code-block-enhanced .hljs-bullet {
+  color: #f2cc60;
+}
+.prose pre.code-block-enhanced .hljs-addition {
+  color: #aff5b4;
+  background-color: #033a16;
+}
+.prose pre.code-block-enhanced .hljs-deletion {
+  color: #ffdcd7;
+  background-color: #67060c;
+}
+
+/* Serif display face for the page title and top-level headings. */
+#wiki-page-title,
+.prose h1,
+.prose h2 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
 /* Heading anchor links */
 .prose h1,
 .prose h2,

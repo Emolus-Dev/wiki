@@ -44,11 +44,17 @@ Sidebar gets a **Home** item (first). Mobile bottom nav gets a Home tab.
   near-black surface.
 - Page title / H1-H2 use the serif display face; page meta line unchanged.
 
+## Phase 3 -- Published reader
+
+The public reader gets the same code block (dark surface, header bar with
+language + copy, GitHub-dark tokens) and serif page title / h1 / h2. It is pure
+CSS in `wiki/public/css/main.css`, layered over the generated
+`frappe-ui-code.css` with doubled `.code-block-enhanced` selectors; the existing
+`code-blocks.js` markup (gutter, toolbar) is unchanged. Verified on a static page
+built with the real `tailwind.css`, `wiki-highlight.bundle.js` and `code-blocks.js`.
+
 ## Out of scope
 
-- The public reader (`wiki/public/css`, generated from frappe-ui's code theme
-  by `scripts/generate-public-prose.mjs`) keeps its current code-block look.
-  Bringing it in line is a separate change to that pipeline.
 - Shared (server-side) snippets, attachments cards, favourites, version
   history -- visible in the mockup but need backend work.
 
@@ -70,3 +76,4 @@ Sidebar gets a **Home** item (first). Mobile bottom nav gets a Home tab.
   selectors are `.wiki-editor-content ...`, not `.wiki-editor-content .ProseMirror ...`.
 - Copy is Spanish-agnostic: strings go through `__()`; Spanish text needs the
   translation catalogue (Crowdin) to be filled.
+- Phase 3: reader CSS in `wiki/public/css/main.css` (requires `yarn build` / `tailwind:build` on deploy).
