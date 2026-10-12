@@ -53,3 +53,21 @@ Measured in a production build with a realistic 1,600-line page (80 code blocks,
 
 Typing in a ~100 KB page costs ~55 ms per key (editor view update), with or
 without these changes. Separate from saving, and worth profiling next.
+
+## Finding what still freezes: the activity log
+
+The freeze could not be reproduced outside the user's machine (a pasted
+1,100-line page loads, pastes and saves in under a second here, whatever mix of
+tables, lists, code, callouts and links it holds), and it also happens on the
+base branch, so it is not a regression. A frozen tab cannot be inspected, so the
+app now logs its heavy steps to `localStorage['wiki:trace']` (`lib/freezeTrace.js`):
+a `:start` is written before each step and an `:end` after, so the last `:start`
+without an `:end` is the step that never finished. Steps covered: editor create /
+mount, paste, markdown canonicalize, `getMarkdown`, autosave, save request,
+draft persist, hydrate, page load, and any task over 500 ms (`longtask`).
+
+To read it after a freeze, from another tab of the same site (localStorage is
+shared): DevTools > Application > Local storage > `wiki:trace`, or in that tab's
+console: `copy(localStorage.getItem('wiki:trace'))`.
+
+Remove (or gate behind a flag) once the cause is fixed.

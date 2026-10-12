@@ -1,7 +1,8 @@
-import { telemetryPlugin } from '../vendor/framework-ui/src/telemetry/index.ts';
 import { createApp, watchEffect } from 'vue';
+import { telemetryPlugin } from '../vendor/framework-ui/src/telemetry/index.ts';
 
 import App from './App.vue';
+import { watchLongTasks } from './lib/freezeTrace';
 import router from './router';
 import { initSocket } from './socket';
 import { pinia } from './stores';
@@ -34,6 +35,8 @@ const globalComponents = {
 	Dialog,
 	Badge,
 };
+
+watchLongTasks();
 
 const app = createApp(App);
 

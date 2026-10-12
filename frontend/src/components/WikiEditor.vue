@@ -86,6 +86,7 @@ import {
 	Emoji,
 	useEditor,
 } from 'frappe-ui/editor';
+import { timed, trace } from '@/lib/freezeTrace';
 import EditorAttachments from './EditorAttachments.vue';
 import EditorTableOfContents from './EditorTableOfContents.vue';
 import LinkPopup from './tiptap-extensions/LinkPopup.vue';
@@ -463,6 +464,10 @@ async function insertAndUploadPdf(file) {
  * Handle paste events to upload images and parse markdown text
  */
 function handlePaste(_view, event) {
+	trace('editor:paste', {
+		plain: event.clipboardData?.getData('text/plain')?.length,
+		html: event.clipboardData?.getData('text/html')?.length,
+	});
 	const items = event.clipboardData?.items;
 	if (!items) return false;
 
@@ -823,6 +828,7 @@ onBeforeUnmount(() => {
 // save flow reads normalized markdown from the editor directly instead.
 const editorContent = shallowRef(props.content || '');
 
+trace('editor:create:start', { chars: editorContent.value.length });
 const editor = useEditor({
 	content: editorContent,
 	format: 'markdown',
@@ -911,6 +917,8 @@ const editor = useEditor({
 	onBlur: () => contentSync.flush(),
 });
 
+trace('editor:create:end');
+
 // useEditor doesn't take editorProps; set them on the created instance.
 editor.value.setOptions({
 	editorProps: {
@@ -953,10 +961,12 @@ const normalizedSavedContent = memoizeLast(normalizeMarkdown);
 
 // Keyed on the doc, not the markdown string: the doc is immutable, and the
 // cache must also skip the serialize step.
-const markdownForDoc = memoizeLast(() => {
-	const markdown = editor.value?.getMarkdown();
-	return markdown === undefined ? undefined : normalizeMarkdown(markdown);
-});
+const markdownForDoc = memoizeLast(() =>
+	timed('editor:getMarkdown', () => {
+		const markdown = editor.value?.getMarkdown();
+		return markdown === undefined ? undefined : normalizeMarkdown(markdown);
+	}),
+);
 
 function getMarkdown() {
 	if (!editor.value) return undefined;
@@ -1006,6 +1016,7 @@ function reportContentChange() {
 
 async function autoSave() {
 	if (!editor.value) return;
+	trace('editor:autoSave');
 	contentSync.cancel();
 
 	// Notify components to sync their content before we read it
@@ -1023,6 +1034,7 @@ async function autoSave() {
 function saveToDB() {
 	// Read-only documents (git-synced spaces) never write back.
 	if (props.readonly) return;
+	trace('editor:saveToDB');
 	contentSync.cancel();
 	// Clear any pending autosave
 	if (autosaveTimer) {
@@ -1074,6 +1086,7 @@ onKeyStroke('s', (e) => {
 });
 
 onMounted(() => {
+	trace('editor:mounted');
 	emitContentReady();
 	// Expose editor on window for E2E testing
 	window.wikiEditor = editor.value;

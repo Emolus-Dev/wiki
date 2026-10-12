@@ -1,3 +1,4 @@
+import { trace } from '@/lib/freezeTrace';
 import { useChangeRequestStore } from '@/stores/changeRequest';
 import {
 	clearDraft as clearPersistedDraft,
@@ -122,6 +123,7 @@ export const useDraftWorkspaceStore = defineStore('draftWorkspace', () => {
 		const persist = () => {
 			draftPersistTimers.delete(key);
 			if (pageBuffers.isDirty(page)) {
+				trace('draft:persist', { chars: page.localContent?.length });
 				savePersistedDraft(changeRequestName, docKey, {
 					content: page.localContent,
 					title: title ?? page.title,
@@ -308,9 +310,11 @@ export const useDraftWorkspaceStore = defineStore('draftWorkspace', () => {
 	}
 
 	async function hydrateForPage(targetSpaceId, docKey) {
+		trace('draft:hydrateForPage:start', { docKey });
 		const hydration = hydrate(targetSpaceId);
 		const drafts = await (changeRequestReady ?? hydration);
 		if (drafts?.some((draft) => draft.docKey === docKey)) await hydration;
+		trace('draft:hydrateForPage:end', { drafts: drafts?.length });
 	}
 
 	// Read any drafts persisted to IndexedDB for the current CR and
@@ -477,6 +481,7 @@ export const useDraftWorkspaceStore = defineStore('draftWorkspace', () => {
 	// with a tmp key (the backend would 404).
 	async function loadCrPage(docKey) {
 		if (!docKey) return null;
+		trace('draft:loadCrPage', { docKey });
 		if (resolver.isTempKey(docKey)) {
 			// A create that landed before its opener read the buffer has already
 			// promoted it to the real key, leaving nothing under the temp one.
@@ -862,6 +867,7 @@ export const useDraftWorkspaceStore = defineStore('draftWorkspace', () => {
 	// after backend success; any newer `localContent` remains divergent.
 	function saveContent(docKey, content, title = null) {
 		if (!docKey) return Promise.reject(new Error('Missing docKey'));
+		trace('draft:saveContent', { docKey, chars: content?.length });
 
 		// Mark the page as saving immediately so the banner / editor
 		// reflect that a save is queued.
@@ -912,6 +918,7 @@ export const useDraftWorkspaceStore = defineStore('draftWorkspace', () => {
 		queue.setStatus(mutation.id, 'syncing');
 		try {
 			if (!(await ensureCr())) throw new Error('No change request');
+			trace('draft:save:request:start', { chars: content?.length });
 			if (useBatchOperations) {
 				const op = {
 					id: mutation.id,
@@ -927,6 +934,7 @@ export const useDraftWorkspaceStore = defineStore('draftWorkspace', () => {
 				await crStore.updatePage(crName.value, realKey, fields);
 			}
 
+			trace('draft:save:request:end');
 			const targetPage = pageBuffers.get(realKey) || pageBuffers.get(docKey);
 			if (targetPage) {
 				targetPage.content = content;

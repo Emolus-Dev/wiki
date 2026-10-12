@@ -1,3 +1,5 @@
+import { timed } from '../../lib/freezeTrace.js';
+
 // Canonicalize markdown for dirty-state comparison.
 //
 // The editor keeps a trailing empty paragraph for cursor placement, and
@@ -12,7 +14,13 @@ export function canonicalizeMarkdown(manager, content) {
 	const markdown = content ?? '';
 	if (!manager) return stripTrailingNewlines(markdown);
 	try {
-		return stripTrailingNewlines(manager.serialize(manager.parse(markdown)));
+		return stripTrailingNewlines(
+			timed(
+				'markdown:canonicalize',
+				() => manager.serialize(manager.parse(markdown)),
+				{ chars: markdown.length },
+			),
+		);
 	} catch (error) {
 		console.warn('[WikiEditor] Could not normalize markdown', error);
 		return stripTrailingNewlines(markdown);
