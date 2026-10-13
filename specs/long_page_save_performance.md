@@ -137,3 +137,17 @@ redundant save on first open, then is clean.
 Still unknown: which construct in that page does not settle (round-trip checks
 over 64 constructs and all pairs found none). `editor:contentReady:loop-stopped`
 in `wiki:trace` carries the first difference if it recurs.
+
+## Third pass: profiling a 1,700-line page (typing)
+
+Production build, real `WikiEditor`, 60 sections of text, code, table, lists and
+a callout. Load ~2 s. A keystroke takes ~55 ms to reach the next frame (p90 ~70 ms).
+Where it goes (CPU profile, 20 keys): Vue re-render of the toolbar and
+slots ~35%, of which the toolbar's `editor.can()` checks are ~10 ms per key;
+`getMarkdown` ~100 ms, but it runs once per typing pause (300 ms debounce), not
+per key; the rest is ProseMirror's own update and browser layout.
+
+Tried and rejected: `content-visibility: auto` on top-level blocks changed
+nothing (key-to-frame 51 -> 46..60 ms, within noise), so layout is not the
+bottleneck. No single cost dominates any more; a further 2x would mean
+throttling the toolbar state (it lives in frappe-ui) or virtualising the page.
