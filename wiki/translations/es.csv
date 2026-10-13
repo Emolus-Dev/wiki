@@ -712,3 +712,11 @@ Anyone with the link can read this space without signing in. Only roles with Wri
 Only signed-in users with access can read this space.,Solo los usuarios con sesión iniciada y acceso pueden leer este espacio.
 {0} is editing,{0} está editando
 {0} people are editing,{0} personas están editando
+Page history,Historial de la página
+No earlier versions yet. A page gets one each time a change request that touches it is merged.,Aún no hay versiones anteriores. Una página recibe una cada vez que se fusiona una solicitud de cambios que la modifica.
+Pick a version to compare it with the page as it is now.,Elige una versión para compararla con la página actual.
+compared with now,respecto a la versión actual
+Restore this version,Restaurar esta versión
+The two versions differ too much to compare line by line.,Las dos versiones difieren demasiado para compararlas línea por línea.
+This version is the same as the page now.,Esta versión es igual a la página actual.
+{0} unchanged lines,{0} líneas sin cambios

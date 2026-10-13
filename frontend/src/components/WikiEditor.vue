@@ -1057,6 +1057,18 @@ function emitContentReady() {
 	emit('content-ready', currentContent, savedContent, props.documentKey);
 }
 
+// Replaces the page with `detail.content` as a normal, undoable edit, so it is
+// autosaved and reviewed like any other.
+function handleSetContent(event) {
+	const content = event.detail?.content;
+	if (props.readonly || typeof content !== 'string' || !editor.value) return;
+	editor.value
+		.chain()
+		.focus()
+		.setContent(content, { emitUpdate: true, contentType: 'markdown' })
+		.run();
+}
+
 function handleContentChange() {
 	forgetRemovedUploads();
 	if (autosaveTimer) {
@@ -1163,6 +1175,7 @@ onMounted(() => {
 	// Listen for PDF upload events (toolbar + slash command)
 	document.addEventListener('wiki-editor-upload-pdf', handlePdfUploadEvent);
 	document.addEventListener('wiki-editor-attach-file', openAttachPicker);
+	document.addEventListener('wiki-editor-set-content', handleSetContent);
 });
 
 onUnmounted(() => {
@@ -1173,6 +1186,7 @@ onUnmounted(() => {
 	);
 	document.removeEventListener('wiki-editor-upload-pdf', handlePdfUploadEvent);
 	document.removeEventListener('wiki-editor-attach-file', openAttachPicker);
+	document.removeEventListener('wiki-editor-set-content', handleSetContent);
 	// Nodes leave with the editor, so its uploads can no longer reach the page.
 	draftStore.clearUploads(editorUploadIds);
 	// Hide any open link popup

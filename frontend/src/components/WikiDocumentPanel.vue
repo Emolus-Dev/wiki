@@ -186,6 +186,14 @@
 				</div>
 			</template>
 		</Dialog>
+		<PageHistoryDialog
+			v-model:open="showHistory"
+			:space="spaceId"
+			:doc-key="wikiDoc.doc?.doc_key"
+			:current-content="editorContent"
+			:can-restore="!readonly"
+			@restore="restoreVersion"
+		/>
 		<Dialog v-model:open="showDeleteDialog" size="sm">
 			<template #title>
 				<h3 class="text-2xl-semibold text-ink-gray-9">
@@ -245,6 +253,7 @@ import { computed, inject, ref, shallowRef, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { usePagePresence } from '../composables/usePagePresence';
 import { useRecentPages } from '../composables/useRecentPages';
+import PageHistoryDialog from './PageHistoryDialog.vue';
 import PageMetaLine from './PageMetaLine.vue';
 import PageSettingsPanel from './PageSettingsPanel.vue';
 import SubmitForReviewButton from './SubmitForReviewButton.vue';
@@ -568,8 +577,25 @@ const githubEditUrl = computed(() => {
 	});
 });
 
+const showHistory = ref(false);
+
+// The editor owns the text, so it is told to take the old version as an edit.
+function restoreVersion(content) {
+	document.dispatchEvent(
+		new CustomEvent('wiki-editor-set-content', { detail: { content } }),
+	);
+}
+
 const menuOptions = computed(() => {
-	const options = [];
+	const options = [
+		{
+			label: __('Page history'),
+			icon: 'lucide-history',
+			onClick: () => {
+				showHistory.value = true;
+			},
+		},
+	];
 	// A synced page has no editable state here — the repo owns it, and the
 	// header already offers the trip to GitHub.
 	if (!props.readonly) {
