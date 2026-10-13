@@ -3,6 +3,7 @@ import { telemetryPlugin } from '../vendor/framework-ui/src/telemetry/index.ts';
 
 import App from './App.vue';
 import { watchLongTasks } from './lib/freezeTrace';
+import { schedulePruneFinishedDrafts } from './lib/pruneDrafts';
 import router from './router';
 import { initSocket } from './socket';
 import { pinia } from './stores';
@@ -57,6 +58,7 @@ let telemetryStarted = false;
 watchEffect(() => {
 	if (!session.isLoggedIn || telemetryStarted) return;
 	telemetryStarted = true;
+	schedulePruneFinishedDrafts();
 	app.use(telemetryPlugin, { app_name: 'wiki' });
 	trackPageviews(router);
 });

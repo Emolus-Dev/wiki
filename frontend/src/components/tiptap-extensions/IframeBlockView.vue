@@ -72,7 +72,7 @@ function handleKeyDown(event) {
 		<div v-if="hasValidSrc" class="iframe-container">
 			<iframe
 				:src="src"
-				:title="node.attrs.title || 'Embedded content'"
+				:title="node.attrs.title || __('Embedded content')"
 				:allow="node.attrs.allow || 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share'"
 				:allowfullscreen="node.attrs.allowfullscreen"
 				:frameborder="node.attrs.frameborder || 0"
@@ -99,8 +99,8 @@ function handleKeyDown(event) {
 				@keydown="handleKeyDown"
 			/>
 			<div class="placeholder-actions">
-				<Button variant="solid" @click="saveUrl">Embed</Button>
-				<Button variant="subtle" @click="deleteNode()">Remove</Button>
+				<Button variant="solid" @click="saveUrl">{{ __('Embed') }}</Button>
+				<Button variant="subtle" @click="deleteNode()">{{ __('Remove') }}</Button>
 			</div>
 			<p v-if="errorMessage" class="placeholder-error">{{ errorMessage }}</p>
 		</div>

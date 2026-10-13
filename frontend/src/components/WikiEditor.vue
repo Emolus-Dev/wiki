@@ -78,6 +78,14 @@ import {
 	onEditorFlushRequest,
 	savedBaseline,
 } from '@/lib/editorContentSync';
+import {
+	createBurstLimiter,
+	fingerprint,
+	firstDifference,
+	isDebugEnabled,
+	timed,
+	trace,
+} from '@/lib/freezeTrace';
 import { SPACE_TREE_KEY, crumbRoute, trailToNode } from '@/lib/spaceTree';
 import { useDraftWorkspaceStore } from '@/stores/draftWorkspace';
 import { useSpaceStore } from '@/stores/space';
@@ -87,13 +95,6 @@ import {
 	Emoji,
 	useEditor,
 } from 'frappe-ui/editor';
-import {
-	createBurstLimiter,
-	fingerprint,
-	firstDifference,
-	timed,
-	trace,
-} from '@/lib/freezeTrace';
 import EditorAttachments from './EditorAttachments.vue';
 import EditorTableOfContents from './EditorTableOfContents.vue';
 import LinkPopup from './tiptap-extensions/LinkPopup.vue';
@@ -999,6 +1000,17 @@ function emitContentChange(options = {}) {
 // not editing -- stops being fed and says why in the activity log.
 let lastReported = null;
 let reportedCount = 0;
+let checkedStable = false;
+
+// Debug only: a page whose text changes every time it goes through the editor
+// is what makes saved pages look edited. Logs the first place it differs.
+function traceUnstableCanonicalization(content) {
+	if (checkedStable || !isDebugEnabled()) return;
+	checkedStable = true;
+	const again = normalizeMarkdown(content);
+	const difference = firstDifference(content, again, 120);
+	if (difference) trace('editor:canonicalize:unstable', difference);
+}
 const allowReport = createBurstLimiter({ windowMs: 2000, max: 8 });
 
 function emitContentReady() {
@@ -1014,6 +1026,7 @@ function emitContentReady() {
 		return;
 	}
 	lastReported = { content: currentContent, saved: savedContent };
+	traceUnstableCanonicalization(currentContent);
 
 	// The first few reports are logged with fingerprints, so a loop's inputs
 	// can be told apart (same text, or one that keeps changing).

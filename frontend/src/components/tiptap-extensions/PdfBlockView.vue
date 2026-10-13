@@ -93,7 +93,7 @@ function closeViewer() {
 					v-if="isEditable"
 					type="button"
 					class="wiki-pdf-action"
-					title="Remove"
+					:title="__('Remove')"
 					@click="deleteNode"
 				>
 					<span class="lucide-trash-2 size-4" aria-hidden="true" />
@@ -114,7 +114,7 @@ function closeViewer() {
 					<button
 						type="button"
 						class="wiki-pdf-action"
-						title="Open viewer"
+						:title="__('Open viewer')"
 						@click="openViewer"
 					>
 						<span class="lucide-maximize-2 size-4" aria-hidden="true" />
@@ -125,7 +125,7 @@ function closeViewer() {
 						target="_blank"
 						rel="noopener"
 						class="wiki-pdf-action"
-						title="Download"
+						:title="__('Download')"
 					>
 						<span class="lucide-download size-4" aria-hidden="true" />
 					</a>
@@ -133,7 +133,7 @@ function closeViewer() {
 						v-if="isEditable"
 						type="button"
 						class="wiki-pdf-action"
-						title="Remove"
+						:title="__('Remove')"
 						@click="deleteNode"
 					>
 						<span class="lucide-trash-2 size-4" aria-hidden="true" />
@@ -151,7 +151,7 @@ function closeViewer() {
 				/>
 				<div v-if="thumbError" class="wiki-pdf-thumb-fallback">
 					<span class="lucide-file-text size-10" aria-hidden="true" />
-					<span>Preview unavailable</span>
+					<span>{{ __('Preview unavailable') }}</span>
 				</div>
 			</div>
 		</div>

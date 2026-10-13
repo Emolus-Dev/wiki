@@ -31,6 +31,14 @@ function storage() {
 	}
 }
 
+export function isDebugEnabled() {
+	try {
+		return storage()?.getItem(FLAG) === '1';
+	} catch {
+		return false;
+	}
+}
+
 export function trace(event, detail) {
 	const store = storage();
 	if (!store) return;

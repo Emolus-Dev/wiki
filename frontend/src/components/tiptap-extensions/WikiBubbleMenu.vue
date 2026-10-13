@@ -42,14 +42,18 @@ const { isMobile } = useMobile();
 
 const UnderlineItem = {
 	icon: 'lucide-underline',
-	label: 'Underline',
+	get label() {
+		return __('Underline');
+	},
 	action: (editor) => editor.chain().focus().toggleUnderline().run(),
 	isActive: (editor) => editor.isActive('underline'),
 };
 
 const CodeBlockItem = {
 	icon: 'lucide-square-code',
-	label: 'Code Block',
+	get label() {
+		return __('Code Block');
+	},
 	action: (editor) => editor.chain().focus().toggleCodeBlock().run(),
 	isActive: (editor) => editor.isActive('codeBlock'),
 };

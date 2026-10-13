@@ -1,4 +1,5 @@
 import { createStore, del, get, keys, set } from 'idb-keyval';
+import { draftCrNames, finishedCrNames } from '../lib/draftJanitor.js';
 
 // IndexedDB-backed persistence for unsaved editor content. Entries
 // survive browser refresh and tab close, so a user who typed something
@@ -120,5 +121,27 @@ export async function clearTreeSnapshots() {
 		await Promise.all(snapshots.map((k) => del(k, wikiDraftStore)));
 	} catch (err) {
 		console.warn('[draftPersistence] clearTreeSnapshots failed', err);
+	}
+}
+
+// Drop the drafts of change requests that are merged, rejected, archived or
+// gone. `fetchRows(names)` returns the server's `{ name, status }` rows for
+// those names, or throws; a failure leaves every draft in place.
+export async function pruneFinishedDrafts(fetchRows) {
+	try {
+		const names = draftCrNames(await keys(wikiDraftStore));
+		if (!names.length) return 0;
+		let rows = null;
+		try {
+			rows = await fetchRows(names);
+		} catch {
+			return 0;
+		}
+		const finished = finishedCrNames(names, rows);
+		await Promise.all(finished.map((name) => clearDraftsForCr(name)));
+		return finished.length;
+	} catch (err) {
+		console.warn('[draftPersistence] pruneFinishedDrafts failed', err);
+		return 0;
 	}
 }

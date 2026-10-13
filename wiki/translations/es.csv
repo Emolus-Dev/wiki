@@ -648,3 +648,53 @@ Another page with the route '{0}' already exists: {1},Ya existe otra página con
 You don't have permission to edit this page,No tienes permiso para editar esta página
 You don't have permission to delete this document,No tienes permiso para eliminar este documento
 You don't have permission to delete child document: {0},No tienes permiso para eliminar el documento hijo: {0}
+Heading 1,Título 1
+Heading 2,Título 2
+Heading 3,Título 3
+Blockquote,Cita
+Code Block,Bloque de código
+Bullet List,Lista con viñetas
+Numbered List,Lista numerada
+Task List,Lista de tareas
+Image,Imagen
+Video,Video
+PDF,PDF
+File,Archivo
+Code Group,Grupo de código
+Table,Tabla
+Embed,Insertar
+Diagram,Diagrama
+Link to Page,Enlace a página
+Horizontal Rule,Línea horizontal
+Note,Nota
+Tip,Consejo
+Text,Texto
+Lists,Listas
+Media,Multimedia
+Insert,Insertar
+No commands found,No se encontraron comandos
+Underline,Subrayado
+Insert Image,Insertar imagen
+Insert PDF,Insertar PDF
+Insert Video,Insertar video
+Heading,Título
+Image options,Opciones de imagen
+Resize image,Cambiar tamaño de imagen
+Add a caption,Agregar leyenda
+Caption,Leyenda
+Replace image,Reemplazar imagen
+For both modes,Para ambos modos
+For light mode,Para modo claro
+For dark mode,Para modo oscuro
+Remove dark mode image,Quitar imagen de modo oscuro
+Learn about Mermaid,Conocer Mermaid
+Remove diagram,Quitar diagrama
+Embedded content,Contenido incrustado
+Link to a page,Enlace a una página
+Callout title,Título del aviso
+Open viewer,Abrir visor
+Preview unavailable,Vista previa no disponible
+Zoom out,Alejar
+Zoom in,Acercar
+Close (Esc),Cerrar (Esc)
+Failed to copy,No se pudo copiar

@@ -27,7 +27,7 @@
                             <button
                                 type="button"
                                 :class="CHROME_BUTTON"
-                                aria-label="Image options"
+                                :aria-label="__('Image options')"
                                 @click.stop
                                 @pointerdown.stop
                             >
@@ -40,7 +40,7 @@
                     v-if="isEditable && hasFile && selected"
                     type="button"
                     :class="[CHROME_BUTTON, 'absolute bottom-2.5 right-2.5 z-30 cursor-nwse-resize touch-none']"
-                    aria-label="Resize image"
+                    :aria-label="__('Resize image')"
                     @pointerdown.prevent.stop="startResize"
                     @keydown="resizeWithKeys"
                 >
@@ -72,8 +72,8 @@
                 type="text"
                 draggable="false"
                 class="h-7 w-full border-none bg-transparent text-center text-sm italic text-ink-gray-6 placeholder-ink-gray-4 focus:ring-0"
-                placeholder="Add a caption"
-                aria-label="Caption"
+                :placeholder="__('Add a caption')"
+                :aria-label="__('Caption')"
                 @input="updateCaption"
                 @keydown="handleKeydown"
             />
@@ -200,7 +200,7 @@ const menuOptions = computed(() => [
 				{
 					group: 'replace',
 					hideLabel: true,
-					options: [{ label: 'Replace image', icon: 'lucide-refresh-cw', submenu: replaceOptions.value }],
+					options: [{ label: __('Replace image'), icon: 'lucide-refresh-cw', submenu: replaceOptions.value }],
 				},
 			]
 		: []),
@@ -208,24 +208,24 @@ const menuOptions = computed(() => [
 
 const replaceOptions = computed(() => [
 	{
-		label: 'For both modes',
+		label: __('For both modes'),
 		icon: 'lucide-image',
 		onClick: () => chooseFile('both'),
 	},
 	{
-		label: 'For light mode',
+		label: __('For light mode'),
 		icon: 'lucide-sun',
 		onClick: () => chooseFile('light'),
 	},
 	{
-		label: 'For dark mode',
+		label: __('For dark mode'),
 		icon: 'lucide-moon',
 		onClick: () => chooseFile('dark'),
 	},
 	...(props.node.attrs.darkSrc
 		? [
 				{
-					label: 'Remove dark mode image',
+					label: __('Remove dark mode image'),
 					icon: 'lucide-trash-2',
 					onClick: () => props.updateAttributes({ darkSrc: null }),
 				},

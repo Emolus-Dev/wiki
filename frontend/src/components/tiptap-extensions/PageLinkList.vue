@@ -2,12 +2,12 @@
     <div
         class="w-[340px] overflow-hidden rounded-5 border border-outline-gray-2 bg-surface-elevation-2 text-ink-gray-9 shadow-xl"
         role="listbox"
-        aria-label="Link to a page"
+        :aria-label="__('Link to a page')"
     >
         <div class="flex items-center gap-1.5 px-3 pb-1 pt-2.5 text-xs text-ink-gray-5">
             <span class="lucide-link-2 size-3.5" aria-hidden="true" />
             <span v-if="trimmedQuery" class="truncate">Link to “{{ trimmedQuery }}”</span>
-            <span v-else>Link to a page</span>
+            <span v-else>{{ __('Link to a page') }}</span>
         </div>
 
         <div class="max-h-72 overflow-y-auto p-1.5 pt-0.5">

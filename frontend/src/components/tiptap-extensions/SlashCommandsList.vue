@@ -14,7 +14,7 @@
                     v-if="group.label"
                     class="flex h-7 items-center px-2 text-sm-medium text-ink-gray-4"
                 >
-                    {{ group.label }}
+                    {{ __(group.label) }}
                 </div>
                 <button
                     v-for="{ item, index } in group.entries"
@@ -27,7 +27,7 @@
                     @mouseover="selectedIndex = index"
                 >
                     <span :class="item.icon" class="mr-2 h-4 w-4" aria-hidden="true" />
-                    <span>{{ item.title }}</span>
+                    <span>{{ __(item.title) }}</span>
                 </button>
             </template>
         </template>
@@ -35,7 +35,7 @@
             v-else
             class="slash-commands-empty px-3 py-1.5 text-sm text-ink-gray-5"
         >
-            No commands found
+            {{ __('No commands found') }}
         </div>
     </div>
 </template>

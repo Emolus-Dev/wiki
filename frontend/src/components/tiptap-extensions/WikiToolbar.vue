@@ -53,28 +53,36 @@ const imageInput = ref(null);
 // shape.
 const TaskListItem = {
 	icon: 'lucide-list-checks',
-	label: 'Task List',
+	get label() {
+		return __('Task List');
+	},
 	action: (editor) => editor.chain().focus().toggleTaskList().run(),
 	isActive: (editor) => editor.isActive('taskList'),
 };
 
 const UnderlineItem = {
 	icon: 'lucide-underline',
-	label: 'Underline',
+	get label() {
+		return __('Underline');
+	},
 	action: (editor) => editor.chain().focus().toggleUnderline().run(),
 	isActive: (editor) => editor.isActive('underline'),
 };
 
 const CodeBlockItem = {
 	icon: 'lucide-square-code',
-	label: 'Code Block',
+	get label() {
+		return __('Code Block');
+	},
 	action: (editor) => editor.chain().focus().toggleCodeBlock().run(),
 	isActive: (editor) => editor.isActive('codeBlock'),
 };
 
 const InsertImageItem = {
 	icon: 'lucide-image',
-	label: 'Insert Image',
+	get label() {
+		return __('Insert Image');
+	},
 	action: () => {
 		imageInput.value?.click();
 	},
@@ -82,7 +90,9 @@ const InsertImageItem = {
 
 const InsertPdfItem = {
 	icon: 'lucide-file-text',
-	label: 'Insert PDF',
+	get label() {
+		return __('Insert PDF');
+	},
 	action: (editor) => editor.chain().focus().selectAndUploadPdf().run(),
 };
 
@@ -90,13 +100,17 @@ const InsertPdfItem = {
 // node is `videoBlock`, so the atom hides itself and we roll our own.
 const InsertVideoItem = {
 	icon: 'lucide-video',
-	label: 'Insert Video',
+	get label() {
+		return __('Insert Video');
+	},
 	action: (editor) => editor.chain().focus().selectAndUploadVideo().run(),
 };
 
 const HeadingGroup = {
 	type: 'group',
-	label: 'Heading',
+	get label() {
+		return __('Heading');
+	},
 	items: [H1, H2, H3, H4, H5, H6],
 };
 

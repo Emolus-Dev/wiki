@@ -160,14 +160,14 @@ onMounted(renderPreview);
 					href="https://github.com/mermaid-js/mermaid"
 					target="_blank"
 					rel="noopener noreferrer"
-					title="Learn about Mermaid"
+					:title="__('Learn about Mermaid')"
 				>
 					<span class="lucide-circle-help mermaid-block-action-icon" aria-hidden="true" />
 				</a>
 				<button
 					type="button"
 					class="mermaid-block-action mermaid-block-delete"
-					title="Remove diagram"
+					:title="__('Remove diagram')"
 					@click="deleteNode()"
 				>
 					<span class="lucide-trash-2 mermaid-block-action-icon" aria-hidden="true" />

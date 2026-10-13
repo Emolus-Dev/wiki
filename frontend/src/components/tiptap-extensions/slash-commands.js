@@ -238,9 +238,13 @@ export function filterCommands(query) {
 
 	const lowerQuery = query.toLowerCase();
 	return SLASH_COMMANDS.filter((cmd) =>
-		[cmd.title, cmd.group, ...(cmd.keywords || [])].some((text) =>
-			text?.toLowerCase().includes(lowerQuery),
-		),
+		[
+			cmd.title,
+			__(cmd.title),
+			cmd.group,
+			__(cmd.group),
+			...(cmd.keywords || []),
+		].some((text) => text?.toLowerCase().includes(lowerQuery)),
 	);
 }
 
