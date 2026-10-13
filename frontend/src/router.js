@@ -3,13 +3,12 @@ import { createRouter, createWebHistory } from 'vue-router';
 const routes = [
 	{
 		path: '/',
-		name: 'Home',
-		component: () => import('@/pages/Home.vue'),
+		name: 'Overview',
+		component: () => import('@/pages/Overview.vue'),
 	},
 	{
 		path: '/overview',
-		name: 'Overview',
-		component: () => import('@/pages/Overview.vue'),
+		redirect: { name: 'Overview' },
 	},
 	{
 		path: '/spaces',
@@ -101,7 +100,7 @@ router.beforeResolve(async (to, from, next) => {
 			to.fullPath,
 		)}`;
 	} else if (to.name === 'Overview' && !userStore.isWikiManager) {
-		next({ name: 'Home', replace: true });
+		next({ name: 'AllSpaces', replace: true });
 	} else {
 		next();
 	}

@@ -7,32 +7,16 @@ screenshots against a mocked API; the e2e specs are written but were **not run**
 
 ## Goal
 
-Make the app feel like a team knowledge base: a welcoming Home page as the
-landing screen, and a page view/editor whose code blocks look like the mockups
+Make the app feel like a team knowledge base: a page view/editor whose code blocks look like the mockups
 (dark, with a header bar, always-visible language + copy, good syntax colours).
 Keep the Frappe v16 / frappe-ui tokens; the mockups only add layout, a serif
 display face and the dark code surface.
 
-## Phase 1 -- Home page
+## Phase 1 -- Home page (dropped)
 
-Route `/` renders a new `Home` page for every user. The analytics Overview moves
-to `/overview` (Wiki Manager only; non-managers are redirected to `/`).
-
-Sections, top to bottom:
-
-1. **Greeting**: `Hola, <first name>` (translated) and a prompt line.
-2. **Search box**: opens the existing command palette (click / focus / `Ctrl K`).
-   Below it, quick-link chips for the user's recently visited pages.
-3. **Spaces** (the mockup's "Apps"): up to 4 spaces as cards -- avatar, name,
-   `/route`, page count. "View all" links to All Spaces.
-4. **Recently edited**: the 5 most recently modified published-or-visible
-   pages (`Wiki Document`, `is_group = 0`, `modified desc`) with their space and
-   relative time.
-5. **Pinned snippets**: small dark code cards with a copy button. Snippets are
-   **per-user, per-browser** (localStorage), like pinned spaces, until a shared
-   Snippet DocType is wanted. Users add (title + code) and remove them inline.
-
-Sidebar gets a **Home** item (first). Mobile bottom nav gets a Home tab.
+A Home page (greeting, search, spaces, recent pages, pinned snippets) was built
+and then removed: the focus is a general-purpose wiki, not a dashboard. `/` is
+the analytics Overview again for managers; everyone else lands on All Spaces.
 
 ## Phase 2 -- Code blocks and page surface
 
@@ -55,21 +39,15 @@ built with the real `tailwind.css`, `wiki-highlight.bundle.js` and `code-blocks.
 
 ## Out of scope
 
-- Shared (server-side) snippets, attachments cards, favourites, version
-  history -- visible in the mockup but need backend work.
+- Shared (server-side) snippets, favourites, version history.
 
 ## Test plan
 
-- Unit: snippets composable (add / remove / cap / storage shape).
-- e2e: Home renders for manager and Wiki User; `/overview` is manager-only;
-  search box opens the palette; adding and copying a snippet.
-- Existing e2e that assumed `/` is the Overview are updated.
+- Visual check of code blocks in the editor, preview and published reader.
 
 ## Progress log
 
-- Phase 1: Home page, `/overview` split, sidebar + mobile nav entry, snippets
-  composable (+ unit tests), e2e `home.spec.ts`; existing e2e that assumed `/`
-  was the Overview updated.
+- Phase 1: Home page built, then reverted (see above).
 - Phase 2: `wiki-editor-content.css` restyles frappe-ui's code-block node view
   (the same element, so language picker, copy and Tab keep working); serif
   display face on page title and h1/h2. The editor root *is* `.ProseMirror`, so

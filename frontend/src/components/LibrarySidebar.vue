@@ -259,12 +259,6 @@ const openChangeRequestCount = computed(() =>
 );
 
 const navItems = computed(() => [
-	{
-		label: __('Home'),
-		icon: 'lucide-house',
-		to: { name: 'Home' },
-		routeNames: ['Home'],
-	},
 	...(userStore.isWikiManager
 		? [
 				{

@@ -516,22 +516,7 @@ No change requests in review,No hay solicitudes de cambios en revisión
 There are no change requests waiting for review.,No hay solicitudes de cambios esperando revisión.
 1 change request,1 solicitud de cambios
 {0} change requests,{0} solicitudes de cambios
-What do you need to pick up today?,¿Qué necesitas retomar hoy?
-"Search pages, snippets and attachments…","Buscar en páginas, snippets y adjuntos…"
-View all,Ver todas
-Recently edited,Editado recientemente
-Pinned snippets,Snippets fijados
-Pin the commands you reach for most. They stay in this browser.,Fija los comandos que más usas. Se quedan en este navegador.
-Remove snippet,Quitar snippet
 Copy code,Copiar código
-Pin a snippet,Fijar un snippet
-Pin,Fijar
-Restart bench,Reiniciar bench
-Code,Código
-bench restart,bench restart
-"Hello, {0}","Hola, {0}"
-Hello,Hola
-Add some code to pin,Agrega código para fijar
 Update Wiki Space Routes,Actualizar rutas del espacio de wiki
 Current Base Route,Ruta base actual
 New Base Route,Nueva ruta base

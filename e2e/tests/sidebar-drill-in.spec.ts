@@ -44,7 +44,7 @@ test.describe('Sidebar drill-in navigation', () => {
 	}) => {
 		await page.setViewportSize({ width: 1440, height: 900 });
 
-		// Every assertion is scoped to the nav column. Home in the
+		// Every assertion is scoped to the nav column. The Overview page in the
 		// content column lists the same spaces, so an unscoped href locator
 		// matches twice and proves nothing about which column holds the row.
 		const sidebar = page.locator('[data-slot="sidebar"]');
@@ -92,20 +92,19 @@ test.describe('Sidebar drill-in navigation', () => {
 		).toHaveCount(0);
 	});
 
-	test('the app opens on Home, and the analytics Overview lives at /overview', async ({
+	test('the app opens on the Overview, and /overview still lands there', async ({
 		page,
 	}) => {
 		await page.goto(APP_BASE);
 		await expect(page).toHaveURL(new RegExp(`${APP_BASE}/?$`));
-		await expect(page.getByTestId('home-page')).toBeVisible();
-		await expect(page.getByTestId('overview-chart')).toHaveCount(0);
+		await expect(page.getByTestId('overview-chart')).toBeVisible();
 
 		await page.goto(appUrl('overview'));
-		await expect(page).toHaveURL(new RegExp(`${APP_BASE}/overview$`));
+		await expect(page).toHaveURL(new RegExp(`${APP_BASE}/?$`));
 		await expect(page.getByTestId('overview-chart')).toBeVisible();
 	});
 
-	test('a Wiki User opens the app on Home and cannot reach the Overview', async ({
+	test('a Wiki User opens the app on the library, not the Overview', async ({
 		browser,
 		request,
 	}, info) => {
@@ -128,11 +127,7 @@ test.describe('Sidebar drill-in navigation', () => {
 		});
 		const page = await context.newPage();
 		await page.goto(APP_BASE);
-		await expect(page.getByTestId('home-page')).toBeVisible();
-
-		await page.goto(appUrl('overview'));
-		await expect(page).toHaveURL(new RegExp(`${APP_BASE}/?$`));
-		await expect(page.getByTestId('home-page')).toBeVisible();
+		await expect(page).toHaveURL(new RegExp(`${APP_BASE}/spaces$`));
 
 		await context.close();
 	});
