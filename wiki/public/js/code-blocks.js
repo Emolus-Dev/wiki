@@ -71,6 +71,7 @@ function initCodeBlocks() {
     });
 
     initCodeGroups();
+    initTables();
 }
 
 // Consecutive fences wrapped in `.wiki-code-group` become one block with tabs.
@@ -113,6 +114,51 @@ function initCodeGroups() {
 
         group.insertBefore(bar, group.firstChild);
         select(0);
+    });
+}
+
+// Tables scroll sideways instead of overflowing the column, and a header cell
+// sorts its column. A table with fewer than three body rows has nothing to sort.
+function initTables() {
+    const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+
+    document.querySelectorAll('#wiki-content table').forEach(function(table) {
+        if (table.dataset.enhanced) return;
+        table.dataset.enhanced = '1';
+
+        const wrap = document.createElement('div');
+        wrap.className = 'wiki-table-wrap';
+        table.parentNode.insertBefore(wrap, table);
+        wrap.appendChild(table);
+
+        const tbody = table.tBodies[0];
+        const headRow = table.tHead && table.tHead.rows[0];
+        if (!tbody || !headRow || tbody.rows.length < 3) return;
+
+        Array.from(headRow.cells).forEach(function(th, column) {
+            th.classList.add('sortable');
+            th.tabIndex = 0;
+            th.setAttribute('role', 'columnheader');
+            const sort = function() {
+                const ascending = th.getAttribute('aria-sort') !== 'ascending';
+                Array.from(headRow.cells).forEach(function(other) { other.removeAttribute('aria-sort'); });
+                th.setAttribute('aria-sort', ascending ? 'ascending' : 'descending');
+                const rows = Array.from(tbody.rows);
+                rows.sort(function(a, b) {
+                    const left = (a.cells[column] || {}).textContent || '';
+                    const right = (b.cells[column] || {}).textContent || '';
+                    return (ascending ? 1 : -1) * collator.compare(left.trim(), right.trim());
+                });
+                rows.forEach(function(row) { tbody.appendChild(row); });
+            };
+            th.addEventListener('click', sort);
+            th.addEventListener('keydown', function(event) {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    sort();
+                }
+            });
+        });
     });
 }
 

@@ -284,6 +284,23 @@ This is a note
 		self.assertIn("callout-note", result)
 		self.assertIn("This is a note", result)
 
+	def test_details_renders_a_native_collapsible(self):
+		result = render_markdown(":::details[What is a space?]\nA group of pages.\n:::\n")
+		self.assertIn('<details class="callout callout-details">', result)
+		self.assertIn('<summary class="callout-header">', result)
+		self.assertIn("What is a space?", result)
+		self.assertIn("A group of pages.", result)
+		# Closed until the reader opens it: no `open` attribute.
+		self.assertNotIn("<details open", result)
+
+	def test_details_without_a_title_uses_the_default(self):
+		result = render_markdown(":::details\nBody\n:::\n")
+		self.assertIn('<span class="callout-title">Details</span>', result)
+
+	def test_details_body_is_rendered_as_markdown(self):
+		result = render_markdown(":::details[More]\n- one\n- two\n:::\n")
+		self.assertIn("<li>one</li>", result)
+
 	def test_tip_callout(self):
 		"""Test tip callout rendering."""
 		content = """:::tip

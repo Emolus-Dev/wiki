@@ -71,6 +71,9 @@ const icons = {
 	danger: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1C11.866 1 15 4.13401 15 8C15 11.866 11.866 15 8 15C4.13401 15 1 11.866 1 8C1 4.13401 4.13401 1 8 1ZM10.8535 5.14648C10.6583 4.95122 10.3417 4.95122 10.1465 5.14648L8 7.29297L5.85352 5.14648C5.65825 4.95122 5.34175 4.95122 5.14648 5.14648C4.95122 5.34175 4.95122 5.65825 5.14648 5.85352L7.29297 8L5.14648 10.1465C4.95122 10.3417 4.95122 10.6583 5.14648 10.8535C5.34175 11.0488 5.65825 11.0488 5.85352 10.8535L8 8.70703L10.1465 10.8535C10.3417 11.0488 10.6583 11.0488 10.8535 10.8535C11.0488 10.6583 11.0488 10.3417 10.8535 10.1465L8.70703 8L10.8535 5.85352C11.0488 5.65825 11.0488 5.34175 10.8535 5.14648Z" fill="currentColor"/></svg>`,
 };
 
+// A chevron: the block is a collapsible section on the published page.
+icons.details = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>`;
+
 const icon = computed(() => icons[normalizedType.value] || icons.note);
 
 // The title is an attribute, not content — a second content hole would need a
@@ -133,6 +136,11 @@ const dropdownOptions = computed(() => [
 				label: 'Danger',
 				icon: 'lucide-shield-alert',
 				onClick: () => changeType('danger'),
+			},
+			{
+				label: __('Collapsible'),
+				icon: 'lucide-chevrons-down-up',
+				onClick: () => changeType('details'),
 			},
 		],
 	},
@@ -209,6 +217,9 @@ const dropdownOptions = computed(() => [
     color: var(--ink-blue-5);
 }
 
+.callout-details .callout-icon {
+	color: var(--ink-gray-5);
+}
 .callout-tip .callout-icon {
     color: var(--ink-green-5);
 }

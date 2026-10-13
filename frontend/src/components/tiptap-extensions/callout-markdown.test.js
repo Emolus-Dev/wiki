@@ -98,6 +98,8 @@ const CASES = {
 	'callout with a bullet list': ':::tip\nlead in\n\n- one\n- two\n:::',
 	'callout with a heading': ':::note\n## Heading\n\nbody\n:::',
 	'callout with a code block': ':::caution\n```js\nconst a = 1;\n```\n:::',
+	'collapsible section': ':::details[What is a space?]\nA group of pages.\n:::',
+	'collapsible with a list': ':::details\n- one\n- two\n:::',
 	'callout with an ordered list and marks':
 		':::danger[Careful]\n1. **first**\n2. *second*\n:::',
 };

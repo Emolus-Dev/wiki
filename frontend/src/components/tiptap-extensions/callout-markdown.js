@@ -16,7 +16,14 @@ import { startInParagraph } from './markdown-start.js';
 /**
  * Callout types that are supported
  */
-export const CALLOUT_TYPES = ['note', 'tip', 'caution', 'danger', 'warning'];
+export const CALLOUT_TYPES = [
+	'note',
+	'tip',
+	'caution',
+	'danger',
+	'warning',
+	'details',
+];
 
 /**
  * Default titles for each callout type.
@@ -34,6 +41,7 @@ export const DEFAULT_TITLES = {
 	caution: 'Caution',
 	danger: 'Danger',
 	warning: 'Caution',
+	details: 'Details',
 };
 
 /**

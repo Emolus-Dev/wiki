@@ -227,6 +227,20 @@ export const SLASH_COMMANDS = [
 				.run();
 		},
 	},
+	{
+		title: 'Collapsible',
+		icon: 'lucide-chevrons-down-up',
+		group: 'Callouts',
+		keywords: ['details', 'accordion', 'faq', 'toggle'],
+		command: ({ editor, range }) => {
+			editor
+				.chain()
+				.focus()
+				.deleteRange(range)
+				.setCallout({ type: 'details' })
+				.run();
+		},
+	},
 ];
 
 /**
