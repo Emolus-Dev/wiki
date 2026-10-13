@@ -26,7 +26,7 @@ the analytics Overview again for managers; everyone else lands on All Spaces.
   all render through `.wiki-editor-content`).
 - Syntax palette: GitHub-dark tokens already shipped by frappe-ui, on a warm
   near-black surface.
-- Page title / H1-H2 use the serif display face; page meta line unchanged.
+- Page title / H1-H2 used a serif display face; that was later replaced by Inter 600 (see `general_wiki_round_2.md`).
 
 ## Phase 3 -- Published reader
 

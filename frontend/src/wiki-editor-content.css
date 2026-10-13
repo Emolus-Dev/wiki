@@ -156,14 +156,6 @@
 	mask: var(--wiki-link-glyph) center / contain no-repeat;
 }
 
-/* Page typography: serif display headings over the Inter body. */
-.wiki-editor-content h1,
-.wiki-editor-content h2 {
-	font-family: var(--font-display);
-	font-weight: 500;
-	letter-spacing: -0.01em;
-}
-
 /* Code blocks: dark in both themes, with a header bar that carries the
    language and the copy button. frappe-ui's node view lays those out as a
    hover-only corner overlay; this restyles that same element into a bar rather
@@ -194,7 +186,7 @@
 	caret-color: var(--code-fg);
 	border-color: var(--code-border);
 	border-radius: 0.75rem;
-	font-size: var(--wiki-text-code, 13.5px);
+	font-size: var(--wiki-text-code, 0.9rem);
 }
 
 .wiki-editor-content .code-block-container > div.absolute {

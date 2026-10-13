@@ -206,7 +206,7 @@ const dropdownOptions = computed(() => [
 
 .callout-content :deep(p) {
     color: var(--ink-gray-6);
-    font-size: var(--text-base, 0.875rem);
+    font-size: var(--wiki-text-small, 0.9375rem);
     line-height: 1.5;
     letter-spacing: 0.02em;
 }
