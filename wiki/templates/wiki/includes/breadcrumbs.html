@@ -1,0 +1,12 @@
+{#- Where the page sits. Rendered by wiki/related.py for the first load and for
+    client-side navigation. Groups are not pages, so they are plain text. -#}
+<ol class="flex flex-wrap items-center gap-1.5 text-sm text-[var(--ink-gray-5)]">
+    <li>
+        {% if trail.space_url %}
+        <a href="{{ trail.space_url | e }}" class="hover:text-[var(--ink-gray-8)] hover:underline">{{ trail.space_name | e }}</a>
+        {% else %}{{ trail.space_name | e }}{% endif %}
+    </li>
+    {% for group in trail.groups %}
+    <li class="flex items-center gap-1.5"><span aria-hidden="true">/</span><span>{{ group | e }}</span></li>
+    {% endfor %}
+</ol>

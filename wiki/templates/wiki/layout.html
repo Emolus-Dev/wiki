@@ -133,6 +133,23 @@
         })();
     </script>
 
+    <!-- Strings the reader's scripts show, translated here once because plain JS
+         has no catalogue. Read with `wikiT('English text')`. -->
+    <script>
+        window.WIKI_I18N = {{ {
+            "Copy code": _("Copy code"),
+            "Copied!": _("Copied!"),
+            "Copy link": _("Copy link"),
+            "Link copied": _("Link copied"),
+            "Link to {0}": _("Link to {0}"),
+        } | tojson }};
+        window.wikiT = function (text, args) {
+            let out = (window.WIKI_I18N && window.WIKI_I18N[text]) || text;
+            (args || []).forEach(function (a, i) { out = out.replace('{' + i + '}', a); });
+            return out;
+        };
+    </script>
+
     <!-- Wiki-owned highlight.js (highlight.js/lib/common — same language set as
          the frappe-ui editor), so the public reader tokenises 1-1 with the
          editor and the shared frappe-ui-code.css theme. Must load before

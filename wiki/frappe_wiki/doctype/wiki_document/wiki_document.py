@@ -19,6 +19,7 @@ from werkzeug.wrappers import Response
 from wiki.telemetry import capture, reader_config
 from wiki.utils import apply_public_language, fingerprint_js_url, reader_lang
 from wiki.wiki.attachments import get_page_attachments
+from wiki.wiki.related import clear_backlinks_cache, render_related
 from wiki.wiki.markdown import render_markdown, render_markdown_with_toc
 
 WIKI_DOCUMENT_PRINT_FORMAT = "Standard Wiki Document"
@@ -515,6 +516,7 @@ class WikiDocument(NestedSet):
 			"rendered_content": rendered_content,
 			"toc_headings": toc_headings,
 			"attachments": get_page_attachments(self.content),
+			**render_related(self),
 			"raw_markdown": self.content or "",
 			"prev_doc": adjacent_docs["prev"],
 			"next_doc": adjacent_docs["next"],
@@ -548,6 +550,8 @@ class WikiDocument(NestedSet):
 			"rendered_content": rendered_content,
 			"toc_headings": toc_headings,
 			"attachments": get_page_attachments(self.content),
+			"breadcrumbs_html": "",
+			"backlinks_html": "",
 			"head_html": frappe.get_cached_value("Wiki Settings", "Wiki Settings", "head_html"),
 			"raw_markdown": self.content or "",
 			"nested_tree": [],
@@ -593,6 +597,7 @@ class WikiDocument(NestedSet):
 		wiki_space_doc = frappe.get_cached_doc("Wiki Space", wiki_space.name)
 		nested_tree, adjacent_docs = self.get_tree_and_navigation()
 
+		context.update(render_related(self))
 		context.update(
 			{
 				"wiki_space": wiki_space_doc,
@@ -1179,6 +1184,8 @@ def clear_wiki_tree_cache():
 
 	frappe.cache().delete_value(WIKI_TREE_CACHE_KEY)
 	frappe.db.after_commit.add(lambda: frappe.cache().delete_value(WIKI_TREE_CACHE_KEY))
+	# Who links to a page depends on every page's content, title and route.
+	clear_backlinks_cache()
 
 	# llms.txt and sitemap.xml are built from this same tree, so they go stale
 	# at exactly the same moments.

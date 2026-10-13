@@ -17,6 +17,7 @@
              :class="{ 'opacity-50': $store.navigation.loading, 'xl:!max-w-[100ch]': $store.sidebar?.isCollapsed }">
         <!-- Page Header -->
         <header class="py-6 mb-6 border-b border-[var(--outline-gray-1)]">
+            {% if not hide_chrome %}<nav id="wiki-breadcrumbs" class="mb-3 {{ '' if breadcrumbs_html else 'hidden' }}" aria-label="{{ _('Breadcrumb') }}">{{ breadcrumbs_html | safe }}</nav>{% endif %}
             {% if hide_chrome %}
             {# Orphan document: Simple header with just copy button #}
             <div class="flex items-center justify-between gap-4">
@@ -84,6 +85,8 @@
         </div>
 
         {% if not hide_chrome %}{% include "templates/wiki/includes/attachments.html" %}{% endif %}
+
+        {% if not hide_chrome %}<section id="wiki-backlinks" class="mt-10 {{ '' if backlinks_html else 'hidden' }}">{{ backlinks_html | safe }}</section>{% endif %}
 
         <!-- Previous/Next Navigation — frappe-ui docs PrevNextBtns (subtle/md pills) -->
         <nav id="wiki-nav-buttons" class="mt-10">
@@ -410,8 +413,20 @@
                 const anchor = document.createElement('a');
                 anchor.href = `#${heading.id}`;
                 anchor.className = 'heading-anchor';
-                anchor.setAttribute('aria-label', `Link to ${heading.textContent.trim()}`);
+                anchor.setAttribute('aria-label', wikiT('Link to {0}', [heading.textContent.trim()]));
+                anchor.title = wikiT('Copy link');
                 anchor.textContent = '#';
+                anchor.addEventListener('click', () => {
+                    const url = `${location.origin}${location.pathname}${location.search}#${heading.id}`;
+                    navigator.clipboard?.writeText(url).then(() => {
+                        anchor.textContent = '✓';
+                        anchor.title = wikiT('Link copied');
+                        setTimeout(() => {
+                            anchor.textContent = '#';
+                            anchor.title = wikiT('Copy link');
+                        }, 1500);
+                    }, () => {});
+                });
                 heading.insertBefore(anchor, heading.firstChild);
             },
 

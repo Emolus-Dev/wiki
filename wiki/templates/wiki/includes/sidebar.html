@@ -232,6 +232,8 @@
                 if (contentEl) contentEl.innerHTML = data.rendered_content;
 
                 this.renderAttachments(data.attachments || []);
+                this.renderRelated('wiki-breadcrumbs', data.breadcrumbs_html);
+                this.renderRelated('wiki-backlinks', data.backlinks_html);
 
                 // Update prev/next navigation
                 this.updateNavButtons(data.prev_doc, data.next_doc);
@@ -282,6 +284,16 @@
 
                 // Scroll to top
                 window.scrollTo(0, 0);
+            },
+
+            // The server renders these blocks (wiki/related.py); Alpine has to be
+            // told about the links inside, or their click handlers never bind.
+            renderRelated(id, html) {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.innerHTML = html || '';
+                el.classList.toggle('hidden', !html);
+                if (html) Alpine.initTree(el);
             },
 
             // Same markup as includes/attachments.html.

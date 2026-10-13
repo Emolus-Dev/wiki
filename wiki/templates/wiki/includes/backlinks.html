@@ -1,0 +1,11 @@
+{#- Pages that link here. Rendered by wiki/related.py. -#}
+<h2 class="text-lg font-semibold text-[var(--ink-gray-9)]">{{ _("Linked from") }}</h2>
+<ul class="mt-3 flex flex-col gap-1.5">
+    {% for link in links %}
+    <li>
+        <a href="/{{ link.route | e }}"
+           @click.prevent="$store.navigation.navigateTo({{ link.route | tojson | forceescape }})"
+           class="text-sm text-[var(--ink-gray-7)] underline decoration-[var(--outline-gray-3)] underline-offset-2 hover:text-[var(--ink-gray-9)]">{{ link.title | e }}</a>
+    </li>
+    {% endfor %}
+</ul>
