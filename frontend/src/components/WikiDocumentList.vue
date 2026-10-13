@@ -1,7 +1,7 @@
 <template>
 	<div ref="rootEl" class="flex h-full min-h-0 flex-col">
 		<!-- Search sits above the scroller, so it stays put while results move. -->
-		<div v-if="hasPages" class="shrink-0 px-2 pb-2">
+		<div v-if="hasPages" class="flex shrink-0 items-center gap-1 px-2 pb-2">
 			<TextInput
 				v-model="searchQuery"
 				class="w-full"
@@ -21,6 +21,18 @@
 					</Tooltip>
 				</template>
 			</TextInput>
+			<template v-if="!isSearching">
+				<Tooltip :text="__('Expand all')">
+					<Button variant="ghost" size="sm" :aria-label="__('Expand all')" @click="treeRef?.expandAll()">
+						<span class="lucide-chevrons-up-down size-4" aria-hidden="true" />
+					</Button>
+				</Tooltip>
+				<Tooltip :text="__('Collapse all')">
+					<Button variant="ghost" size="sm" :aria-label="__('Collapse all')" @click="treeRef?.collapseAll()">
+						<span class="lucide-chevrons-down-up size-4" aria-hidden="true" />
+					</Button>
+				</Tooltip>
+			</template>
 		</div>
 
 		<ScrollArea class="min-h-0 flex-1" viewport-class="px-2 pb-2">
@@ -48,6 +60,7 @@
 			     the same component, so selection, badges and row actions hold. -->
 			<WikiTree
 				v-else
+				ref="treeRef"
 				:items="isSearching ? matches : treeData.children"
 				:change-type-map="changeTypeMap"
 				:parent-name="rootNode"
@@ -331,6 +344,7 @@ function revealGroup(node) {
 
 // Reveal a page opened from outside the tree (Edit link, reload, deep link).
 const rootEl = ref(null);
+const treeRef = ref(null);
 
 function findAncestorKeys(nodes, isTarget) {
 	for (const node of nodes || []) {

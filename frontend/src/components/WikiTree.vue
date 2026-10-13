@@ -200,6 +200,26 @@ const expandedKeys = computed({
 	},
 });
 
+function groupKeys(nodes, keys = []) {
+	for (const node of nodes || []) {
+		if (node.is_group && node.children?.length) {
+			keys.push(node.doc_key);
+			groupKeys(node.children, keys);
+		}
+	}
+	return keys;
+}
+
+function expandAll() {
+	expandedKeys.value = groupKeys(props.items);
+}
+
+function collapseAll() {
+	expandedKeys.value = [];
+}
+
+defineExpose({ expandAll, collapseAll });
+
 // Node order is left to us via @drag-end, so we hand Tree a derived copy of
 // the store tree: `label` feeds the drag ghost and keyboard typeahead. Held in
 // a ref so the copies stay reactive.

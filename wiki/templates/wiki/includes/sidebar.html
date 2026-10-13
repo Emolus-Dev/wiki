@@ -19,7 +19,19 @@
     {% set current_route = doc.route if doc else '' %}
 
     <!-- Scrollable Navigation -->
-    <nav class="px-2 py-2 flex-1 overflow-y-auto">
+    <nav class="px-2 py-2 flex-1 overflow-y-auto" @keydown="onTreeKey($event)">
+        {% if nested_tree and nested_tree | selectattr("is_group") | list %}
+        <div class="flex justify-end gap-0.5 pb-1">
+            <button type="button" @click="expandAll()" title="{{ _('Expand all') }}" aria-label="{{ _('Expand all') }}"
+                    class="inline-flex size-6 items-center justify-center rounded-4 text-[var(--ink-gray-5)] transition-colors hover:bg-[var(--surface-gray-2)] hover:text-[var(--ink-gray-8)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--outline-gray-4)]">
+                <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg>
+            </button>
+            <button type="button" @click="collapseAll()" title="{{ _('Collapse all') }}" aria-label="{{ _('Collapse all') }}"
+                    class="inline-flex size-6 items-center justify-center rounded-4 text-[var(--ink-gray-5)] transition-colors hover:bg-[var(--surface-gray-2)] hover:text-[var(--ink-gray-8)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--outline-gray-4)]">
+                <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 20 5-5 5 5"/><path d="m7 4 5 5 5-5"/></svg>
+            </button>
+        </div>
+        {% endif %}
         {{ render_wiki_tree(nested_tree or [], current_route=current_route, expanded_nodes=expanded_nodes or set()) }}
     </nav>
 </div>
@@ -454,6 +466,58 @@
             isExpanded(nodeId) {
                 // Return whether this node is expanded (default to false)
                 return this.expandedStates[nodeId] || false;
+            },
+
+            groupIds() {
+                return Array.from(this.$root.querySelectorAll('button.wiki-item-content[data-node-id]'))
+                    .map((el) => el.getAttribute('data-node-id'));
+            },
+
+            expandAll() {
+                this.groupIds().forEach((id) => { this.expandedStates[id] = true; });
+            },
+
+            collapseAll() {
+                this.groupIds().forEach((id) => { this.expandedStates[id] = false; });
+            },
+
+            // The WAI-ARIA tree keys, on top of ordinary Tab navigation:
+            // Up/Down walk the visible rows, Right opens a group (or steps into
+            // it), Left closes it (or steps out to its group), Home/End jump.
+            onTreeKey(event) {
+                const row = event.target.closest('.wiki-item-content');
+                if (!row || event.altKey || event.ctrlKey || event.metaKey) return;
+
+                const rows = Array.from(this.$root.querySelectorAll('.wiki-item-content'))
+                    .filter((el) => el.offsetParent !== null);
+                const at = rows.indexOf(row);
+                const isGroup = row.matches('button[data-node-id]');
+                const id = row.getAttribute('data-node-id');
+                let target = null;
+
+                switch (event.key) {
+                    case 'ArrowDown': target = rows[at + 1]; break;
+                    case 'ArrowUp': target = rows[at - 1]; break;
+                    case 'Home': target = rows[0]; break;
+                    case 'End': target = rows[rows.length - 1]; break;
+                    case 'ArrowRight':
+                        if (!isGroup) return;
+                        if (!this.isExpanded(id)) this.expandedStates[id] = true;
+                        else target = rows[at + 1];
+                        break;
+                    case 'ArrowLeft':
+                        if (isGroup && this.isExpanded(id)) {
+                            this.expandedStates[id] = false;
+                        } else {
+                            const parent = row.closest('.wiki-children');
+                            target = parent && parent.parentElement.querySelector('.wiki-item-content');
+                        }
+                        break;
+                    default: return;
+                }
+
+                event.preventDefault();
+                if (target) target.focus();
             },
             
             revealCurrentPage(route) {
