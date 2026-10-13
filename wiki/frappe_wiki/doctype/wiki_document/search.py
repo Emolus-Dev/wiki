@@ -2,6 +2,7 @@ import re
 
 import frappe
 
+from wiki.search_text import fold, stem
 from wiki.telemetry import capture
 
 # FTS wraps the match in these. Everything else in a snippet is document text.
@@ -100,16 +101,43 @@ def _widen_hits(search_engine, query: str, filters: dict, hits: list[dict]) -> l
 	good query costs nothing extra. Any failure falls back to the first pass.
 	"""
 	tokens = _query_tokens(query)
-	if len(hits) >= _WIDEN_BELOW or len(tokens) < 2:
+	if len(hits) >= _WIDEN_BELOW or not tokens:
+		return hits
+
+	# A word is also searched by its stem, so "configurar" can find "configuración".
+	# The index matches whole words, so the stem helps only where the engine
+	# matches prefixes; where it does not, the extra query returns nothing.
+	variants = [_word_variants(token) for token in tokens]
+	if len(tokens) < 2 and all(len(forms) == 1 for forms in variants):
 		return hits
 
 	try:
-		per_token = [search_engine.search(token, filters=filters)["results"] for token in tokens]
+		per_token = [
+			_union_hits([search_engine.search(form, filters=filters)["results"] for form in forms])
+			for forms in variants
+		]
 	except Exception:
 		frappe.log_error(title="Wiki Search Widen Error", message=f"Query: {query!r}")
 		return hits
 
 	return _merge_token_hits(hits, per_token)[:_MAX_WIDENED_RESULTS]
+
+
+def _word_variants(token: str) -> list[str]:
+	"""The word as typed, then its stem when that is a different (shorter) string."""
+	root = stem(token)
+	return [token] if root == fold(token) or len(root) < _MIN_TOKEN_LENGTH else [token, root]
+
+
+def _union_hits(hit_lists: list[list[dict]]) -> list[dict]:
+	seen: set[str] = set()
+	merged = []
+	for hits in hit_lists:
+		for hit in hits:
+			if hit["name"] not in seen:
+				seen.add(hit["name"])
+				merged.append(hit)
+	return merged
 
 
 def _clean_snippet(text: str | None) -> str:

@@ -1,4 +1,10 @@
-from wiki.frappe_wiki.doctype.wiki_document.search import _clean_snippet, _merge_token_hits, _query_tokens
+from wiki.frappe_wiki.doctype.wiki_document.search import (
+	_clean_snippet,
+	_merge_token_hits,
+	_query_tokens,
+	_widen_hits,
+	_word_variants,
+)
 from wiki.frappe_wiki.doctype.wiki_document.wiki_sqlite_search import WikiSQLiteSearch
 from wiki.tests import WikiTestCase as IntegrationTestCase
 
@@ -26,6 +32,34 @@ class TestSearchSnippet(IntegrationTestCase):
 	def test_query_tokens_drop_short_and_repeated_words_and_cap_the_count(self):
 		self.assertEqual(_query_tokens("a git Git  config"), ["git", "config"])
 		self.assertEqual(len(_query_tokens("aa bb cc dd ee ff gg")), 5)
+
+	def test_a_word_is_also_searched_by_its_stem(self):
+		self.assertEqual(_word_variants("configuración"), ["configuración", "configur"])
+		self.assertEqual(_word_variants("git"), ["git"])
+		self.assertEqual(_word_variants("deploy"), ["deploy"])
+
+	def test_a_single_word_with_a_stem_is_widened(self):
+		class Engine:
+			def __init__(self):
+				self.asked = []
+
+			def search(self, query, filters=None):
+				self.asked.append(query)
+				return {"results": [{"name": "page"}] if query == "configur" else []}
+
+		engine = Engine()
+		hits = _widen_hits(engine, "configuración", {}, [])
+
+		self.assertEqual(engine.asked, ["configuración", "configur"])
+		self.assertEqual([hit["name"] for hit in hits], ["page"])
+
+	def test_a_good_first_pass_is_left_alone(self):
+		class Engine:
+			def search(self, *args, **kwargs):
+				raise AssertionError("must not search again")
+
+		first = [{"name": str(i)} for i in range(5)]
+		self.assertIs(_widen_hits(Engine(), "configuración", {}, first), first)
 
 	def test_merge_ranks_pages_matching_more_words_first(self):
 		page = lambda name: {"name": name}  # noqa: E731

@@ -106,6 +106,11 @@ class TestSearchContent(IntegrationTestCase):
 	def test_finds_text_in_the_body_ignoring_accents_and_case(self):
 		self.assertIn("Guía de Git", self._titles("CONFIGURACION inicial"))
 
+	def test_finds_other_forms_of_the_same_word(self):
+		# The page says "Configurar" and "Configuración"; each form finds it.
+		for query in ("configurar", "configuración", "configuraciones", "configurando"):
+			self.assertIn("Guía de Git", self._titles(query), query)
+
 	def test_requires_every_word(self):
 		self.assertEqual(self._titles("identidad bench"), [])
 

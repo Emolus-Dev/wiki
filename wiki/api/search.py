@@ -1,8 +1,9 @@
 import re
-import unicodedata
 
 import frappe
 
+from wiki.search_text import fold as _fold
+from wiki.search_text import stem
 from wiki.telemetry import capture
 
 PAGE_SEARCH_LIMIT = 20
@@ -105,19 +106,17 @@ def search_content(query: str) -> list[dict]:
 	return hits
 
 
-def _fold(text: str) -> str:
-	"""Lowercase and strip accents, so "configuracion" finds "Configuración"."""
-	decomposed = unicodedata.normalize("NFD", text)
-	return "".join(ch for ch in decomposed if not unicodedata.combining(ch)).casefold()
-
-
 def _query_words(query: str) -> list[str]:
 	seen: set[str] = set()
 	words = []
-	for word in _fold(query or "").split():
-		if word not in seen:
-			seen.add(word)
-			words.append(word)
+	# Stems, so "configurar" finds a page that says "configuración". A stem is a
+	# prefix of every form it came from, so the SQL narrowing and the snippet
+	# search (both substring matches) work on it unchanged.
+	for word in (query or "").split():
+		root = stem(word)
+		if root not in seen:
+			seen.add(root)
+			words.append(root)
 	return words[:6]
 
 
