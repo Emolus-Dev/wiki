@@ -82,6 +82,24 @@
 									     up. Publish state and route are the settings panel's to
 									     report, next to the fields that change them. -->
 									<div class="flex shrink-0 items-center gap-2 pt-2">
+										<div
+											v-if="otherEditors.length"
+											class="flex items-center gap-1.5 rounded-full bg-surface-amber-1 px-2 py-0.5 text-xs text-ink-amber-3"
+											data-testid="page-presence"
+											:title="presenceTitle"
+										>
+											<span class="flex -space-x-1.5">
+												<Avatar
+													v-for="person in otherEditors.slice(0, 3)"
+													:key="person.user"
+													size="xs"
+													:label="person.full_name"
+													:image="person.image"
+													class="ring-2 ring-surface-base"
+												/>
+											</span>
+											{{ presenceLabel }}
+										</div>
 										<span
 											v-if="isPageDirty"
 											class="size-2 rounded-full bg-surface-amber-4"
@@ -208,6 +226,7 @@ import { useChangeRequestStore } from '@/stores/changeRequest';
 import { useDraftWorkspaceStore } from '@/stores/draftWorkspace';
 import { useSpaceStore } from '@/stores/space';
 import {
+	Avatar,
 	Badge,
 	Breadcrumbs,
 	Button,
@@ -224,6 +243,7 @@ import {
 } from 'frappe-ui';
 import { computed, inject, ref, shallowRef, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import { usePagePresence } from '../composables/usePagePresence';
 import { useRecentPages } from '../composables/useRecentPages';
 import PageMetaLine from './PageMetaLine.vue';
 import PageSettingsPanel from './PageSettingsPanel.vue';
@@ -276,6 +296,23 @@ function makeWikiDocResource(pageId) {
 }
 
 const wikiDoc = shallowRef(makeWikiDocResource(props.pageId));
+
+// Others with this page open: a heads-up, not a lock. Both can still edit, and
+// change requests merge the result.
+const { others: otherEditors } = usePagePresence({
+	space: () => props.spaceId,
+	page: () => wikiDoc.value.doc?.doc_key,
+	enabled: () => !props.readonly && spaceStore.canEdit,
+});
+const presenceLabel = computed(() => {
+	const names = otherEditors.value.map((person) => person.full_name);
+	return names.length === 1
+		? __('{0} is editing', [names[0]])
+		: __('{0} people are editing', [names.length]);
+});
+const presenceTitle = computed(() =>
+	otherEditors.value.map((person) => person.full_name).join(', '),
+);
 
 const currentCrPage = ref(null);
 const loadedDocKey = ref(null);

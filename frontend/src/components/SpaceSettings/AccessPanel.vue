@@ -1,5 +1,25 @@
 <template>
 	<div class="flex flex-col gap-4">
+		<!-- The common question -- "can visitors who are not logged in read
+		     this?" -- answered with one switch instead of knowing that the
+		     built-in Guest role is what means "public". It edits the table
+		     below; nothing is saved until Save. -->
+		<SettingsRow
+			:title="__('Public (read only)')"
+			:description="
+				isPublic
+					? __('Anyone with the link can read this space without signing in. Only roles with Write access can edit.')
+					: __('Only signed-in users with access can read this space.')
+			"
+		>
+			<Switch
+				:modelValue="isPublic"
+				:disabled="!canManageAccess"
+				data-testid="space-public-switch"
+				@update:modelValue="setPublic"
+			/>
+		</SettingsRow>
+
 		<!-- Add role, above the table. The list is searched on the server as you
 		     type — a site can have far more roles than fit in one page, so a
 		     client-side filter over the first page would hide most of them.
@@ -284,6 +304,19 @@ onBeforeUnmount(() => clearTimeout(roleSearchTimer));
 
 function setPermissionLevel(idx, level) {
 	roleRows.value[idx].permission_level = level;
+}
+
+// "Guest" is the built-in role of a visitor who is not logged in.
+const isPublic = computed(() =>
+	roleRows.value.some((row) => row.role === 'Guest'),
+);
+
+function setPublic(on) {
+	if (on && !isPublic.value) {
+		roleRows.value.push({ role: 'Guest', permission_level: 'Read' });
+	} else if (!on) {
+		roleRows.value = roleRows.value.filter((row) => row.role !== 'Guest');
+	}
 }
 
 function removeRole(idx) {

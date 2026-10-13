@@ -707,3 +707,8 @@ Linked from,Enlazada desde
 Collapsible,Desplegable
 Expand all,Expandir todo
 Collapse all,Contraer todo
+Public (read only),Público (solo lectura)
+Anyone with the link can read this space without signing in. Only roles with Write access can edit.,Cualquiera con el enlace puede leer este espacio sin iniciar sesión. Solo los roles con acceso de escritura pueden editar.
+Only signed-in users with access can read this space.,Solo los usuarios con sesión iniciada y acceso pueden leer este espacio.
+{0} is editing,{0} está editando
+{0} people are editing,{0} personas están editando
