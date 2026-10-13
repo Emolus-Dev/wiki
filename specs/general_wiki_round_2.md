@@ -60,3 +60,12 @@ list the product owner approved item by item.
 - Highlighting the match inside the editor's command-palette snippets (the palette
   component takes plain text).
 - Reader-side PDF preview for attachments.
+
+## Type scale (follow-up)
+
+Text sizes disagreed between the editor and the reader, and compounded inside tables
+(code at 11px beside 15px prose). Both now import `wiki/public/css/wiki-type-scale.css`:
+page title 32px, h1 27, h2 22, h3 18, h4 16, body 15, tables and callouts 14, code
+blocks 13.5, inline code 0.88em of its context. Measured in the editor and in the reader
+(same sizes in both). To tune it, change that one file; `--wiki-title-size` and
+`--wiki-text-code` are variables.

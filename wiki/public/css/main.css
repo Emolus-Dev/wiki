@@ -7,6 +7,8 @@
    share one typography source. Replaces @tailwindcss/typography here (the
    v4 plugin would emit a second, conflicting `.prose`). */
 @import "./frappe-ui-prose.css";
+/* One type scale for the reader and the editor; see the file. */
+@import "./wiki-type-scale.css";
 /* Generated alongside frappe-ui-prose.css — frappe-ui's editor code-block
    shell + GitHub light/dark hljs theme, rescoped from .ProseMirror to .prose.
    The reader highlights with client-side hljs, so the same .hljs-* selectors
@@ -244,7 +246,7 @@ body {
   color: var(--code-fg);
   border-color: var(--code-border);
   border-radius: 0.75rem;
-  font-size: 0.8125rem;
+  font-size: var(--wiki-text-code, 13.5px);
 }
 
 .prose pre.code-block-enhanced > code,
@@ -350,7 +352,6 @@ body {
 }
 
 /* Serif display face for the page title and top-level headings. */
-#wiki-page-title,
 .prose h1,
 .prose h2 {
   font-family: var(--font-display);
@@ -459,7 +460,7 @@ body {
   background-color: rgba(0, 0, 0, 0.05);
   padding: 0.125rem 0.375rem;
   border-radius: 0.25rem;
-  font-size: 0.875em;
+  font-size: 0.88em;
 }
 
 /* Code blocks in callouts */

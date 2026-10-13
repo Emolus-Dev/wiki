@@ -194,7 +194,7 @@
 	caret-color: var(--code-fg);
 	border-color: var(--code-border);
 	border-radius: 0.75rem;
-	font-size: 0.8125rem;
+	font-size: var(--wiki-text-code, 13.5px);
 }
 
 .wiki-editor-content .code-block-container > div.absolute {

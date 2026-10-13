@@ -5,6 +5,8 @@
    barrels are marked side-effectful, so each family's CSS ships with the
    subpath import itself. */
 @import "./wiki-rendered.css";
+/* One type scale shared with the published reader. */
+@import "../../wiki/public/css/wiki-type-scale.css";
 @import "./assets/Newsreader/newsreader.css";
 
 /* Tell the browser which theme its native UI (scrollbars, form controls)

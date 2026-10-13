@@ -26,7 +26,7 @@
             {% if hide_chrome %}
             {# Orphan document: Simple header with just copy button #}
             <div class="flex items-center justify-between gap-4">
-                <h1 id="wiki-page-title" class="text-4xl-semibold text-[var(--ink-gray-9)]">{{ doc.title }}</h1>
+                <h1 id="wiki-page-title" class="wiki-page-title text-[var(--ink-gray-9)]">{{ doc.title }}</h1>
                 <div class="flex items-center gap-2">
                     <button @click="downloadPage()"
                             :disabled="downloadInProgress"
@@ -65,7 +65,7 @@
                 {{ dropdown_end() }}
             </div>
             <div class="flex items-center justify-between gap-4">
-                <h1 id="wiki-page-title" class="text-4xl-semibold text-[var(--ink-gray-9)]">{{ doc.title }}</h1>
+                <h1 id="wiki-page-title" class="wiki-page-title text-[var(--ink-gray-9)]">{{ doc.title }}</h1>
 
                 <!-- Desktop: Edit beside title -->
                 <div class="hidden sm:block">
