@@ -80,7 +80,7 @@ export function collectAttachments(doc) {
 }
 
 /** A path on this site's own uploads, or null. */
-function fileUrl(href) {
+export function fileUrl(href) {
 	if (!href || /^[a-z][a-z0-9+.-]*:|^\/\//i.test(href)) return null;
 	const path = href.split(/[?#]/)[0];
 	return FILE_PREFIXES.some((prefix) => path.startsWith(prefix)) ? path : null;

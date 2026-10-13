@@ -14,7 +14,7 @@
                 <div class="mx-auto w-full max-w-3xl px-8">
                     <slot name="title" />
                     <EditorContent :editor="editor" :class="contentClass" />
-                    <EditorAttachments :editor="editor" :readonly="readonly" @attach="openAttachPicker" />
+                    <EditorAttachments :editor="editor" :readonly="readonly" @attach="openAttachPicker" @attach-files="attachFiles" />
                 </div>
                 <EditorTableOfContents v-if="showTocRail" :editor="editor" variant="rail" />
             </div>
@@ -31,6 +31,7 @@
         <input
             ref="attachFileInput"
             type="file"
+            multiple
             class="hidden-file-input"
             data-testid="editor-attach-input"
             @change="handleAttachFileSelect"
@@ -584,31 +585,37 @@ function openAttachPicker() {
 	attachFileInput.value?.click();
 }
 
-async function handleAttachFileSelect(event) {
-	const file = event.target.files?.[0];
+function handleAttachFileSelect(event) {
+	const files = [...(event.target.files || [])];
 	event.target.value = '';
-	const ed = editor.value;
-	if (!file || !ed) return;
+	attachFiles(files);
+}
 
-	try {
-		const url = await uploadFile(file);
-		ed.chain()
-			.focus('end')
-			.insertContent([
-				{
-					type: 'paragraph',
-					content: [
-						{
-							type: 'text',
-							text: file.name,
-							marks: [{ type: 'link', attrs: { href: url } }],
-						},
-					],
-				},
-			])
-			.run();
-	} catch {
-		// uploadFile already told the user.
+async function attachFiles(files) {
+	const ed = editor.value;
+	if (!files.length || !ed) return;
+
+	for (const file of files) {
+		try {
+			const url = await uploadFile(file);
+			ed.chain()
+				.focus('end')
+				.insertContent([
+					{
+						type: 'paragraph',
+						content: [
+							{
+								type: 'text',
+								text: file.name,
+								marks: [{ type: 'link', attrs: { href: url } }],
+							},
+						],
+					},
+				])
+				.run();
+		} catch {
+			// uploadFile already told the user.
+		}
 	}
 }
 

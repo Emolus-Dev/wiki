@@ -3,8 +3,12 @@
 	     the document itself, so it can never disagree with the content. -->
 	<section
 		v-if="files.length || !readonly"
-		class="mt-10 border-t border-outline-gray-2 pt-6"
+		class="mt-10 rounded-6 border-t border-outline-gray-2 pt-6 transition-colors"
+		:class="dragging ? 'bg-surface-gray-1 ring-2 ring-outline-gray-3' : ''"
 		data-testid="editor-attachments"
+		@dragover="onDragOver"
+		@dragleave="dragging = false"
+		@drop="onDrop"
 	>
 		<div class="flex items-center justify-between gap-3">
 			<h2 class="flex items-center gap-2 text-lg-semibold text-ink-gray-9">
@@ -35,11 +39,12 @@
 			{{ __('Files you attach appear here and on the published page.') }}
 		</p>
 		<ul v-else class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-			<li v-for="file in files" :key="file.url">
+			<li v-for="file in files" :key="file.url" class="relative">
 				<a
 					:href="file.url"
 					download
 					class="group flex items-center gap-3 rounded-6 border border-outline-gray-2 bg-surface-base p-3 hover:bg-surface-gray-1"
+					:class="actionCount(file) ? (actionCount(file) > 1 ? 'pr-[4.75rem]' : 'pr-11') : ''"
 					data-testid="editor-attachment"
 				>
 					<span class="attachment-chip" :data-kind="file.kind">
@@ -54,26 +59,95 @@
 						</span>
 					</span>
 					<span
+						v-if="!actionCount(file)"
 						class="lucide-download size-4 shrink-0 text-ink-gray-5 group-hover:text-ink-gray-8"
 						aria-hidden="true"
 					/>
 				</a>
+				<div class="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-0.5">
+					<button
+						v-if="file.extension === 'pdf'"
+						type="button"
+						class="attachment-action"
+						:title="__('Preview')"
+						:aria-label="__('Preview')"
+						data-testid="editor-attachment-preview"
+						@click="preview = file"
+					>
+						<span class="lucide-eye size-4" aria-hidden="true" />
+					</button>
+					<button
+						v-if="!readonly"
+						type="button"
+						class="attachment-action"
+						:title="__('Remove attachment')"
+						:aria-label="__('Remove attachment')"
+						data-testid="editor-attachment-remove"
+						@click="remove(file)"
+					>
+						<span class="lucide-trash-2 size-4" aria-hidden="true" />
+					</button>
+				</div>
 			</li>
 		</ul>
+		<PdfViewerModal
+			v-if="preview"
+			:src="preview.url"
+			:filename="preview.name"
+			@close="preview = null"
+		/>
 	</section>
 </template>
 
 <script setup>
 import { collectAttachments } from '@/lib/attachments';
+import { removeAttachment } from '@/lib/attachmentRemoval';
 import { watchDebounced } from '@vueuse/core';
 import { Button, createResource } from 'frappe-ui';
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, onBeforeUnmount, ref, watch } from 'vue';
+
+// PDF.js is heavy; load it only when someone previews a file.
+const PdfViewerModal = defineAsyncComponent(
+	() => import('./tiptap-extensions/PdfViewerModal.vue'),
+);
 
 const props = defineProps({
 	editor: { type: Object, default: null },
 	readonly: { type: Boolean, default: false },
 });
-const emit = defineEmits(['attach']);
+const emit = defineEmits(['attach', 'attach-files']);
+
+const preview = ref(null);
+const dragging = ref(false);
+
+function actionCount(file) {
+	return (file.extension === 'pdf' ? 1 : 0) + (props.readonly ? 0 : 1);
+}
+
+function remove(file) {
+	const { editor } = props;
+	if (!editor) return;
+	const tr = editor.state.tr;
+	if (removeAttachment(tr, file.url)) editor.view.dispatch(tr);
+}
+
+function hasFiles(event) {
+	return [...(event.dataTransfer?.types || [])].includes('Files');
+}
+
+function onDragOver(event) {
+	if (props.readonly || !hasFiles(event)) return;
+	event.preventDefault();
+	dragging.value = true;
+}
+
+function onDrop(event) {
+	dragging.value = false;
+	if (props.readonly || !hasFiles(event)) return;
+	event.preventDefault();
+	event.stopPropagation();
+	emit('attach-files', [...event.dataTransfer.files]);
+}
 
 // Bumped on every document change; the list is recomputed from the doc.
 const version = ref(0);
@@ -120,6 +194,19 @@ watchDebounced(
 </script>
 
 <style scoped>
+.attachment-action {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.75rem;
+	height: 1.75rem;
+	border-radius: 0.5rem;
+	color: var(--ink-gray-5);
+}
+.attachment-action:hover {
+	background: var(--surface-gray-3);
+	color: var(--ink-gray-8);
+}
 .attachment-chip {
 	display: inline-flex;
 	flex: none;

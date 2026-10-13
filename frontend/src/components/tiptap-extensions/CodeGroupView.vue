@@ -29,6 +29,28 @@
 				>
 					{{ tab.title }}
 				</button>
+				<template v-if="isEditable && tabs.length > 1 && tab.index === active">
+					<button
+						v-if="tab.index > 0"
+						type="button"
+						class="wiki-code-group__icon"
+						:aria-label="__('Move tab left')"
+						@mousedown.prevent
+						@click="moveTab(tab, -1)"
+					>
+						<span class="lucide-chevron-left size-3" aria-hidden="true" />
+					</button>
+					<button
+						v-if="tab.index < tabs.length - 1"
+						type="button"
+						class="wiki-code-group__icon"
+						:aria-label="__('Move tab right')"
+						@mousedown.prevent
+						@click="moveTab(tab, 1)"
+					>
+						<span class="lucide-chevron-right size-3" aria-hidden="true" />
+					</button>
+				</template>
 				<button
 					v-if="isEditable && tabs.length > 1 && tab.index === active"
 					type="button"
@@ -59,6 +81,7 @@
 import { NodeViewContent, NodeViewWrapper, nodeViewProps } from '@tiptap/vue-3';
 import { computed, nextTick, ref, toRaw, watch } from 'vue';
 import { useNodeViewEditable } from '../../composables/useNodeViewEditable';
+import { moveGroupTab } from '../../lib/codeGroupOps';
 
 const props = defineProps(nodeViewProps);
 const editor = toRaw(props.editor);
@@ -102,6 +125,14 @@ function addTab() {
 		.insertContentAt(end, { type: 'codeBlock', attrs: { language: null } })
 		.run();
 	active.value = props.node.childCount;
+}
+
+function moveTab(tab, step) {
+	const { state, view } = editor;
+	const tr = state.tr;
+	if (!moveGroupTab(tr, props.getPos(), tab.index, tab.index + step)) return;
+	view.dispatch(tr);
+	active.value = tab.index + step;
 }
 
 function removeTab(tab) {
