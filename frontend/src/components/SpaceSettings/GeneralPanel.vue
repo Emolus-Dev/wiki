@@ -24,6 +24,39 @@
 			</Button>
 		</SettingsRow>
 
+		<!-- Versions of one product's docs: spaces that share a group get a
+		     switcher in the reader. Cloning a space is how a new version starts. -->
+		<SettingsRow
+			:title="__('Version Group')"
+			:description="__('Spaces with the same group are versions of one documentation. Readers get a version switcher.')"
+		>
+			<FormControl
+				v-model="versionGroup"
+				class="w-64"
+				type="text"
+				:placeholder="__('e.g. my-product')"
+				data-testid="space-version-group"
+				@blur="saveVersionField('version_group', versionGroup)"
+				@keydown.enter="$event.target.blur()"
+			/>
+		</SettingsRow>
+
+		<SettingsRow
+			v-if="versionGroup"
+			:title="__('Version Label')"
+			:description="__('What this space is called in the switcher')"
+		>
+			<FormControl
+				v-model="versionLabel"
+				class="w-64"
+				type="text"
+				:placeholder="__('e.g. v2.0')"
+				data-testid="space-version-label"
+				@blur="saveVersionField('version_label', versionLabel)"
+				@keydown.enter="$event.target.blur()"
+			/>
+		</SettingsRow>
+
 		<SettingsRow
 			:title="__('Published')"
 			:description="__('Make this wiki space publicly accessible')"
@@ -155,6 +188,8 @@ const props = defineProps({
 defineEmits(['open-update-routes', 'open-clone']);
 
 const spaceName = ref('');
+const versionGroup = ref('');
+const versionLabel = ref('');
 const savingName = ref(false);
 const isPublished = ref(true);
 const updatingPublishSetting = ref(false);
@@ -188,6 +223,8 @@ watch(
 	(doc) => {
 		if (doc) {
 			spaceName.value = doc.space_name || '';
+			versionGroup.value = doc.version_group || '';
+			versionLabel.value = doc.version_label || '';
 			isPublished.value = Boolean(doc.is_published);
 		}
 	},
@@ -227,6 +264,18 @@ async function saveSpaceName() {
 		toast.error(error.messages?.[0] || __('Failed to rename the space'));
 	} finally {
 		savingName.value = false;
+	}
+}
+
+async function saveVersionField(field, value) {
+	const next = (value || '').trim();
+	if (next === (props.space.doc?.[field] || '')) return;
+	try {
+		await props.space.setValue.submit({ [field]: next });
+	} catch (error) {
+		toast.error(error.messages?.[0] || __('Failed to update the version'));
+		versionGroup.value = props.space.doc?.version_group || '';
+		versionLabel.value = props.space.doc?.version_label || '';
 	}
 }
 

@@ -52,6 +52,8 @@ class WikiSpace(Document):
 		space_icon: DF.Data | None
 		space_name: DF.Data | None
 		switcher_order: DF.Int
+		version_group: DF.Data | None
+		version_label: DF.Data | None
 		wiki_sidebars: DF.Table[WikiGroupItem]
 	# end: auto-generated types
 

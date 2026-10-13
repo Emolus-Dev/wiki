@@ -65,6 +65,47 @@
 			/>
 		</section>
 
+		<section
+			v-if="feedback.data && (feedback.data.total || feedback.data.comments.length)"
+			:class="CARD"
+			data-testid="analytics-feedback"
+		>
+			<div class="flex flex-wrap items-baseline justify-between gap-2">
+				<h3 class="text-base-medium text-ink-gray-8">{{ __('Reader feedback') }}</h3>
+				<p class="text-sm text-ink-gray-6">
+					<span v-if="feedback.data.helpful_percent !== null">
+						{{ __('{0}% found it helpful', [feedback.data.helpful_percent]) }} ·
+					</span>
+					{{ __('Helpful') }} {{ feedback.data.good }} ·
+					{{ __('Neutral') }} {{ feedback.data.ok }} ·
+					{{ __('Not helpful') }} {{ feedback.data.bad }}
+				</p>
+			</div>
+			<ul v-if="feedback.data.comments.length" class="mt-3 flex flex-col divide-y divide-outline-gray-1">
+				<li
+					v-for="item in feedback.data.comments"
+					:key="item.name"
+					class="flex items-start gap-2 py-2 text-sm"
+				>
+					<span
+						class="mt-1.5 size-2 shrink-0 rounded-full"
+						:class="{
+							'bg-surface-green-5': item.sentiment === 'good',
+							'bg-surface-amber-5': item.sentiment === 'ok',
+							'bg-surface-red-5': item.sentiment === 'bad',
+						}"
+						aria-hidden="true"
+					/>
+					<div class="min-w-0 flex-1">
+						<p class="text-ink-gray-8">{{ item.comment }}</p>
+						<p class="truncate text-xs text-ink-gray-5">
+							{{ item.title }} · {{ dayjsLocal(item.creation).fromNow() }}
+						</p>
+					</div>
+				</li>
+			</ul>
+		</section>
+
 		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 			<TopList
 				v-if="!page"
@@ -91,7 +132,13 @@ import TopList from '@/components/Analytics/TopList.vue';
 import TrackingNotice from '@/components/Analytics/TrackingNotice.vue';
 import { useAnalytics } from '@/composables/useAnalytics';
 import { PRESETS } from '@/lib/analyticsRange';
-import { Button, DateRangePicker, Select } from 'frappe-ui';
+import {
+	Button,
+	DateRangePicker,
+	Select,
+	createResource,
+	dayjsLocal,
+} from 'frappe-ui';
 import { BarChart, NumberCard } from 'frappe-ui/charts';
 import { computed, ref, watch } from 'vue';
 
@@ -123,6 +170,24 @@ const { analytics, preset, range, interval, setCustomRange, drillDown } =
 			? { document: props.page.document }
 			: { space: props.space || undefined },
 	);
+
+const feedback = createResource({
+	url: 'wiki.api.analytics.get_feedback',
+	makeParams: () => ({
+		from_date: range.value[0],
+		to_date: range.value[1],
+		...(props.page
+			? { document: props.page.document }
+			: { space: props.space || undefined }),
+	}),
+});
+watch(
+	[range, () => props.space, () => props.page],
+	() => {
+		if (range.value.length) feedback.reload();
+	},
+	{ immediate: true, deep: true },
+);
 
 const data = computed(() => analytics.data);
 const isFirstLoad = computed(() => analytics.loading && !analytics.data);

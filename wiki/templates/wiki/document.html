@@ -17,7 +17,12 @@
              :class="{ 'opacity-50': $store.navigation.loading, 'xl:!max-w-[100ch]': $store.sidebar?.isCollapsed }">
         <!-- Page Header -->
         <header class="py-6 mb-6 border-b border-[var(--outline-gray-1)]">
-            {% if not hide_chrome %}<nav id="wiki-breadcrumbs" class="mb-3 {{ '' if breadcrumbs_html else 'hidden' }}" aria-label="{{ _('Breadcrumb') }}">{{ breadcrumbs_html | safe }}</nav>{% endif %}
+            {% if not hide_chrome %}
+            <div class="mb-3 flex items-center justify-between gap-3">
+                <nav id="wiki-breadcrumbs" class="min-w-0 {{ '' if breadcrumbs_html else 'hidden' }}" aria-label="{{ _('Breadcrumb') }}">{{ breadcrumbs_html | safe }}</nav>
+                <div id="wiki-versions" class="ml-auto shrink-0 {{ '' if versions_html else 'hidden' }}">{{ versions_html | safe }}</div>
+            </div>
+            {% endif %}
             {% if hide_chrome %}
             {# Orphan document: Simple header with just copy button #}
             <div class="flex items-center justify-between gap-4">

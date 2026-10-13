@@ -21,5 +21,5 @@ download), on the published page and under the editor, like the mockup's
 
 ## Not done
 
-- A per-file remove button and drag-and-drop onto the list.
+- ~~A per-file remove button and drag-and-drop onto the list.~~ Done: each card has Remove (deletes the link or embed from the text) and PDFs have Preview; files dropped on the list are uploaded and linked.
 - A file's size is blank when the upload has no `File` record.

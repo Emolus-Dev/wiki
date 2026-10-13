@@ -1088,3 +1088,76 @@ body.wiki-pdf-modal-open {
 .wiki-children {
   transition: border-color 0.15s ease;
 }
+
+/* ---------- Print ----------
+   A page on paper is the article and nothing else: no navigation, search or
+   feedback, full width, light colours (code-blocks.js switches a dark theme to
+   light for the print), and the address of each external link after its text. */
+@media print {
+  .wiki-sidebar,
+  .wiki-sidebar-toggle,
+  #wiki-toc,
+  #wiki-nav-buttons,
+  #wiki-backlinks,
+  header.sticky,
+  [data-testid="mobile-nav"],
+  [x-data^="feedbackWidget"],
+  article > header > .sm\:hidden,
+  #wiki-page-title + div,
+  .heading-anchor,
+  .code-block-toolbar {
+    display: none !important;
+  }
+
+  main {
+    padding: 0 !important;
+  }
+
+  article {
+    max-width: none !important;
+    opacity: 1 !important;
+  }
+
+  header {
+    border: 0 !important;
+  }
+
+  .prose a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: var(--ink-gray-5);
+    word-break: break-all;
+  }
+
+  /* Dark code surfaces would waste ink and lose their syntax colours on paper. */
+  .prose pre,
+  .prose pre code,
+  .code-block-enhanced,
+  .code-block-enhanced code {
+    background: #f6f7f9 !important;
+    color: #1f2328 !important;
+    border: 1px solid #d9dde3;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  pre,
+  table,
+  figure,
+  img,
+  .callout,
+  blockquote {
+    break-inside: avoid;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    break-after: avoid;
+  }
+
+  .wiki-table-wrap {
+    overflow: visible;
+  }
+}

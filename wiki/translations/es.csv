@@ -720,3 +720,16 @@ Restore this version,Restaurar esta versión
 The two versions differ too much to compare line by line.,Las dos versiones difieren demasiado para compararlas línea por línea.
 This version is the same as the page now.,Esta versión es igual a la página actual.
 {0} unchanged lines,{0} líneas sin cambios
+Reader feedback,Opiniones de los lectores
+{0}% found it helpful,Al {0}% le resultó útil
+Helpful,Útil
+Neutral,Neutral
+Not helpful,No útil
+Version Group,Grupo de versiones
+Spaces with the same group are versions of one documentation. Readers get a version switcher.,Los espacios con el mismo grupo son versiones de una misma documentación. Los lectores obtienen un selector de versión.
+e.g. my-product,p. ej. mi-producto
+Version Label,Etiqueta de versión
+What this space is called in the switcher,Cómo se llama este espacio en el selector
+e.g. v2.0,p. ej. v2.0
+Failed to update the version,No se pudo actualizar la versión
+Version,Versión

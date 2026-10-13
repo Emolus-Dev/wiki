@@ -14,7 +14,7 @@ def distinct_versions(snapshots: list[dict]) -> list[dict]:
 	for snapshot in reversed(snapshots):
 		state = (snapshot.get("title"), snapshot.get("content_blob"), bool(snapshot.get("is_deleted")))
 		if state != previous_state:
-		    versions.append(snapshot)
+			versions.append(snapshot)
 		previous_state = state
 	versions.reverse()
 	return versions

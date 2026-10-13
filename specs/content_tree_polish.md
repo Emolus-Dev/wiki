@@ -18,5 +18,5 @@ am I" and "what is in there" answerable at a glance, without adding chrome.
 
 ## Not done
 
-- Expand/collapse all, per-group "contains the open page" emphasis, and
-  arrow-key tree navigation in the reader. Each is self-contained if wanted.
+- Per-group "contains the open page" emphasis.
+- ~~Expand/collapse all and arrow-key navigation~~ Done in the reader (WAI-ARIA tree keys: Up/Down, Left/Right, Home/End) and expand/collapse all in both the reader and the editor tree.

@@ -162,6 +162,29 @@ function initTables() {
     });
 }
 
+// Printing: open every collapsible section (a closed one prints as a bare
+// heading) and use the light theme whatever the reader chose, then put both back.
+(function () {
+    let restore = null;
+
+    window.addEventListener('beforeprint', function() {
+        const closed = Array.from(document.querySelectorAll('#wiki-content details:not([open])'));
+        closed.forEach(function(el) { el.setAttribute('open', ''); });
+        const root = document.documentElement;
+        const theme = root.getAttribute('data-theme');
+        if (theme && theme !== 'light') root.setAttribute('data-theme', 'light');
+        restore = function() {
+            closed.forEach(function(el) { el.removeAttribute('open'); });
+            if (theme) root.setAttribute('data-theme', theme);
+        };
+    });
+
+    window.addEventListener('afterprint', function() {
+        if (restore) restore();
+        restore = null;
+    });
+})();
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', initCodeBlocks);
 

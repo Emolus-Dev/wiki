@@ -36,4 +36,4 @@ still highlights by its language.
 
 ## Not done
 
-- Reordering tabs; tab titles are not translated; more than 12 tabs in the editor.
+- ~~Reordering tabs~~ Done (move left/right on the active tab). Tab titles are the language or the author's label, so there is nothing to translate; more than 12 tabs in the editor is untested.

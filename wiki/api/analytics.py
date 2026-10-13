@@ -31,6 +31,71 @@ def get_analytics(
 	return {**result, "tracking_enabled": bool(frappe.get_website_settings("enable_view_tracking"))}
 
 
+FEEDBACK_COMMENT_LIMIT = 20
+
+# One scale for the legacy star rating and the Good / Ok / Bad buttons; mirrors
+# WikiFeedback.sentiment. A rating, when there is one, wins over `type`.
+_SENTIMENT_SQL = """
+	CASE
+		WHEN COALESCE(f.rating, 0) > 0 THEN
+			CASE WHEN f.rating >= 0.8 THEN 'good' WHEN f.rating >= 0.5 THEN 'ok' ELSE 'bad' END
+		ELSE LOWER(COALESCE(NULLIF(f.type, ''), 'ok'))
+	END
+"""
+
+
+@frappe.whitelist()
+def get_feedback(
+	from_date: str,
+	to_date: str,
+	space: str | None = None,
+	document: str | None = None,
+) -> dict:
+	"""What readers said about pages ("Was this helpful?"), wiki-wide or for one space or page."""
+	start, end = _validate_range(from_date, to_date, "daily")
+	_scope_routes(space, document)  # checks access for this scope; the routes are not needed
+
+	conditions = ["f.creation >= %(start)s", "f.creation < %(end)s"]
+	values = {"start": start, "end": add_days(end, 1)}
+	if document:
+		conditions.append("f.wiki_document = %(document)s")
+		values["document"] = document
+	elif space:
+		conditions.append("d.wiki_space = %(space)s")
+		values["space"] = space
+	where = " AND ".join(conditions)
+	joined = "`tabWiki Feedback` f JOIN `tabWiki Document` d ON d.name = f.wiki_document"
+
+	counts = {"good": 0, "ok": 0, "bad": 0}
+	for sentiment, total in frappe.db.sql(
+		f"SELECT {_SENTIMENT_SQL} AS sentiment, COUNT(*) FROM {joined} WHERE {where} GROUP BY sentiment",
+		values,
+	):
+		if sentiment in counts:
+			counts[sentiment] = total
+
+	comments = frappe.db.sql(
+		f"""
+		SELECT f.name, {_SENTIMENT_SQL} AS sentiment, f.feedback AS comment, f.creation,
+			f.wiki_document AS document, d.title, d.route
+		FROM {joined}
+		WHERE {where} AND COALESCE(f.feedback, '') != ''
+		ORDER BY f.creation DESC
+		LIMIT {FEEDBACK_COMMENT_LIMIT}
+		""",
+		values,
+		as_dict=True,
+	)
+
+	total = sum(counts.values())
+	return {
+		**counts,
+		"total": total,
+		"helpful_percent": round(100 * counts["good"] / total) if total else None,
+		"comments": comments,
+	}
+
+
 @frappe.whitelist()
 def get_page_views(document: str) -> int:
 	"""Views of one page over the last 30 days, for the editor's meta line."""

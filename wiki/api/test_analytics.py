@@ -399,3 +399,83 @@ class TestGetOverview(IntegrationTestCase):
 		frappe.set_user(_ensure_user("analytics_writer@example.com", WRITER_ROLE))
 		with self.assertRaises(frappe.PermissionError):
 			get_overview(**self.week)
+
+
+class TestGetFeedback(IntegrationTestCase):
+	@classmethod
+	def setUpClass(cls):
+		super().setUpClass()
+		cls.reader = _ensure_user("feedback_reader@example.com", READER_ROLE)
+		cls.writer = _ensure_user("feedback_writer@example.com", WRITER_ROLE)
+
+	def setUp(self):
+		self.fixtures = WikiFixtures()
+		self.space = self.fixtures.space(
+			pages=[{"title": "Setup"}, {"title": "Backups"}],
+			roles=[(READER_ROLE, "Read"), (WRITER_ROLE, "Write")],
+		)
+		docs = frappe.get_all("Wiki Document", {"wiki_space": self.space.name, "is_group": 0}, pluck="name")
+		self.setup_page, self.backups_page = sorted(
+			docs, key=lambda name: frappe.db.get_value("Wiki Document", name, "title"), reverse=True
+		)
+		self.feedback_rows = []
+		self.today = nowdate()
+		self.range = {"from_date": add_days(self.today, -1), "to_date": self.today}
+
+	def tearDown(self):
+		frappe.set_user("Administrator")
+		for name in self.feedback_rows:
+			frappe.delete_doc("Wiki Feedback", name, force=True)
+		self.fixtures.destroy_all()
+
+	def _feedback(self, document, type_, comment=""):
+		row = frappe.get_doc(
+			{"doctype": "Wiki Feedback", "wiki_document": document, "type": type_, "feedback": comment}
+		).insert(ignore_permissions=True)
+		self.feedback_rows.append(row.name)
+		return row
+
+	def test_counts_each_reaction_and_the_helpful_share(self):
+		self._feedback(self.setup_page, "Good")
+		self._feedback(self.setup_page, "Good")
+		self._feedback(self.setup_page, "Bad", "Out of date")
+		self._feedback(self.setup_page, "Ok")
+
+		result = analytics.get_feedback(space=self.space.name, **self.range)
+		self.assertEqual((result["good"], result["ok"], result["bad"], result["total"]), (2, 1, 1, 4))
+		self.assertEqual(result["helpful_percent"], 50)
+
+	def test_lists_comments_newest_first_with_the_page(self):
+		self._feedback(self.setup_page, "Bad", "Out of date")
+		self._feedback(self.setup_page, "Good")
+
+		comments = analytics.get_feedback(space=self.space.name, **self.range)["comments"]
+		self.assertEqual([c["comment"] for c in comments], ["Out of date"])
+		self.assertEqual(comments[0]["title"], "Setup")
+
+	def test_a_page_scope_counts_only_that_page(self):
+		self._feedback(self.setup_page, "Good")
+		self._feedback(self.backups_page, "Bad")
+
+		result = analytics.get_feedback(document=self.setup_page, **self.range)
+		self.assertEqual((result["good"], result["bad"]), (1, 0))
+
+	def test_no_feedback_has_no_percentage(self):
+		result = analytics.get_feedback(space=self.space.name, **self.range)
+		self.assertEqual((result["total"], result["helpful_percent"]), (0, None))
+
+	def test_feedback_outside_the_range_is_left_out(self):
+		row = self._feedback(self.setup_page, "Good")
+		frappe.db.set_value(
+			"Wiki Feedback", row.name, "creation", add_days(self.today, -30), update_modified=False
+		)
+		self.assertEqual(analytics.get_feedback(space=self.space.name, **self.range)["total"], 0)
+
+	def test_a_space_reader_cannot_read_feedback_numbers(self):
+		frappe.set_user(self.reader)
+		with self.assertRaises(frappe.PermissionError):
+			analytics.get_feedback(space=self.space.name, **self.range)
+
+	def test_a_space_writer_can(self):
+		frappe.set_user(self.writer)
+		self.assertEqual(analytics.get_feedback(space=self.space.name, **self.range)["total"], 0)

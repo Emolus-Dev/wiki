@@ -59,9 +59,9 @@ def get_page_history(space: str, doc_key: str) -> list[dict]:
 
 	versions = distinct_versions(snapshots)[:MAX_VERSIONS]
 	for version in versions:
-		version["full_name"] = frappe.get_cached_value("User", version["created_by"], "full_name") or version[
-			"created_by"
-		]
+		version["full_name"] = (
+			frappe.get_cached_value("User", version["created_by"], "full_name") or version["created_by"]
+		)
 		version.pop("content_blob")
 	return versions
 
@@ -86,5 +86,7 @@ def get_page_version(space: str, doc_key: str, revision: str) -> dict:
 	if not item:
 		frappe.throw(_("Version not found"), frappe.DoesNotExistError)
 
-	content = frappe.db.get_value("Wiki Content Blob", item.content_blob, "content") if item.content_blob else ""
+	content = (
+		frappe.db.get_value("Wiki Content Blob", item.content_blob, "content") if item.content_blob else ""
+	)
 	return {"title": item.title, "content": content or "", "created_at": belongs.created_at}

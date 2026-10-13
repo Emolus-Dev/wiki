@@ -246,6 +246,7 @@
                 this.renderAttachments(data.attachments || []);
                 this.renderRelated('wiki-breadcrumbs', data.breadcrumbs_html);
                 this.renderRelated('wiki-backlinks', data.backlinks_html);
+                this.renderRelated('wiki-versions', data.versions_html);
 
                 // Update prev/next navigation
                 this.updateNavButtons(data.prev_doc, data.next_doc);

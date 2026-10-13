@@ -552,6 +552,7 @@ class WikiDocument(NestedSet):
 			"attachments": get_page_attachments(self.content),
 			"breadcrumbs_html": "",
 			"backlinks_html": "",
+			"versions_html": "",
 			"head_html": frappe.get_cached_value("Wiki Settings", "Wiki Settings", "head_html"),
 			"raw_markdown": self.content or "",
 			"nested_tree": [],

@@ -1,0 +1,11 @@
+{#- The other versions of this documentation. Rendered by wiki/related.py for
+    the first load and for client-side navigation; choosing one is a plain
+    page load, so it works without JavaScript beyond the change handler. -#}
+<label class="sr-only" for="wiki-version-select">{{ _("Version") }}</label>
+<select id="wiki-version-select"
+        onchange="window.location.href = this.value"
+        class="h-7 rounded-5 border border-[var(--outline-gray-2)] bg-[var(--surface-base)] px-2 text-sm text-[var(--ink-gray-8)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--outline-gray-4)]">
+    {% for version in versions %}
+    <option value="{{ version.url | e }}" {{ "selected" if version.current else "" }}>{{ version.label | e }}</option>
+    {% endfor %}
+</select>

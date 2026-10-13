@@ -8,6 +8,8 @@ from urllib.parse import quote
 
 import frappe
 
+from wiki.versions_logic import counterpart_route, order_versions
+
 BACKLINKS_CACHE_KEY = "wiki_backlinks"
 BACKLINK_LIMIT = 20
 
@@ -77,19 +79,70 @@ def breadcrumb_trail(doc) -> dict | None:
 	}
 
 
+def version_options(doc) -> list[dict]:
+	"""The other versions of this page's documentation, for the reader's switcher.
+
+	A space joins a group by sharing its `version_group`. Each option points at the
+	same page in that version when it exists, else at that version's landing page.
+	Only published spaces the reader may open are listed; nothing happens for a
+	space with no group, so the common case costs no query.
+	"""
+	from wiki.permissions import can_read_space
+
+	space = doc.get_space_name()
+	group = space and frappe.get_cached_value("Wiki Space", space, "version_group")
+	if not group:
+		return []
+
+	rows = frappe.get_all(
+		"Wiki Space",
+		filters={"version_group": group, "is_published": 1},
+		fields=["name", "route", "version_label", "space_name"],
+	)
+	if len(rows) < 2:
+		return []
+
+	current_space_route = next((row.route for row in rows if row.name == space), None)
+	if current_space_route is None:
+		return []
+
+	options = []
+	for row in order_versions([r for r in rows if r.name == space or can_read_space(r.name)]):
+		if row.name == space:
+			url = doc.route
+		else:
+			url = counterpart_route(doc.route or "", current_space_route, row.route)
+			if url != row.route and not frappe.db.exists(
+				"Wiki Document", {"route": url, "is_published": 1, "wiki_space": row.name}
+			):
+				url = row.route
+		options.append(
+			{
+				"label": row.version_label or row.space_name or row.route,
+				"url": "/" + quote(url),
+				"current": row.name == space,
+			}
+		)
+	return options
+
+
 def render_related(doc) -> dict:
 	"""HTML for the breadcrumb bar and the "Linked from" list."""
 	trail = breadcrumb_trail(doc)
 	links = get_backlinks(doc)
+	versions = version_options(doc)
 	return {
+		"versions_html": frappe.render_template(
+			"templates/wiki/includes/version_switcher.html", {"versions": versions}
+		)
+		if versions
+		else "",
 		"breadcrumbs_html": frappe.render_template(
 			"templates/wiki/includes/breadcrumbs.html", {"trail": trail}
 		)
 		if trail
 		else "",
-		"backlinks_html": frappe.render_template(
-			"templates/wiki/includes/backlinks.html", {"links": links}
-		)
+		"backlinks_html": frappe.render_template("templates/wiki/includes/backlinks.html", {"links": links})
 		if links
 		else "",
 	}
