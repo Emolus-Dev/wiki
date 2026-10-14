@@ -49,7 +49,9 @@ def get_backlinks(doc) -> list[dict]:
 	if cached is not None:
 		return cached
 	links = find_backlinks(doc.doc_key, doc.get_space_name(), doc.name)
-	cache.hset(BACKLINKS_CACHE_KEY, doc.name, links)
+	# A page with no links stays a cache miss, so hget is None.
+	if links:
+		cache.hset(BACKLINKS_CACHE_KEY, doc.name, links)
 	return links
 
 

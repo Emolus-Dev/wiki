@@ -14,7 +14,15 @@ from bisect import bisect_right
 
 import frappe
 from frappe.utils import add_days, date_diff, now_datetime
-from frappe.utils.telemetry import is_pulse_enabled, site_age
+from frappe.utils.telemetry import site_age
+
+try:
+	from frappe.utils.telemetry import is_pulse_enabled
+except ImportError:
+	# Frappe 15 exposes site_age but not the Pulse gate. System Settings is the
+	# switch that version actually has.
+	def is_pulse_enabled() -> bool:
+		return bool(frappe.get_system_settings("enable_telemetry"))
 
 from wiki import analytics_store
 from wiki.api.og_image import cached_card_count

@@ -650,6 +650,16 @@ class TestRenderedPageTranslations(WikiDocumentTestBase):
 		return doc
 
 	def _render(self, doc):
+		# Guests follow Wiki Settings.public_language, which overrides Accept-Language.
+		# Point it at the language these Translation rows were written for.
+		previous = frappe.db.get_single_value("Wiki Settings", "public_language")
+		frappe.db.set_single_value("Wiki Settings", "public_language", self.LANG)
+
+		def restore_public_language():
+			frappe.db.set_single_value("Wiki Settings", "public_language", previous)
+			frappe.db.commit()  # nosemgrep: frappe-semgrep-rules.rules.frappe-manual-commit
+
+		self.addCleanup(restore_public_language)
 		frappe.db.commit()  # nosemgrep: frappe-semgrep-rules.rules.frappe-manual-commit
 		response = _make_request(
 			self.TEST_CLIENT,
@@ -1071,7 +1081,8 @@ Content here
 Content here
 :::"""
 		html = render_markdown(md)
-		self.assertIn('<span class="callout-title">What\'s this? A "special" title!</span>', html)
+		# Quotes are escaped so a title stays text, never markup.
+		self.assertIn('<span class="callout-title">What\'s this? A &quot;special&quot; title!</span>', html)
 
 	def test_custom_title_empty_brackets(self):
 		"""Test callout with empty brackets uses default title"""
