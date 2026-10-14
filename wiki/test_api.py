@@ -1259,7 +1259,7 @@ class TestWikiWebpConversion(FrappeTestCase):
 				os.remove(path)
 		frappe.db.rollback()
 
-	def upload_png(self, color):
+	def upload_png(self, color, is_private=0):
 		from PIL import Image
 
 		buffer = BytesIO()
@@ -1268,7 +1268,7 @@ class TestWikiWebpConversion(FrappeTestCase):
 			{
 				"doctype": "File",
 				"file_name": "image.png",
-				"is_private": 0,
+				"is_private": is_private,
 				"content": buffer.getvalue(),
 			}
 		).insert()
@@ -1284,6 +1284,22 @@ class TestWikiWebpConversion(FrappeTestCase):
 		self.webp_paths = [get_files_path(url.split("/files/")[-1]) for url in (first_url, second_url)]
 
 		self.assertNotEqual(first_url, second_url)
+
+	def test_private_image_is_converted_and_stays_private(self):
+		from frappe.utils import get_files_path
+
+		from wiki.api import convert_file_to_webp
+
+		file_doc = self.upload_png((10, 20, 30), is_private=1)
+		self.assertTrue(file_doc.file_url.startswith("/private/files/"))
+
+		url = convert_file_to_webp(file_doc)
+		self.webp_paths = [get_files_path(url.split("/files/")[-1], is_private=True)]
+
+		self.assertTrue(url.startswith("/private/files/"))
+		self.assertTrue(url.endswith(".webp"))
+		self.assertTrue(os.path.exists(self.webp_paths[0]))
+		self.assertEqual(frappe.db.get_value("File", file_doc.name, "is_private"), 1)
 
 	def test_concurrent_same_named_uploads_do_not_overwrite(self):
 		"""Images pasted together upload in parallel. Both requests saw the same `.webp` name as free,

@@ -102,7 +102,7 @@ def _to_webp(path_or_url: str) -> str:
 	return os.path.splitext(path_or_url)[0] + ".webp"
 
 
-def _save_webp_without_overwrite(image, name: str) -> str:
+def _save_webp_without_overwrite(image, name: str, is_private: bool = False) -> str:
 	"""Write `image` to a new file, never over an existing one.
 
 	generate_file_name only checks that the name is free. Two same-named
@@ -113,7 +113,7 @@ def _save_webp_without_overwrite(image, name: str) -> str:
 	from frappe.utils import get_files_path
 
 	for _ in range(5):
-		path = get_files_path(name)
+		path = get_files_path(name, is_private=is_private)
 		try:
 			# nosemgrep: frappe-semgrep-rules.rules.security.frappe-security-file-traversal
 			f = open(path, "xb")
@@ -145,14 +145,19 @@ def convert_file_to_webp(file_doc) -> str:
 
 	file_url = file_doc.file_url or ""
 	# Only act on local site files of a convertible raster format.
-	if not file_url.startswith("/files") or not file_url.lower().endswith(CONVERTIBLE_IMAGE_EXTENSIONS):
+	is_private = file_url.startswith("/private/files")
+	if not (is_private or file_url.startswith("/files")) or not file_url.lower().endswith(
+		CONVERTIBLE_IMAGE_EXTENSIONS
+	):
 		return file_url
 
-	webp_name = generate_file_name(_to_webp(file_doc.file_name or os.path.basename(file_url)))
+	webp_name = generate_file_name(
+		_to_webp(file_doc.file_name or os.path.basename(file_url)), is_private=is_private
+	)
 
 	try:
 		image, _, _ = get_local_image(file_url)
-		webp_name = _save_webp_without_overwrite(image, webp_name)
+		webp_name = _save_webp_without_overwrite(image, webp_name, is_private=is_private)
 	except Exception:
 		# Corrupt or unsupported image — keep the original upload rather than
 		# failing the whole request and losing the author's image.
@@ -163,7 +168,7 @@ def convert_file_to_webp(file_doc) -> str:
 	# must be given the /files/... url — not the absolute filesystem path.
 	delete_file(file_url)
 
-	file_doc.file_url = f"/files/{webp_name}"
+	file_doc.file_url = f"{'/private' if is_private else ''}/files/{webp_name}"
 	file_doc.file_name = webp_name
 	file_doc.save()
 	return file_doc.file_url

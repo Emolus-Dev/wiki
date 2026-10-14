@@ -107,8 +107,10 @@ to turn ligatures off.
   from the text is a file the author chose to offer); embedded images and video (`![..](..)`)
   are already on the page and are not listed. This is why linked images used to be missing.
 - **Public or private:** "Attach file" is a menu with *Public file* and *Private file (signed-in
-  users only)*; the last choice is remembered and used for files dropped on the list. Private files
-  show a lock in both lists; guests are asked to sign in by Frappe when they download one.
+  users only)*; the last explicit choice is used for files dropped on the list. With no choice,
+  uploads (attachments, pasted and dropped images) are private unless the space has the `Guest`
+  role. WebP conversion also covers private images. Private files show a lock in both lists;
+  guests are asked to sign in by Frappe when they download one.
 - **Content width:** `--wiki-content-width` (56rem, 896px, about 100 characters a line at 16px)
   drives the text column in the reader and in the editor; with the sidebar collapsed the reader
   adds 10rem. Change it in `wiki-type-scale.css`.

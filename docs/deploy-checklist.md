@@ -53,15 +53,17 @@ And in Space Settings > Access: **Public (read only)** is off on every space and
 
 ## 6. Files
 
-A public file (`/files/...`) opens for anyone who has the link, signed in or not. For a private wiki, attach
-sensitive files with **Attach file > Private file**.
+A public file (`/files/...`) opens for anyone who has the link, signed in or not. Everything uploaded in the editor
+(images, pasted images, attachments) is private by default, unless the space has the `Guest` role, which makes
+its uploads public so anonymous readers can load them. **Attach file** lets you choose the other option per file.
 
 - [ ] With two users who can read the space: user A attaches a private file; user B opens the page and downloads
       it. (A private file is attached to the space so every reader can open it; if user B gets 403, tell me.)
 - [ ] A visitor with no session gets 403 on the same URL.
 
-Images pasted or uploaded in the editor are public files. If images are sensitive, say so: they can default to
-private.
+- [ ] Paste an image into a page of a private space: its URL starts with `/private/files/` and it still shows in
+      the editor and on the published page for a signed-in reader (and not in a private window).
+- [ ] Images already in your pages stay where they are (public). Only new uploads are private.
 
 ## 7. Smoke test, as an editor
 

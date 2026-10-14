@@ -125,7 +125,7 @@
 <script setup>
 import { collectAttachments } from '@/lib/attachments';
 import { removeAttachment } from '@/lib/attachmentRemoval';
-import { useStorage, watchDebounced } from '@vueuse/core';
+import { watchDebounced } from '@vueuse/core';
 import { Button, Dropdown, createResource } from 'frappe-ui';
 import { computed, defineAsyncComponent, onBeforeUnmount, ref, watch } from 'vue';
 
@@ -137,6 +137,8 @@ const PdfViewerModal = defineAsyncComponent(
 const props = defineProps({
 	editor: { type: Object, default: null },
 	readonly: { type: Boolean, default: false },
+	// What a file is when nobody picks: the editor derives it from the space.
+	defaultPrivate: { type: Boolean, default: true },
 });
 const emit = defineEmits(['attach', 'attach-files']);
 
@@ -144,14 +146,13 @@ const preview = ref(null);
 const dragging = ref(false);
 const expanded = ref(true);
 
-// What a new file is, public or private, is remembered: dropping a file onto the
-// list uses the last choice, so someone attaching a batch of private files picks
-// once.
-const attachPrivate = useStorage('wiki:attach-private', false);
+// Dropping a file onto the list reuses the last explicit choice from the menu
+// (until the page is left), so a batch is picked once; otherwise the space decides.
+const attachPrivate = ref(null);
 
 const attachOptions = computed(() => [
 	{
-		label: __('Public file'),
+		label: __('Public file (anyone with the link)'),
 		icon: 'lucide-globe',
 		onClick: () => attach(false),
 	},
@@ -194,7 +195,7 @@ function onDrop(event) {
 	event.preventDefault();
 	event.stopPropagation();
 	emit('attach-files', [...event.dataTransfer.files], {
-		private: attachPrivate.value,
+		private: attachPrivate.value ?? props.defaultPrivate,
 	});
 }
 

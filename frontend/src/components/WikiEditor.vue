@@ -13,7 +13,7 @@
             <div class="relative" :class="showTocRail ? 'pr-60' : ''">
                 <div class="mx-auto w-full max-w-[var(--wiki-content-width)] px-8">
                     <slot name="title" />
-                    <EditorAttachments :editor="editor" :readonly="readonly" @attach="openAttachPicker" @attach-files="attachFiles" />
+                    <EditorAttachments :editor="editor" :readonly="readonly" :default-private="uploadsArePrivate" @attach="openAttachPicker" @attach-files="attachFiles" />
                     <EditorContent :editor="editor" :class="contentClass" />
                 </div>
                 <EditorTableOfContents v-if="showTocRail" :editor="editor" variant="rail" />
@@ -255,10 +255,16 @@ const attachFileInput = ref(null);
 let linkPopupInstance = null;
 let linkPopupApp = null;
 
+// Uploads follow the space: a public (Guest) space needs public files so anonymous
+// readers can load them; any other space keeps its files behind the login.
+const uploadsArePrivate = computed(
+	() => !(spaceStore.doc?.roles || []).some((row) => row.role === 'Guest'),
+);
+
 /**
  * Upload file to Frappe and return the file URL
  */
-async function uploadFile(file, { private: isPrivate = false } = {}) {
+async function uploadFile(file, { private: isPrivate = uploadsArePrivate.value } = {}) {
 	try {
 		const isImage = file.type.includes('image');
 		const result = await fileUploader.upload(file, {
@@ -586,10 +592,10 @@ function handleSlashImageSelect(event) {
  */
 // `private` says whether the next file is private; the file input reads it when
 // the choice is made, a moment after this click.
-let nextAttachPrivate = false;
+let nextAttachPrivate = true;
 
 function openAttachPicker(options) {
-	nextAttachPrivate = Boolean(options?.private);
+	nextAttachPrivate = options?.private ?? uploadsArePrivate.value;
 	attachFileInput.value?.click();
 }
 
@@ -599,7 +605,7 @@ function handleAttachFileSelect(event) {
 	attachFiles(files, { private: nextAttachPrivate });
 }
 
-async function attachFiles(files, { private: isPrivate = false } = {}) {
+async function attachFiles(files, { private: isPrivate = uploadsArePrivate.value } = {}) {
 	const ed = editor.value;
 	if (!files.length || !ed) return;
 
