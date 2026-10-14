@@ -263,6 +263,8 @@ async function uploadFile(file, { private: isPrivate = false } = {}) {
 		const isImage = file.type.includes('image');
 		const result = await fileUploader.upload(file, {
 			private: isPrivate,
+			// A private file is opened by whoever can read this space, not only by its uploader.
+			params: isPrivate ? { space: spaceStore.doc?.name } : undefined,
 			// Hit our handler directly (not via upload_file's `method` delegation,
 			// which would recurse). It converts PNG/JPEG to WebP when the Wiki
 			// Setting is enabled, returning the optimized file_url.

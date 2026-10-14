@@ -312,8 +312,7 @@ class TestReorderWikiDocumentsAPI(WikiFixtureMixin, FrappeTestCase):
 			self.assertEqual(
 				current_route,
 				old_route,
-				f"Route of {doc_name} changed after sort-order reorder: "
-				f"{old_route!r} -> {current_route!r}",
+				f"Route of {doc_name} changed after sort-order reorder: {old_route!r} -> {current_route!r}",
 			)
 
 		# --- Case 2: reparent page_1 from group_a into group_b ---
@@ -330,7 +329,7 @@ class TestReorderWikiDocumentsAPI(WikiFixtureMixin, FrappeTestCase):
 			self.assertEqual(
 				current_route,
 				old_route,
-				f"Route of {doc_name} changed after reparent: " f"{old_route!r} -> {current_route!r}",
+				f"Route of {doc_name} changed after reparent: {old_route!r} -> {current_route!r}",
 			)
 
 	def test_reorder_detailed_debug(self):
@@ -1328,3 +1327,66 @@ class TestGetFileSizes(FrappeTestCase):
 
 		self.assertEqual(sizes, {file_doc.file_url: "2.0 KB"})
 		file_doc.delete()
+
+
+class TestPrivateUploadsAreSharedWithTheSpace(FrappeTestCase):
+	"""A private file in a page is opened by whoever may read the space, not only its uploader."""
+
+	def setUp(self):
+		from wiki.tests.factory import make_space
+
+		self.space = make_space()
+		self.files = []
+
+	def tearDown(self):
+		frappe.set_user("Administrator")
+		for name in self.files:
+			frappe.delete_doc("File", name, force=True)
+		frappe.delete_doc("Wiki Space", self.space.name, force=True)
+
+	def _private_file(self):
+		file_doc = frappe.get_doc(
+			{"doctype": "File", "file_name": "private-share-test.txt", "content": b"secret", "is_private": 1}
+		).insert()
+		self.files.append(file_doc.name)
+		return file_doc
+
+	def test_a_private_upload_is_attached_to_the_space(self):
+		from wiki.api import _share_private_upload_with_the_space
+
+		file_doc = self._private_file()
+		frappe.form_dict["space"] = self.space.name
+		try:
+			_share_private_upload_with_the_space(file_doc)
+		finally:
+			frappe.form_dict.pop("space", None)
+
+		self.assertEqual(frappe.db.get_value("File", file_doc.name, "attached_to_doctype"), "Wiki Space")
+		self.assertEqual(frappe.db.get_value("File", file_doc.name, "attached_to_name"), self.space.name)
+
+	def test_a_public_upload_is_left_alone(self):
+		from wiki.api import _share_private_upload_with_the_space
+
+		file_doc = frappe.get_doc(
+			{"doctype": "File", "file_name": "public-share-test.txt", "content": b"x", "is_private": 0}
+		).insert()
+		self.files.append(file_doc.name)
+		frappe.form_dict["space"] = self.space.name
+		try:
+			_share_private_upload_with_the_space(file_doc)
+		finally:
+			frappe.form_dict.pop("space", None)
+
+		self.assertFalse(frappe.db.get_value("File", file_doc.name, "attached_to_doctype"))
+
+	def test_an_unknown_space_or_none_leaves_the_file_with_its_owner(self):
+		from wiki.api import _share_private_upload_with_the_space
+
+		file_doc = self._private_file()
+		for space in (None, "", "no-such-space"):
+			frappe.form_dict["space"] = space
+			try:
+				_share_private_upload_with_the_space(file_doc)
+			finally:
+				frappe.form_dict.pop("space", None)
+		self.assertFalse(frappe.db.get_value("File", file_doc.name, "attached_to_doctype"))

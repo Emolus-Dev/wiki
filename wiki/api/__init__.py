@@ -169,6 +169,32 @@ def convert_file_to_webp(file_doc) -> str:
 	return file_doc.file_url
 
 
+def _share_private_upload_with_the_space(file_doc) -> None:
+	"""Let everyone who can read the space open a private file uploaded into it.
+
+	Frappe opens a private file only for its owner, or for whoever may read the document it
+	is attached to. An attachment is a link inside a page, with no document to attach to, so
+	without this only the uploader (and administrators) could download it. It is attached to
+	the Wiki Space, whose read permission is the wiki's own access control. Anything that
+	fails here leaves the file private to its owner: it never becomes more open.
+	"""
+	from wiki.permissions import can_read_space
+
+	space = frappe.form_dict.get("space")
+	if not file_doc or not file_doc.is_private or not isinstance(space, str) or not space:
+		return
+	if not frappe.db.exists("Wiki Space", space) or not can_read_space(space):
+		return
+	frappe.db.set_value(
+		"File",
+		file_doc.name,
+		{"attached_to_doctype": "Wiki Space", "attached_to_name": space},
+		update_modified=False,
+	)
+	file_doc.attached_to_doctype = "Wiki Space"
+	file_doc.attached_to_name = space
+
+
 def _refuse_active_uploads():
 	"""Pages, scripts and scripted SVGs would run from the site's own origin; see upload_guard."""
 	from wiki.upload_guard import upload_problem
@@ -194,6 +220,7 @@ def upload_wiki_asset():
 
 	_refuse_active_uploads()
 	file_doc = upload_file()
+	_share_private_upload_with_the_space(file_doc)
 	if (
 		file_doc
 		and (file_doc.file_url or "").lower().endswith(CONVERTIBLE_IMAGE_EXTENSIONS)
