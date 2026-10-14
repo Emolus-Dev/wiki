@@ -30,7 +30,7 @@
         /* Sidebar collapsed state before Alpine loads */
         html[data-sidebar-collapsed] .wiki-sidebar { width: 0 !important; border-right-width: 0 !important; }
         html[data-sidebar-collapsed] .wiki-sidebar-toggle { left: 0.5rem !important; }
-        html:not([data-sidebar-collapsed]) .wiki-sidebar-toggle { left: calc(18rem - 0.25rem); }
+        html:not([data-sidebar-collapsed]) .wiki-sidebar-toggle { left: var(--wiki-sidebar-w, 20rem); }
     </style>
 
     <!-- Theme + sidebar initialization - must run before page renders to prevent flash -->
@@ -54,6 +54,14 @@
                 var sidebarState = localStorage.getItem('sidebar.isCollapsed');
                 if (sidebarState === 'true') {
                     document.documentElement.setAttribute('data-sidebar-collapsed', '');
+                }
+            } catch(e) {}
+
+            // The width the reader dragged the sidebar to, applied before first paint.
+            try {
+                var sidebarWidth = parseInt(localStorage.getItem('wiki:reader-sidebar-width'), 10);
+                if (sidebarWidth >= 240 && sidebarWidth <= 640) {
+                    document.documentElement.style.setProperty('--wiki-sidebar-w', sidebarWidth + 'px');
                 }
             } catch(e) {}
         })();

@@ -6,7 +6,12 @@
 	     `aside` is what this region is; `contents` keeps the wrapper out of the
 	     shell's flex row so Sidebar still sizes itself. -->
 	<aside class="contents">
-		<Sidebar width="260px" disable-collapse>
+		<Sidebar
+			:width="`${width}px`"
+			disable-collapse
+			class="relative"
+			:class="dragging && '!transition-none select-none'"
+		>
 			<div
 				class="flex h-12 shrink-0 items-center gap-1.5 border-b border-outline-gray-2 px-2"
 			>
@@ -76,6 +81,21 @@
 					</template>
 				</SpaceTreePanel>
 			</div>
+
+			<!-- Drag to resize; double-click resets; arrow keys nudge it. -->
+			<div
+				class="absolute inset-y-0 right-0 z-10 w-1.5 cursor-col-resize touch-none after:absolute after:inset-y-0 after:right-0 after:w-0.5 after:bg-transparent after:transition-colors hover:after:bg-outline-gray-4 focus-visible:outline-none focus-visible:after:bg-outline-gray-4"
+				:class="dragging && 'after:!bg-outline-gray-4'"
+				role="separator"
+				aria-orientation="vertical"
+				tabindex="0"
+				:aria-label="__('Resize sidebar')"
+				:title="__('Drag to resize, double-click to reset')"
+				@pointerdown.prevent="startDrag"
+				@dblclick="reset"
+				@keydown.left.prevent="nudge(-16)"
+				@keydown.right.prevent="nudge(16)"
+			/>
 		</Sidebar>
 	</aside>
 </template>
@@ -84,6 +104,7 @@
 import { Button, Dropdown, Sidebar, Tooltip } from 'frappe-ui';
 import { computed } from 'vue';
 
+import { useResizableSidebar } from '../composables/useResizableSidebar.js';
 import { useSpaceIdentitySaver } from '../composables/useSpaceIdentitySaver.js';
 import { useSpaceSettings } from '../composables/useSpaceSettings';
 import { useSpaceStore } from '../stores/space';
@@ -98,6 +119,10 @@ const props = defineProps({
 });
 
 const spaceStore = useSpaceStore();
+const { width, dragging, startDrag, nudge, reset } = useResizableSidebar(
+	'wiki:editor-sidebar-width',
+	300,
+);
 const { open: openSpaceSettings } = useSpaceSettings();
 
 const spaceName = computed(

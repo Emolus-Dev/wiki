@@ -1084,6 +1084,50 @@ body.wiki-pdf-modal-open {
 .wiki-children {
   transition: border-color 0.15s ease;
 }
+/* Nested rows give back some of the indent: the rail already shows the level. */
+.wiki-children .wiki-item-content {
+  padding-left: 0.25rem;
+}
+
+/* The drag handle on the sidebar's inner edge. */
+.wiki-sidebar-resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  touch-action: none;
+  z-index: 10;
+}
+.wiki-sidebar-resizer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 2px;
+  background: transparent;
+  transition: background-color 0.15s ease;
+}
+.wiki-sidebar-resizer:hover::after,
+.wiki-sidebar-resizer:focus-visible::after,
+html.wiki-resizing-sidebar .wiki-sidebar-resizer::after {
+  background: var(--outline-gray-4);
+}
+.wiki-sidebar-resizer:focus-visible {
+  outline: none;
+}
+/* While dragging the width must follow the pointer, not ease towards it. */
+html.wiki-resizing-sidebar,
+html.wiki-resizing-sidebar * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+html.wiki-resizing-sidebar .wiki-sidebar,
+html.wiki-resizing-sidebar .wiki-sidebar-toggle {
+  transition: none !important;
+}
 
 /* ---------- Print ----------
    A page on paper is the article and nothing else: no navigation, search or

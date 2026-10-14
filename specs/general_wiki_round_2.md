@@ -115,3 +115,22 @@ to turn ligatures off.
   drives the text column in the reader and in the editor; with the sidebar collapsed the reader
   adds 10rem. Change it in `wiki-type-scale.css`.
 - **Inline code** now defaults to soft violet (`--surface-violet-2` / `--ink-violet-8`).
+
+## Content tree: long titles, group marker, resizable sidebar (follow-up)
+
+- **Titles:** up to two lines (`line-clamp-2`) in the reader and the editor instead of one line cut
+  with an ellipsis; the editor adds a tooltip with the full title. Rows grow (`min-h`), short titles
+  look as before.
+- **Group marker:** reader groups get a folder icon and pages a document icon (inline SVG), in
+  the same column so titles line up. The child count shows on every group, and an empty group
+  reads `0`, which tells it apart from a page. The editor shows `0` for empty groups too.
+- **Indent:** the reader's rail stays on the chevron centre but each level costs about 8px less.
+  The editor keeps `--tree-indent` (changing it breaks the icon alignment its comment describes).
+- **Editor row actions** float over the end of the row on hover instead of reserving 28px all the
+  time (still in flow on touch).
+- **Resizable sidebar:** drag the inner edge (6px handle), double-click to reset, left/right arrows
+  nudge it. Limits 240px to 640px and at most half the window (`lib/sidebarWidth.js`). Defaults
+  are 320px in the reader (was 288) and 300px in the editor (was 260). Stored in `localStorage`
+  (`wiki:reader-sidebar-width`, `wiki:editor-sidebar-width`); the reader applies it before first
+  paint from `layout.html`. The reader's collapse toggle moved to the sidebar's outer edge so its
+  hover zone no longer covers the handle.

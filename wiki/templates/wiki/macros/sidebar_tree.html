@@ -2,8 +2,17 @@
     dense=false for the taller, rounder rows frappe-ui docs' MobileNavSheet
     uses — h-11 at text-md, which is a real touch target rather than a
     28px line. -#}
+{#- Lucide folder and file-text, inline: the reader's Tailwind build has no icon plugin. -#}
+{% macro folder_icon() -%}
+<svg class="size-3.5 shrink-0 text-[var(--ink-gray-5)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
+{%- endmacro %}
+{% macro page_icon() -%}
+<svg class="size-3.5 shrink-0 text-[var(--ink-gray-4)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+{%- endmacro %}
+
 {% macro render_wiki_tree(nodes, level=0, current_route='', expanded_nodes=set(), dense=True) %}
-    {% set row_geometry = "h-7 rounded-4" if dense else "h-11 rounded-5" %}
+    {#- min-h, not h: a title wraps to a second line instead of being cut off. -#}
+    {% set row_geometry = "min-h-7 py-1 rounded-4" if dense else "min-h-11 py-1 rounded-5" %}
     {% set row_text = "text-sm" if dense else "text-md" %}
     {% set row_text_medium = "text-sm-medium" if dense else "text-md font-medium" %}
     {% if nodes %}
@@ -12,7 +21,7 @@
                 <li class="wiki-item {{ 'is-group' if node.is_group else 'is-page' }}">
                     {% if node.is_group %}
                         {# Group/folder item #}
-                        <button class="wiki-item-content group w-full flex items-center {{ row_geometry }} px-2 text-[var(--ink-gray-7)] transition-colors duration-200 cursor-pointer hover:bg-[var(--surface-gray-2)] hover:text-[var(--ink-gray-8)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--outline-gray-4)]"
+                        <button class="wiki-item-content group w-full flex items-center gap-1.5 text-left {{ row_geometry }} px-2 text-[var(--ink-gray-7)] transition-colors duration-200 cursor-pointer hover:bg-[var(--surface-gray-2)] hover:text-[var(--ink-gray-8)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--outline-gray-4)]"
                                 @click="toggleNode('{{ node.name }}')"
                                 :aria-expanded="isExpanded('{{ node.name }}')"
                                 aria-controls="{{ node.name }}-children"
@@ -31,22 +40,23 @@
                                     <path d="m9 18 6-6-6-6"/>
                                 </svg>
                             </span>
-                            <span class="wiki-title {{ row_text_medium }} truncate">{{ node.title }}</span>
-                            {# How much is inside, so a collapsed branch says whether it is worth opening. #}
-                            {% if node.children %}
-                            <span class="wiki-count ml-auto pl-2 text-[11px] tabular-nums text-[var(--ink-gray-4)] group-hover:text-[var(--ink-gray-5)]" aria-hidden="true">{{ node.children | length }}</span>
-                            {% endif %}
+                            {{ folder_icon() }}
+                            <span class="wiki-title {{ row_text_medium }} min-w-0 flex-1 break-words line-clamp-2">{{ node.title }}</span>
+                            {# How much is inside, so a collapsed branch says whether it is worth opening.
+                               An empty group shows 0, which tells it apart from a page. #}
+                            <span class="wiki-count shrink-0 pl-1 text-[11px] tabular-nums text-[var(--ink-gray-4)] group-hover:text-[var(--ink-gray-5)]" aria-hidden="true">{{ node.children | length }}</span>
                         </button>
                     {% elif node.is_external_link %}
                         {# External link item #}
                         <a href="{{ node.external_url }}"
                            target="_blank"
                            rel="noopener noreferrer"
-                           class="wiki-item-content wiki-link wiki-external-link group w-full flex items-center {{ row_geometry }} px-2 text-[var(--ink-gray-7)] no-underline transition-colors duration-200 hover:bg-[var(--surface-gray-2)] hover:text-[var(--ink-gray-8)]"
+                           class="wiki-item-content wiki-link wiki-external-link group w-full flex items-center gap-1.5 {{ row_geometry }} px-2 text-[var(--ink-gray-7)] no-underline transition-colors duration-200 hover:bg-[var(--surface-gray-2)] hover:text-[var(--ink-gray-8)]"
                            title="{{ node.title }}">
-                            <span class="wiki-title {{ row_text }} truncate {{ 'pl-5' if level == 0 else '' }}">{{ node.title }}</span>
+                            <span class="size-5 shrink-0" aria-hidden="true"></span>
+                            <span class="wiki-title {{ row_text }} min-w-0 break-words line-clamp-2">{{ node.title }}</span>
                             {# External link icon right next to text #}
-                            <svg class="w-3 h-3 ml-2 text-[var(--ink-gray-4)] flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <svg class="w-3 h-3 ml-1 text-[var(--ink-gray-4)] flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
                                 <polyline points="15 3 21 3 21 9"/>
                                 <line x1="10" y1="14" x2="21" y2="3"/>
@@ -60,15 +70,18 @@
                            @click.prevent="$store.navigation.navigateTo({{ node.route | tojson | forceescape }})"
                            @mouseenter="$store.navigation.prefetch({{ node.route | tojson | forceescape }})"
                            @mouseleave="$store.navigation.cancelPrefetch()"
-                           class="wiki-item-content wiki-link group w-full flex items-center {{ row_geometry }} px-2 text-[var(--ink-gray-7)] no-underline transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--outline-gray-4)]"
+                           class="wiki-item-content wiki-link group w-full flex items-center gap-1.5 {{ row_geometry }} px-2 text-[var(--ink-gray-7)] no-underline transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--outline-gray-4)]"
                            :class="$store.navigation.currentRoute === {{ node.route | tojson | forceescape }} ? 'is-current bg-[var(--surface-gray-2)] text-[var(--ink-gray-9)] font-medium' : 'hover:bg-[var(--surface-gray-2)] hover:text-[var(--ink-gray-8)]'"
                            :aria-current="$store.navigation.currentRoute === {{ node.route | tojson | forceescape }} ? 'page' : false"
                            title="{{ node.title }}"
                            data-route="{{ node.route }}"
                            data-node-id="{{ node.name }}">
-                            <span class="wiki-title {{ row_text }} truncate {{ 'pl-5' if level == 0 else '' }}">{{ node.title }}</span>
+                            {# The chevron column, kept empty so a page's icon lines up under its group's folder. #}
+                            <span class="size-5 shrink-0" aria-hidden="true"></span>
+                            {{ page_icon() }}
+                            <span class="wiki-title {{ row_text }} min-w-0 flex-1 break-words line-clamp-2">{{ node.title }}</span>
                             {# Marks where you are, even in a long column where the tint is easy to miss. #}
-                            <span class="wiki-current-dot ml-auto size-1.5 shrink-0 rounded-full bg-[var(--ink-green-5)]"
+                            <span class="wiki-current-dot size-1.5 shrink-0 rounded-full bg-[var(--ink-green-5)]"
                                   x-show="$store.navigation.currentRoute === {{ node.route | tojson | forceescape }}"
                                   x-cloak
                                   aria-hidden="true"></span>
@@ -78,7 +91,7 @@
                     {% if node.children %}
                         <div id="{{ node.name }}-children"
                              {# Rail sits on the toggle's centre line: px-2 (8px) + half of the size-5 slot. #}
-                             class="wiki-children overflow-hidden mt-0.5 ml-[18px] pl-2 border-l border-[var(--outline-gray-2)]"
+                             class="wiki-children overflow-hidden mt-0.5 ml-[18px] pl-1 border-l border-[var(--outline-gray-2)]"
                              x-show="isExpanded('{{ node.name }}')"
                              x-collapse
                              {% if node.name not in expanded_nodes %}x-cloak{% endif %}>

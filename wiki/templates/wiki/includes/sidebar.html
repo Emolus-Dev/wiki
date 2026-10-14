@@ -11,7 +11,7 @@
     The border width animates to 0 on collapse so no hairline is left behind. -#}
 <div class="wiki-sidebar hidden lg:flex w-72 bg-[var(--surface-base)] border-r border-[var(--outline-gray-1)] flex-col flex-shrink-0 transition-[width,border-width] duration-300 ease-in-out overflow-hidden sticky top-[var(--wiki-chrome-h)] h-[calc(100vh-var(--wiki-chrome-h))]"
      x-data="wikiSidebar()"
-     :style="isCollapsed ? 'width: 0; border-right-width: 0;' : 'width: 18rem;'">
+     :style="isCollapsed ? 'width: 0; border-right-width: 0;' : 'width: var(--wiki-sidebar-w, 20rem);'">
 
     {#- The whole tree renders at once. Groups that still carry a stale `is_tab`
         flag are ordinary top-level groups here — the flag is cosmetic-only now
@@ -34,12 +34,25 @@
         {% endif %}
         {{ render_wiki_tree(nested_tree or [], current_route=current_route, expanded_nodes=expanded_nodes or set()) }}
     </nav>
+
+    {#- Drag to resize; double-click resets; arrow keys nudge it for keyboard users. -#}
+    <div class="wiki-sidebar-resizer"
+         x-show="!isCollapsed"
+         role="separator"
+         aria-orientation="vertical"
+         tabindex="0"
+         aria-label="{{ _('Resize sidebar') }}"
+         title="{{ _('Drag to resize, double-click to reset') }}"
+         @pointerdown.prevent="startResize($event)"
+         @dblclick="resetWidth()"
+         @keydown.left.prevent="nudgeWidth(-16)"
+         @keydown.right.prevent="nudgeWidth(16)"></div>
 </div>
 
 <!-- Sidebar Toggle Button (appears on hover at sidebar edge, always visible when collapsed) -->
 <div x-data="{ hovered: false }"
      class="wiki-sidebar-toggle hidden lg:flex items-center fixed z-40 top-[var(--wiki-chrome-h)] h-[calc(100vh-var(--wiki-chrome-h))] transition-[left] duration-300 ease-in-out"
-     :style="$store.sidebar.isCollapsed ? 'left: 0.5rem;' : 'left: calc(18rem - 0.25rem);'"
+     :style="$store.sidebar.isCollapsed ? 'left: 0.5rem;' : 'left: var(--wiki-sidebar-w, 20rem);'"
      @mouseenter="hovered = true"
      @mouseleave="hovered = false">
     <!-- Hover zone -->
@@ -425,6 +438,52 @@
             
             toggleSidebar() {
                 this.$store.sidebar.toggle();
+            },
+
+            currentWidth() {
+                return Math.round(this.$root.getBoundingClientRect().width);
+            },
+
+            clampWidth(px) {
+                const max = Math.min(640, Math.round(window.innerWidth * 0.5));
+                return Math.max(240, Math.min(px, max));
+            },
+
+            applyWidth(px, save) {
+                const width = this.clampWidth(px);
+                document.documentElement.style.setProperty('--wiki-sidebar-w', width + 'px');
+                if (save) {
+                    try { localStorage.setItem('wiki:reader-sidebar-width', String(width)); } catch (e) {}
+                }
+            },
+
+            startResize(event) {
+                const startX = event.clientX;
+                const startWidth = this.currentWidth();
+                const root = document.documentElement;
+                const handle = event.currentTarget;
+                handle.setPointerCapture?.(event.pointerId);
+                root.classList.add('wiki-resizing-sidebar');
+                const move = (e) => this.applyWidth(startWidth + e.clientX - startX, false);
+                const stop = () => {
+                    handle.removeEventListener('pointermove', move);
+                    handle.removeEventListener('pointerup', stop);
+                    handle.removeEventListener('pointercancel', stop);
+                    root.classList.remove('wiki-resizing-sidebar');
+                    this.applyWidth(this.currentWidth(), true);
+                };
+                handle.addEventListener('pointermove', move);
+                handle.addEventListener('pointerup', stop);
+                handle.addEventListener('pointercancel', stop);
+            },
+
+            nudgeWidth(delta) {
+                this.applyWidth(this.currentWidth() + delta, true);
+            },
+
+            resetWidth() {
+                document.documentElement.style.removeProperty('--wiki-sidebar-w');
+                try { localStorage.removeItem('wiki:reader-sidebar-width'); } catch (e) {}
             },
             
             toggleNode(nodeId) {

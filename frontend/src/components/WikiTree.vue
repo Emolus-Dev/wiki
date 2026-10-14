@@ -12,7 +12,7 @@
 	>
 		<template #item="{ node }">
 			<div
-				class="group flex min-h-9 min-w-0 flex-1 items-center gap-1.5 py-1"
+				class="group relative flex min-h-9 min-w-0 flex-1 items-center gap-1.5 py-1"
 				:class="getRowClasses(node)"
 				:data-selected="isSelected(node) || undefined"
 				@click.stop="handleRowClick(node)"
@@ -35,7 +35,11 @@
 				<span v-else class="lucide-file-text size-4 text-ink-gray-5 shrink-0" aria-hidden="true" />
 
 				<div class="flex min-w-0 flex-1 flex-col">
-					<span class="text-sm truncate" :class="[getTitleClass(node), isSelected(node) && 'font-medium !text-ink-gray-9']">
+					<span
+						class="line-clamp-2 break-words text-sm"
+						:class="[getTitleClass(node), isSelected(node) && 'font-medium !text-ink-gray-9']"
+						:title="node.title"
+					>
 						<template v-for="(seg, i) in titleParts(node)" :key="i"><mark v-if="seg.matched" class="bg-surface-amber-2 text-ink-gray-9 rounded-1">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template>
 					</span>
 					<!-- Why it matched, when the route hit but the title didn't. -->
@@ -47,11 +51,12 @@
 				<!-- How much is inside a group, so a collapsed branch says whether it
 				     is worth opening. Not while searching: results are a flat list. -->
 				<span
-					v-if="node.is_group && !searchActive && node.children?.length"
+					v-if="node.is_group && !searchActive"
 					class="shrink-0 text-xs tabular-nums text-ink-gray-4"
+					:title="node.children?.length ? undefined : __('Empty group')"
 					aria-hidden="true"
 				>
-					{{ node.children.length }}
+					{{ node.children?.length || 0 }}
 				</span>
 
 				<!-- The tree is a navigation column: a word per row makes it a
@@ -95,9 +100,14 @@
 					role="status"
 				/>
 
-				<!-- Hover-reveal on desktop; always visible on touch (no hover)
-				     so row actions stay reachable on a phone. -->
-				<div v-if="!readonly" class="flex items-center opacity-0 group-hover:opacity-100 max-md:opacity-100 transition-opacity" @click.stop>
+				<!-- Hover-reveal on desktop, floating over the end of the row so a title
+				     keeps the whole width the rest of the time; always in flow on touch
+				     (no hover) so row actions stay reachable on a phone. -->
+				<div
+					v-if="!readonly"
+					class="flex items-center rounded-4 bg-surface-gray-2 opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 md:absolute md:right-1 md:top-1/2 md:-translate-y-1/2 max-md:bg-transparent max-md:opacity-100 max-md:shadow-none"
+					@click.stop
+				>
 					<Dropdown :options="getDropdownOptions(node)">
 						<Button variant="ghost" size="sm">
 							<span class="lucide-more-horizontal size-4" aria-hidden="true" />
