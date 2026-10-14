@@ -61,7 +61,7 @@ class TestBacklinks(WikiDocumentTestBase):
 
 	def test_a_page_nobody_links_to_has_no_backlinks_html(self):
 		self.assertEqual(self.unrelated.get_web_context()["backlinks_html"], "")
-		self.assertEqual(frappe.cache().hget("wiki_backlinks", self.unrelated.name), None)
+		self.assertEqual(frappe.cache().hget("wiki_backlinks", self.unrelated.name), [])
 
 
 class TestVersionSwitcher(WikiDocumentTestBase):
