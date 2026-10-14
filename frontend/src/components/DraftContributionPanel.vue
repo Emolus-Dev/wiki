@@ -53,7 +53,7 @@
 			</ScrollArea>
 
 			<div v-else class="flex-1 flex flex-col overflow-auto">
-				<div class="mx-auto w-full max-w-3xl px-8 pt-10">
+				<div class="mx-auto w-full max-w-[var(--wiki-content-width)] px-8 pt-10">
 					<div class="flex items-start gap-3">
 						<input
 							type="text"
@@ -87,7 +87,7 @@
 					<Skeleton class="size-8 rounded-4" />
 				</div>
 			</div>
-			<div class="mx-auto w-full max-w-3xl flex-1 px-8 pb-10 pt-10 space-y-4">
+			<div class="mx-auto w-full max-w-[var(--wiki-content-width)] flex-1 px-8 pb-10 pt-10 space-y-4">
 				<Skeleton class="h-8 w-64 rounded-4" />
 				<Skeleton class="h-5 w-14 rounded-full" />
 				<Skeleton class="h-4 w-3/4 rounded-4" />

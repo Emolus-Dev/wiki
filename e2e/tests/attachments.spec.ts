@@ -1,8 +1,8 @@
 import { expect, test } from '../fixtures';
 
 /**
- * Files linked from a page's body are listed as downloads at the bottom of the
- * published page. Nothing is stored beside the content: the list is read from
+ * Files linked from a page's body are listed as downloads on the
+ * published page, above the text, in a collapsible "Files" list. Nothing is stored beside the content: the list is read from
  * its links, so it follows the page through change requests.
  */
 test.describe('Page attachments', () => {

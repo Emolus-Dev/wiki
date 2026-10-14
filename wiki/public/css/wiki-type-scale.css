@@ -26,10 +26,14 @@
   --wiki-text-code: 0.9rem;
   --wiki-title-size: 2.25rem;
   --wiki-code-ligatures: normal;
-  /* Inline code. To try another colour, change these two (see the proposals in
-     the product notes: e.g. --surface-violet-2 with --ink-violet-8). */
-  --wiki-inline-code-bg: var(--surface-gray-2);
-  --wiki-inline-code-fg: var(--ink-gray-8);
+  /* Inline code: a soft violet, apart from the grey of table headers and the
+     underlined links. Change these two to try another colour. */
+  --wiki-inline-code-bg: var(--surface-violet-2);
+  --wiki-inline-code-fg: var(--ink-violet-8);
+  /* Width of the text column, in the reader and the editor. 56rem (896px) is
+     about 100 characters a line at 16px: room for tables and code without
+     lines too long to follow. */
+  --wiki-content-width: 56rem;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 }
 

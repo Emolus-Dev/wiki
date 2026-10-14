@@ -243,7 +243,7 @@
                 const contentEl = document.getElementById('wiki-content');
                 if (contentEl) contentEl.innerHTML = data.rendered_content;
 
-                this.renderAttachments(data.attachments || []);
+                this.renderRelated('wiki-attachments', data.attachments_html);
                 this.renderRelated('wiki-breadcrumbs', data.breadcrumbs_html);
                 this.renderRelated('wiki-backlinks', data.backlinks_html);
                 this.renderRelated('wiki-versions', data.versions_html);
@@ -307,38 +307,6 @@
                 el.innerHTML = html || '';
                 el.classList.toggle('hidden', !html);
                 if (html) Alpine.initTree(el);
-            },
-
-            // Same markup as includes/attachments.html.
-            renderAttachments(files) {
-                const section = document.getElementById('wiki-attachments');
-                if (!section) return;
-                section.classList.toggle('hidden', files.length === 0);
-                if (files.length === 0) {
-                    section.innerHTML = '';
-                    return;
-                }
-
-                const escapeHtml = (str) => {
-                    const div = document.createElement('div');
-                    div.textContent = str;
-                    return div.innerHTML;
-                };
-                const download = '<svg class="w-4 h-4 shrink-0 text-[var(--ink-gray-5)] group-hover:text-[var(--ink-gray-8)]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg>';
-
-                let html = '<h2 id="wiki-attachments-title" class="flex items-center gap-2 text-lg font-semibold text-[var(--ink-gray-9)]">'
-                    + escapeHtml({{ _("Attachments") | tojson }})
-                    + '<span class="rounded-full bg-[var(--surface-gray-2)] px-2 py-0.5 text-xs font-medium text-[var(--ink-gray-6)]">' + files.length + '</span></h2>'
-                    + '<ul class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">';
-                files.forEach(file => {
-                    const kind = ['red', 'blue', 'green', 'amber'].includes(file.kind) ? file.kind : 'gray';
-                    html += '<li><a href="' + escapeHtml(file.url) + '" download class="wiki-attachment group flex items-center gap-3 rounded-6 border border-[var(--outline-gray-2)] bg-[var(--surface-base)] p-3 no-underline transition-colors hover:bg-[var(--surface-gray-1)]">'
-                        + '<span class="wiki-attachment-chip" data-kind="' + kind + '">' + escapeHtml((file.extension || 'file').slice(0, 4).toUpperCase()) + '</span>'
-                        + '<span class="min-w-0 flex-1"><span class="block truncate text-sm font-medium text-[var(--ink-gray-8)]">' + escapeHtml(file.name) + '</span>'
-                        + (file.size ? '<span class="block text-xs text-[var(--ink-gray-5)]">' + escapeHtml(file.size) + '</span>' : '')
-                        + '</span>' + download + '</a></li>';
-                });
-                section.innerHTML = html + '</ul>';
             },
 
             updateToc(headings) {

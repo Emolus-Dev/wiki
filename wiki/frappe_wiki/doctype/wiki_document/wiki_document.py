@@ -18,7 +18,6 @@ from werkzeug.wrappers import Response
 
 from wiki.telemetry import capture, reader_config
 from wiki.utils import apply_public_language, fingerprint_js_url, reader_lang
-from wiki.wiki.attachments import get_page_attachments
 from wiki.wiki.related import clear_backlinks_cache, render_related
 from wiki.wiki.markdown import render_markdown, render_markdown_with_toc
 
@@ -515,7 +514,6 @@ class WikiDocument(NestedSet):
 			"route": self.route,
 			"rendered_content": rendered_content,
 			"toc_headings": toc_headings,
-			"attachments": get_page_attachments(self.content),
 			**render_related(self),
 			"raw_markdown": self.content or "",
 			"prev_doc": adjacent_docs["prev"],
@@ -549,7 +547,7 @@ class WikiDocument(NestedSet):
 			"favicon": None,
 			"rendered_content": rendered_content,
 			"toc_headings": toc_headings,
-			"attachments": get_page_attachments(self.content),
+			"attachments_html": "",
 			"breadcrumbs_html": "",
 			"backlinks_html": "",
 			"versions_html": "",

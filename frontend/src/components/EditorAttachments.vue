@@ -1,49 +1,66 @@
 <template>
-	<!-- The files this page links to, as the reader will list them. Read from
-	     the document itself, so it can never disagree with the content. -->
+	<!-- The files this page links to, above the text so a long page does not bury
+	     them. Read from the document itself, so it can never disagree with the
+	     content, and shown as the reader will list them. -->
 	<section
 		v-if="files.length || !readonly"
-		class="mt-10 rounded-6 border-t border-outline-gray-2 pt-6 transition-colors"
+		class="mb-4 mt-3 rounded-6 border border-outline-gray-2 transition-colors"
 		:class="dragging ? 'bg-surface-gray-1 ring-2 ring-outline-gray-3' : ''"
 		data-testid="editor-attachments"
 		@dragover="onDragOver"
 		@dragleave="dragging = false"
 		@drop="onDrop"
 	>
-		<div class="flex items-center justify-between gap-3">
-			<h2 class="flex items-center gap-2 text-lg-semibold text-ink-gray-9">
-				<span class="lucide-paperclip size-4 text-ink-gray-5" aria-hidden="true" />
-				{{ __('Attachments') }}
-				<span
-					v-if="files.length"
-					class="rounded-full bg-surface-gray-2 px-2 py-0.5 text-xs text-ink-gray-6"
-				>
+		<div class="flex items-center gap-2 px-3 py-2">
+			<button
+				type="button"
+				class="flex min-w-0 flex-1 items-center gap-2 text-left text-sm-medium text-ink-gray-8"
+				:aria-expanded="expanded"
+				:disabled="!files.length"
+				data-testid="editor-attachments-toggle"
+				@click="expanded = !expanded"
+			>
+				<span class="lucide-paperclip size-4 shrink-0 text-ink-gray-5" aria-hidden="true" />
+				{{ __('Files') }}
+				<span class="rounded-full bg-surface-gray-2 px-2 py-0.5 text-xs text-ink-gray-6">
 					{{ files.length }}
 				</span>
-			</h2>
-			<Button
-				v-if="!readonly"
-				variant="ghost"
-				size="sm"
-				:label="__('Attach file')"
-				data-testid="editor-attach-file"
-				@click="emit('attach')"
-			>
-				<template #prefix>
-					<span class="lucide-plus size-4" aria-hidden="true" />
-				</template>
-			</Button>
+				<span
+					v-if="files.length"
+					class="lucide-chevron-down ml-auto size-4 shrink-0 text-ink-gray-5 transition-transform"
+					:class="expanded ? 'rotate-180' : ''"
+					aria-hidden="true"
+				/>
+			</button>
+			<Dropdown v-if="!readonly" :options="attachOptions" placement="right">
+				<Button
+					variant="ghost"
+					size="sm"
+					:label="__('Attach file')"
+					data-testid="editor-attach-file"
+				>
+					<template #prefix>
+						<span class="lucide-plus size-4" aria-hidden="true" />
+					</template>
+					<template #suffix>
+						<span class="lucide-chevron-down size-3.5 text-ink-gray-5" aria-hidden="true" />
+					</template>
+				</Button>
+			</Dropdown>
 		</div>
 
-		<p v-if="!files.length" class="mt-3 text-sm text-ink-gray-5">
+		<p v-if="!files.length" class="border-t border-outline-gray-2 px-3 py-2 text-sm text-ink-gray-5">
 			{{ __('Files you attach appear here and on the published page.') }}
 		</p>
-		<ul v-else class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+		<ul
+			v-else-if="expanded"
+			class="grid grid-cols-1 gap-2 border-t border-outline-gray-2 p-3 sm:grid-cols-2"
+		>
 			<li v-for="file in files" :key="file.url" class="relative">
 				<a
 					:href="file.url"
 					download
-					class="group flex items-center gap-3 rounded-6 border border-outline-gray-2 bg-surface-base p-3 hover:bg-surface-gray-1"
+					class="group flex items-center gap-3 rounded-5 border border-outline-gray-2 bg-surface-base p-2.5 hover:bg-surface-gray-1"
 					:class="actionCount(file) ? (actionCount(file) > 1 ? 'pr-[4.75rem]' : 'pr-11') : ''"
 					data-testid="editor-attachment"
 				>
@@ -54,8 +71,14 @@
 						<span class="block truncate text-sm-medium text-ink-gray-8">
 							{{ file.name }}
 						</span>
-						<span v-if="sizes[file.url]" class="block text-xs text-ink-gray-5">
-							{{ sizes[file.url] }}
+						<span class="flex items-center gap-1 text-xs text-ink-gray-5">
+							<span
+								v-if="file.private"
+								class="lucide-lock size-3"
+								:title="__('Private file: only signed-in users can download it')"
+								aria-hidden="true"
+							/>
+							{{ sizes[file.url] || (file.private ? __('Private') : '') }}
 						</span>
 					</span>
 					<span
@@ -102,8 +125,8 @@
 <script setup>
 import { collectAttachments } from '@/lib/attachments';
 import { removeAttachment } from '@/lib/attachmentRemoval';
-import { watchDebounced } from '@vueuse/core';
-import { Button, createResource } from 'frappe-ui';
+import { useStorage, watchDebounced } from '@vueuse/core';
+import { Button, Dropdown, createResource } from 'frappe-ui';
 import { computed, defineAsyncComponent, onBeforeUnmount, ref, watch } from 'vue';
 
 // PDF.js is heavy; load it only when someone previews a file.
@@ -119,6 +142,30 @@ const emit = defineEmits(['attach', 'attach-files']);
 
 const preview = ref(null);
 const dragging = ref(false);
+const expanded = ref(true);
+
+// What a new file is, public or private, is remembered: dropping a file onto the
+// list uses the last choice, so someone attaching a batch of private files picks
+// once.
+const attachPrivate = useStorage('wiki:attach-private', false);
+
+const attachOptions = computed(() => [
+	{
+		label: __('Public file'),
+		icon: 'lucide-globe',
+		onClick: () => attach(false),
+	},
+	{
+		label: __('Private file (signed-in users only)'),
+		icon: 'lucide-lock',
+		onClick: () => attach(true),
+	},
+]);
+
+function attach(isPrivate) {
+	attachPrivate.value = isPrivate;
+	emit('attach', { private: isPrivate });
+}
 
 function actionCount(file) {
 	return (file.extension === 'pdf' ? 1 : 0) + (props.readonly ? 0 : 1);
@@ -146,7 +193,9 @@ function onDrop(event) {
 	if (props.readonly || !hasFiles(event)) return;
 	event.preventDefault();
 	event.stopPropagation();
-	emit('attach-files', [...event.dataTransfer.files]);
+	emit('attach-files', [...event.dataTransfer.files], {
+		private: attachPrivate.value,
+	});
 }
 
 // Bumped on every document change; the list is recomputed from the doc.

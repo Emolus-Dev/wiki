@@ -94,3 +94,22 @@ to turn ligatures off.
   parentheses (`attachments.py`), looking sizes up by the stored, decoded name.
 - **Inline code colour** is two variables, `--wiki-inline-code-bg` and `--wiki-inline-code-fg`
   (`wiki-type-scale.css`); the default is unchanged.
+
+## Files above the text, private files, content width (follow-up)
+
+- **Files list moved to the top** of both the published page and the editor, as a collapsible
+  "Files" box (open when there are three or fewer, closed with more). A thousand-line page no
+  longer hides it. In the reader it is rendered on the server like breadcrumbs and backlinks
+  (`wiki/related.py`, `includes/attachments.html`), so the first load and client-side navigation
+  share one template; the old JS copy was removed. The payload key `attachments` became
+  `attachments_html`.
+- **What counts as a file:** any *link* to one of the site's uploads, of any type (a PNG linked
+  from the text is a file the author chose to offer); embedded images and video (`![..](..)`)
+  are already on the page and are not listed. This is why linked images used to be missing.
+- **Public or private:** "Attach file" is a menu with *Public file* and *Private file (signed-in
+  users only)*; the last choice is remembered and used for files dropped on the list. Private files
+  show a lock in both lists; guests are asked to sign in by Frappe when they download one.
+- **Content width:** `--wiki-content-width` (56rem, 896px, about 100 characters a line at 16px)
+  drives the text column in the reader and in the editor; with the sidebar collapsed the reader
+  adds 10rem. Change it in `wiki-type-scale.css`.
+- **Inline code** now defaults to soft violet (`--surface-violet-2` / `--ink-violet-8`).

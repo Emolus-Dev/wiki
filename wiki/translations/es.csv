@@ -733,3 +733,9 @@ What this space is called in the switcher,Cómo se llama este espacio en el sele
 e.g. v2.0,p. ej. v2.0
 Failed to update the version,No se pudo actualizar la versión
 Version,Versión
+Files,Archivos
+Public file,Archivo público
+Private file (signed-in users only),Archivo privado (solo usuarios con sesión)
+Private,Privado
+Private file: sign in to download it,Archivo privado: inicia sesión para descargarlo
+Private file: only signed-in users can download it,Archivo privado: solo los usuarios con sesión pueden descargarlo

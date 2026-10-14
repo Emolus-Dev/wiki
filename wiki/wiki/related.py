@@ -9,6 +9,7 @@ from urllib.parse import quote
 import frappe
 
 from wiki.versions_logic import counterpart_route, order_versions
+from wiki.wiki.attachments import get_page_attachments
 
 BACKLINKS_CACHE_KEY = "wiki_backlinks"
 BACKLINK_LIMIT = 20
@@ -127,11 +128,17 @@ def version_options(doc) -> list[dict]:
 
 
 def render_related(doc) -> dict:
-	"""HTML for the breadcrumb bar and the "Linked from" list."""
+	"""HTML for the breadcrumb bar, version switcher, files list and "Linked from" list."""
 	trail = breadcrumb_trail(doc)
 	links = get_backlinks(doc)
 	versions = version_options(doc)
+	files = get_page_attachments(doc.content)
 	return {
+		"attachments_html": frappe.render_template(
+			"templates/wiki/includes/attachments.html", {"attachments": files}
+		)
+		if files
+		else "",
 		"versions_html": frappe.render_template(
 			"templates/wiki/includes/version_switcher.html", {"versions": versions}
 		)

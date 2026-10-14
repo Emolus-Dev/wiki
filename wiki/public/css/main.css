@@ -969,7 +969,11 @@ body.wiki-pdf-modal-open {
   }
 }
 
-/* ---------- Attachments (files linked from the page) ---------- */
+/* ---------- Files (links to uploaded files, above the page text) ---------- */
+.wiki-files[open] .wiki-files-chevron {
+  transform: rotate(180deg);
+}
+
 .wiki-attachment-chip {
   display: inline-flex;
   flex: none;
@@ -1091,6 +1095,7 @@ body.wiki-pdf-modal-open {
   #wiki-toc,
   #wiki-nav-buttons,
   #wiki-backlinks,
+  #wiki-attachments,
   header.sticky,
   [data-testid="mobile-nav"],
   [x-data^="feedbackWidget"],

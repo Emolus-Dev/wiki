@@ -65,11 +65,15 @@ def extract_attachments(markdown: str) -> list[dict]:
 	seen: set[str] = set()
 
 	for match in UPLOAD_LINK.finditer(FENCE.sub(" ", markdown or "")):
-		label, path = _label_of(match.group(1)), normalize_path(match.group(2))
+		head = match.group(1)
+		label, path = _label_of(head), normalize_path(match.group(2))
 
 		filename = unquote(path.rsplit("/", 1)[-1])
 		extension = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
-		if extension in _INLINE_MEDIA or path in seen:
+		# An embedded image or video (`![..](..)`) is already on the page. A *link* to
+		# one is a file the author chose to offer, whatever its type.
+		embedded = head.startswith("!")
+		if (embedded and extension in _INLINE_MEDIA) or path in seen:
 			continue
 
 		seen.add(path)
@@ -80,6 +84,7 @@ def extract_attachments(markdown: str) -> list[dict]:
 				"filename": filename,
 				"extension": extension,
 				"kind": _KINDS.get(extension, "gray"),
+				"private": path.startswith("/private/"),
 			}
 		)
 

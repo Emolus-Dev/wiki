@@ -11,10 +11,10 @@
                  outline appears, which is what buys it back on a 1280px
                  screen — floating over both gutters needed 1400. -->
             <div class="relative" :class="showTocRail ? 'pr-60' : ''">
-                <div class="mx-auto w-full max-w-3xl px-8">
+                <div class="mx-auto w-full max-w-[var(--wiki-content-width)] px-8">
                     <slot name="title" />
-                    <EditorContent :editor="editor" :class="contentClass" />
                     <EditorAttachments :editor="editor" :readonly="readonly" @attach="openAttachPicker" @attach-files="attachFiles" />
+                    <EditorContent :editor="editor" :class="contentClass" />
                 </div>
                 <EditorTableOfContents v-if="showTocRail" :editor="editor" variant="rail" />
             </div>
@@ -258,11 +258,11 @@ let linkPopupApp = null;
 /**
  * Upload file to Frappe and return the file URL
  */
-async function uploadFile(file) {
+async function uploadFile(file, { private: isPrivate = false } = {}) {
 	try {
 		const isImage = file.type.includes('image');
 		const result = await fileUploader.upload(file, {
-			private: false,
+			private: isPrivate,
 			// Hit our handler directly (not via upload_file's `method` delegation,
 			// which would recurse). It converts PNG/JPEG to WebP when the Wiki
 			// Setting is enabled, returning the optimized file_url.
@@ -582,23 +582,28 @@ function handleSlashImageSelect(event) {
  * Attach any file: upload it, then link it on a line of its own. The reader and
  * the attachments list below the editor both pick it up from the link.
  */
-function openAttachPicker() {
+// `private` says whether the next file is private; the file input reads it when
+// the choice is made, a moment after this click.
+let nextAttachPrivate = false;
+
+function openAttachPicker(options) {
+	nextAttachPrivate = Boolean(options?.private);
 	attachFileInput.value?.click();
 }
 
 function handleAttachFileSelect(event) {
 	const files = [...(event.target.files || [])];
 	event.target.value = '';
-	attachFiles(files);
+	attachFiles(files, { private: nextAttachPrivate });
 }
 
-async function attachFiles(files) {
+async function attachFiles(files, { private: isPrivate = false } = {}) {
 	const ed = editor.value;
 	if (!files.length || !ed) return;
 
 	for (const file of files) {
 		try {
-			const url = await uploadFile(file);
+			const url = await uploadFile(file, { private: isPrivate });
 			ed.chain()
 				.focus('end')
 				.insertContent([
@@ -954,11 +959,11 @@ const contentClass = [
 // The editor's width is the viewport minus the app nav, so a viewport media
 // query would measure the wrong box — watch the element instead. The rail is
 // given its gutter rather than floating over whatever the centred column
-// leaves behind, so the threshold is the 768px prose column plus that one
+// leaves behind, so the threshold is the 896px prose column plus that one
 // reserve — not a rail's width on each side, which needed a 1400px window.
 // Below it the strip takes over.
 const TOC_RAIL_RESERVE = 240;
-const TOC_RAIL_MIN_WIDTH = 768 + TOC_RAIL_RESERVE;
+const TOC_RAIL_MIN_WIDTH = 896 + TOC_RAIL_RESERVE;
 const { width: containerWidth } = useElementSize(containerRef);
 const showTocRail = computed(
 	() => props.showOutline && containerWidth.value >= TOC_RAIL_MIN_WIDTH,

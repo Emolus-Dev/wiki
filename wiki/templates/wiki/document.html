@@ -13,8 +13,8 @@
 <div x-data="wikiPage" class="flex-1 min-w-0 flex">
     <!-- Main Content Area -->
     <main class="flex-1 min-w-0 px-4 py-6 lg:px-6 lg:py-8 xl:px-12 flex justify-center">
-        <article class="min-w-0 w-full transition-opacity duration-300 xl:max-w-[85ch]"
-             :class="{ 'opacity-50': $store.navigation.loading, 'xl:!max-w-[100ch]': $store.sidebar?.isCollapsed }">
+        <article class="min-w-0 w-full transition-opacity duration-300 xl:max-w-[var(--wiki-content-width)]"
+             :class="{ 'opacity-50': $store.navigation.loading, 'xl:!max-w-[calc(var(--wiki-content-width)+10rem)]': $store.sidebar?.isCollapsed }">
         <!-- Page Header -->
         <header class="py-6 mb-6 border-b border-[var(--outline-gray-1)]">
             {% if not hide_chrome %}
@@ -83,13 +83,15 @@
         </header>
 
 
+        {#- Files sit above the text, so a page of a thousand lines does not bury them. -#}
+        {% if not hide_chrome %}<section id="wiki-attachments" class="mb-6 {{ '' if attachments_html else 'hidden' }}">{{ attachments_html | safe }}</section>{% endif %}
+
         <!-- Page Content -->
         <!-- prose prose-v3 mirrors the SPA editor's EditorContent defaults -->
         <div class="prose prose-v3 !max-w-none [&>*:first-child]:mt-0" id="wiki-content">
             {{ rendered_content | safe }}
         </div>
 
-        {% if not hide_chrome %}{% include "templates/wiki/includes/attachments.html" %}{% endif %}
 
         {% if not hide_chrome %}<section id="wiki-backlinks" class="mt-10 {{ '' if backlinks_html else 'hidden' }}">{{ backlinks_html | safe }}</section>{% endif %}
 

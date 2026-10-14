@@ -114,7 +114,7 @@
 						</template>
 					</WikiEditor>
 					<!-- Editor body skeleton while the CR page overlay loads -->
-					<div v-else class="mx-auto w-full max-w-3xl space-y-4 px-8 pt-10">
+					<div v-else class="mx-auto w-full max-w-[var(--wiki-content-width)] space-y-4 px-8 pt-10">
 						<Skeleton class="h-4 w-3/4 rounded-4" />
 						<Skeleton class="h-4 w-full rounded-4" />
 						<Skeleton class="h-4 w-5/6 rounded-4" />
@@ -151,7 +151,7 @@
 					<Skeleton class="size-8 rounded-4" />
 				</div>
 			</div>
-			<div class="mx-auto w-full max-w-3xl flex-1 px-8 pb-10 pt-10 space-y-4">
+			<div class="mx-auto w-full max-w-[var(--wiki-content-width)] flex-1 px-8 pb-10 pt-10 space-y-4">
 				<Skeleton class="h-8 w-64 rounded-4" />
 				<Skeleton class="h-5 w-24 rounded-full" />
 				<Skeleton class="h-4 w-3/4 rounded-4" />

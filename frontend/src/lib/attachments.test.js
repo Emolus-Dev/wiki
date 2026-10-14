@@ -27,21 +27,50 @@ test('lists links to uploaded files in order', () => {
 	);
 });
 
-test('a PDF embed counts, images and video do not', () => {
+test('a PDF embed counts; embedded images and video are not links, so they do not', () => {
 	const files = collectAttachments(
 		doc(
 			{
 				type: 'pdfBlock',
 				attrs: { src: '/files/guide.pdf', filename: 'guide.pdf' },
 			},
-			para(link('shot', '/files/shot.png')),
-			para(link('clip', '/files/clip.mp4')),
+			{ type: 'image', attrs: { src: '/files/shot.png' } },
+			{ type: 'videoBlock', attrs: { src: '/files/clip.mp4' } },
 		),
 	);
 	assert.deepEqual(
 		files.map((f) => f.filename),
 		['guide.pdf'],
 	);
+});
+
+test('a link to an image or a video is a file the author chose to offer', () => {
+	const files = collectAttachments(
+		doc(
+			para(link('shot', '/files/shot.png')),
+			para(link('clip', '/files/clip.mp4')),
+		),
+	);
+	assert.deepEqual(
+		files.map((f) => f.filename),
+		['shot.png', 'clip.mp4'],
+	);
+});
+
+test('private files are flagged', () => {
+	const [pub, priv] = collectAttachments(
+		doc(
+			para(link('a', '/files/a.zip')),
+			para(link('b', '/private/files/b.zip')),
+		),
+	);
+	assert.equal(pub.private, false);
+	assert.equal(priv.private, true);
+});
+
+test('a malformed percent sequence does not break the list', () => {
+	const [file] = collectAttachments(doc(para(link('x', '/files/100%.pdf'))));
+	assert.equal(file.filename, '100%.pdf');
 });
 
 test('external links are ignored and a file is listed once', () => {

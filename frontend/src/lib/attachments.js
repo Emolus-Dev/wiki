@@ -1,24 +1,7 @@
 // Which files a page offers for download. Mirrors wiki/wiki/attachments.py: an
-// attachment is a link to one of this site's uploads, or a PDF embed. Images and
-// video show inline, so they are not repeated as downloads.
-
-const INLINE_MEDIA = new Set([
-	'png',
-	'jpg',
-	'jpeg',
-	'gif',
-	'webp',
-	'avif',
-	'svg',
-	'bmp',
-	'mp4',
-	'webm',
-	'ogg',
-	'mov',
-	'avi',
-	'mkv',
-	'm4v',
-]);
+// attachment is a link to one of this site's uploads (of any type: a link is a
+// file the author chose to offer), or a PDF embed. Embedded images and video are
+// image and video nodes, not links, so they never show up here.
 
 const KINDS = {
 	pdf: 'red',
@@ -50,12 +33,10 @@ export function collectAttachments(doc) {
 		const url = fileUrl(href);
 		if (!url || seen.has(url)) return;
 
-		const filename = decodeURIComponent(url.split('/').pop());
+		const filename = safeDecode(url.split('/').pop());
 		const extension = filename.includes('.')
 			? filename.split('.').pop().toLowerCase()
 			: '';
-		if (INLINE_MEDIA.has(extension)) return;
-
 		seen.add(url);
 		found.push({
 			url,
@@ -63,6 +44,7 @@ export function collectAttachments(doc) {
 			filename,
 			extension,
 			kind: KINDS[extension] || 'gray',
+			private: url.startsWith('/private/'),
 		});
 	}
 
@@ -84,4 +66,12 @@ export function fileUrl(href) {
 	if (!href || /^[a-z][a-z0-9+.-]*:|^\/\//i.test(href)) return null;
 	const path = href.split(/[?#]/)[0];
 	return FILE_PREFIXES.some((prefix) => path.startsWith(prefix)) ? path : null;
+}
+
+function safeDecode(text) {
+	try {
+		return decodeURIComponent(text);
+	} catch {
+		return text;
+	}
 }

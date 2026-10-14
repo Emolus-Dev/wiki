@@ -16,6 +16,18 @@ class TestExtractAttachments(FrappeTestCase):
 
 		self.assertEqual([a["filename"] for a in extract_attachments(md)], ["guide.pdf"])
 
+	def test_a_link_to_an_image_or_video_is_a_file_the_author_chose_to_offer(self):
+		md = "[Lectura de página@2x.png](/files/Lectura de página@2x.png)\n[clip](/files/clip.mp4)"
+
+		self.assertEqual(
+			[a["filename"] for a in extract_attachments(md)], ["Lectura de página@2x.png", "clip.mp4"]
+		)
+
+	def test_private_files_are_flagged(self):
+		public, private = extract_attachments("[a](/files/a.zip) [b](/private/files/b.zip)")
+
+		self.assertEqual((public["private"], private["private"]), (False, True))
+
 	def test_ignores_external_links_and_code_fences(self):
 		md = "[site](https://example.com/files/a.pdf)\n```\n[x](/files/inside.zip)\n```\n[ok](/files/ok.zip)"
 
