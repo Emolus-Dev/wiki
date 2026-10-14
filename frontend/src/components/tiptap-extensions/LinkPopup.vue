@@ -84,6 +84,7 @@
 </template>
 
 <script setup>
+import { copyText } from '@/lib/clipboard';
 import { Button, TextInput, toast } from 'frappe-ui';
 import { nextTick, onMounted, ref, watch } from 'vue';
 import { docKeyFromHref } from './page-links.js';
@@ -179,7 +180,7 @@ function removeLink() {
 async function copyLink() {
 	if (currentHref.value) {
 		try {
-			await navigator.clipboard.writeText(currentHref.value);
+			if (!(await copyText(currentHref.value))) throw new Error('copy failed');
 			toast.success(__('Link copied'));
 		} catch {
 			toast.error(__('Failed to copy'));

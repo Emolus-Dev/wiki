@@ -6,9 +6,11 @@ through change requests with the page like everything else it says.
 """
 
 import re
-from urllib.parse import unquote, urlparse
+from urllib.parse import unquote
 
 import frappe
+
+from wiki.wiki.upload_links import FENCE, UPLOAD_LINK, normalize_path
 
 # Shown inline on the page, so listing them again as downloads would repeat them.
 _INLINE_MEDIA = {
@@ -50,9 +52,11 @@ _KINDS = {
 }
 
 _FILE_PREFIXES = ("/files/", "/private/files/")
-_FENCE = re.compile(r"(```|~~~).*?\1", re.S)
-# `[text](url)` and `![text](url)`; the url ends at whitespace or a closing paren.
-_LINK = re.compile(r"!?\[([^\]]*)\]\(\s*<?([^)\s>]+)>?[^)]*\)")
+
+
+def _label_of(head: str) -> str:
+	"""The text between the brackets of a link head such as `![name](`."""
+	return head[head.index("[") + 1 : head.rindex("]")]
 
 
 def extract_attachments(markdown: str) -> list[dict]:
@@ -60,13 +64,8 @@ def extract_attachments(markdown: str) -> list[dict]:
 	attachments: list[dict] = []
 	seen: set[str] = set()
 
-	for label, href in _LINK.findall(_FENCE.sub(" ", markdown or "")):
-		parsed = urlparse(href)
-		# Only this site's own uploads: a link to someone else's /files/ is theirs.
-		if parsed.netloc or not parsed.path.startswith(_FILE_PREFIXES):
-			continue
-
-		path = parsed.path
+	for match in UPLOAD_LINK.finditer(FENCE.sub(" ", markdown or "")):
+		label, path = _label_of(match.group(1)), normalize_path(match.group(2))
 
 		filename = unquote(path.rsplit("/", 1)[-1])
 		extension = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
@@ -109,12 +108,16 @@ def get_page_attachments(markdown: str) -> list[dict]:
 	if not attachments:
 		return attachments
 
+	# The link is written percent-encoded, the File record holds the plain name.
 	rows = frappe.get_all(
 		"File",
-		filters={"file_url": ("in", [a["url"] for a in attachments])},
+		filters={
+			"file_url": ("in", [a["url"] for a in attachments] + [unquote(a["url"]) for a in attachments])
+		},
 		fields=["file_url", "file_size"],
 	)
 	sizes = {row.file_url: row.file_size for row in rows}
 	for attachment in attachments:
-		attachment["size"] = format_file_size(sizes.get(attachment["url"]))
+		size = sizes.get(attachment["url"]) or sizes.get(unquote(attachment["url"]))
+		attachment["size"] = format_file_size(size)
 	return attachments

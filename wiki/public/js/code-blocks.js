@@ -55,13 +55,15 @@ function initCodeBlocks() {
         copyBtn.className = 'code-block-copy';
         copyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>';
         copyBtn.title = window.wikiT ? wikiT('Copy code') : 'Copy code';
+        const copyIcon = copyBtn.innerHTML;
+        const checkIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+        const failIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+        let resetTimer;
         copyBtn.addEventListener('click', function() {
-            const code = codeBlock.textContent;
-            navigator.clipboard.writeText(code).then(function() {
-                copyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
-                setTimeout(function() {
-                    copyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>';
-                }, 2000);
+            window.wikiCopyText(codeBlock.textContent).then(function(ok) {
+                copyBtn.innerHTML = ok ? checkIcon : failIcon;
+                clearTimeout(resetTimer);
+                resetTimer = setTimeout(function() { copyBtn.innerHTML = copyIcon; }, 2000);
             });
         });
         toolbar.appendChild(copyBtn);
@@ -116,6 +118,35 @@ function initCodeGroups() {
         select(0);
     });
 }
+
+// Copy text to the clipboard; resolves true when it worked. `navigator.clipboard`
+// exists only on a secure origin (HTTPS or localhost), so a wiki served over
+// plain HTTP, or inside a frame that forbids it, would fail without a sound.
+// The fallback is a hidden textarea and execCommand('copy'), which works wherever
+// a click does.
+window.wikiCopyText = function(text) {
+    function viaSelection() {
+        const area = document.createElement('textarea');
+        area.value = text;
+        area.setAttribute('readonly', '');
+        area.style.position = 'fixed';
+        area.style.top = '0';
+        area.style.opacity = '0';
+        const previous = document.activeElement;
+        document.body.appendChild(area);
+        area.select();
+        area.setSelectionRange(0, text.length);
+        let ok = false;
+        try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+        document.body.removeChild(area);
+        if (previous && previous.focus) previous.focus();
+        return ok;
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text).then(function() { return true; }, function() { return viaSelection(); });
+    }
+    return Promise.resolve(viaSelection());
+};
 
 // Tables scroll sideways instead of overflowing the column, and a header cell
 // sorts its column. A table with fewer than three body rows has nothing to sort.

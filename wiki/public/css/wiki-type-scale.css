@@ -26,6 +26,10 @@
   --wiki-text-code: 0.9rem;
   --wiki-title-size: 2.25rem;
   --wiki-code-ligatures: normal;
+  /* Inline code. To try another colour, change these two (see the proposals in
+     the product notes: e.g. --surface-violet-2 with --ink-violet-8). */
+  --wiki-inline-code-bg: var(--surface-gray-2);
+  --wiki-inline-code-fg: var(--ink-gray-8);
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 }
 
@@ -99,6 +103,8 @@
 
 .prose-v3 :not(pre) > code {
   font-size: 0.9em;
+  background-color: var(--wiki-inline-code-bg);
+  color: var(--wiki-inline-code-fg);
 }
 
 .prose-v3 pre,

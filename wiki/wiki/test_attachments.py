@@ -42,3 +42,28 @@ class TestExtractAttachments(FrappeTestCase):
 		self.assertEqual(format_file_size(1536), "1.5 KB")
 		self.assertEqual(format_file_size(250 * 1024), "250 KB")
 		self.assertEqual(format_file_size(5 * 1024 * 1024), "5.0 MB")
+
+
+class TestUploadsWithAwkwardNames(FrappeTestCase):
+	"""Frappe keeps the file's name as uploaded, so spaces and parentheses are routine."""
+
+	def test_a_name_with_spaces_is_listed_whole(self):
+		(attachment,) = extract_attachments("[Manual de usuario.pdf](/files/Manual de usuario.pdf)")
+
+		self.assertEqual(attachment["url"], "/files/Manual%20de%20usuario.pdf")
+		self.assertEqual(attachment["filename"], "Manual de usuario.pdf")
+
+	def test_parentheses_and_accents_in_a_name(self):
+		md = "[a](/files/Manual%20(v2).pdf) ![b](/files/Informe año.pdf)"
+
+		self.assertEqual(
+			[a["filename"] for a in extract_attachments(md)], ["Manual (v2).pdf", "Informe año.pdf"]
+		)
+
+	def test_angle_brackets_and_titles_are_understood(self):
+		md = '[a](</files/my file.pdf>) [b](/files/b.zip "download")'
+
+		self.assertEqual([a["filename"] for a in extract_attachments(md)], ["my file.pdf", "b.zip"])
+
+	def test_a_query_or_fragment_is_not_part_of_the_file(self):
+		self.assertEqual(extract_attachments("[a](/files/a.zip?x=1#top)")[0]["url"], "/files/a.zip")

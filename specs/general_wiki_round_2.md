@@ -77,3 +77,20 @@ at line-height 1.2 to 1.35. Measured in the editor and in the reader: the same n
 To tune it, change that one file. `--wiki-title-size`, `--wiki-text-code`,
 `--wiki-text-small` and `--prose-font-size` are variables; set `--wiki-code-ligatures: none`
 to turn ligatures off.
+
+## Copy button, attachments on the published page, inline code colour (follow-up)
+
+- **Copy buttons did nothing on a wiki served over plain HTTP.** `navigator.clipboard` exists only
+  on HTTPS or localhost, and the reader called it without a fallback. The reader
+  (`window.wikiCopyText` in `code-blocks.js`, also used by "Copy page" and heading links) and the
+  editor (`lib/clipboard.js`, used by code blocks, link popup, sidebar, settings) now fall back to a
+  hidden textarea and `execCommand('copy')`. The button shows a check only when the copy worked, and
+  a cross when it did not. Verified in a browser with and without `navigator.clipboard`.
+- **Uploaded files with a space in their name never became attachments.** Frappe keeps the name as
+  uploaded; a space ends a markdown link destination, so the link was saved as plain text. Images
+  were already handled (`_encode_image_url_spaces`), other files were not. Now the editor writes
+  `%20` into the url on upload (`lib/fileUrl.js`), the renderer repairs existing content
+  (`wiki/wiki/upload_links.py`), and the attachments list reads names with spaces, accents and
+  parentheses (`attachments.py`), looking sizes up by the stored, decoded name.
+- **Inline code colour** is two variables, `--wiki-inline-code-bg` and `--wiki-inline-code-fg`
+  (`wiki-type-scale.css`); the default is unchanged.

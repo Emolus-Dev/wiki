@@ -21,6 +21,8 @@ from markdown_it.token import Token
 from mdit_py_plugins.footnote import footnote_plugin
 from mdit_py_plugins.tasklists import tasklists_plugin
 
+from wiki.wiki.upload_links import encode_upload_links
+
 
 def slugify(text: str) -> str:
 	"""
@@ -748,6 +750,7 @@ def render_markdown_with_toc(content: str) -> tuple[str, list]:
 	md = _build_markdown()
 
 	processed_content = _encode_image_url_spaces(content)
+	processed_content = encode_upload_links(processed_content)
 	processed_content = _escape_table_inline_code_pipes(processed_content)
 	processed_content, code_groups, code_group_prefix = _process_code_groups_with_placeholders(
 		processed_content

@@ -96,6 +96,7 @@ import {
 	Emoji,
 	useEditor,
 } from 'frappe-ui/editor';
+import { markdownSafeUrl } from '@/lib/fileUrl';
 import EditorAttachments from './EditorAttachments.vue';
 import EditorTableOfContents from './EditorTableOfContents.vue';
 import LinkPopup from './tiptap-extensions/LinkPopup.vue';
@@ -269,7 +270,7 @@ async function uploadFile(file) {
 		});
 
 		toast.success(`${isImage ? 'Image' : 'File'} uploaded successfully`);
-		return result.file_url;
+		return markdownSafeUrl(result.file_url);
 	} catch (error) {
 		toast.error('Failed to upload file');
 		throw error;

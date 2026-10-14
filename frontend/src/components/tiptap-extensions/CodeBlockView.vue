@@ -66,6 +66,7 @@
 
 <script setup>
 import { NodeViewContent, NodeViewWrapper, nodeViewProps } from '@tiptap/vue-3';
+import { copyText } from '../../lib/clipboard';
 import { computed, nextTick, onBeforeUnmount, ref, toRaw } from 'vue';
 
 const props = defineProps(nodeViewProps);
@@ -109,19 +110,7 @@ const copied = ref(false);
 let resetTimer;
 
 async function copyCode() {
-	const text = props.node.textContent;
-	try {
-		await navigator.clipboard.writeText(text);
-	} catch {
-		const area = document.createElement('textarea');
-		area.value = text;
-		area.style.position = 'fixed';
-		area.style.opacity = '0';
-		document.body.appendChild(area);
-		area.select();
-		document.execCommand('copy');
-		document.body.removeChild(area);
-	}
+	if (!(await copyText(props.node.textContent))) return;
 	copied.value = true;
 	clearTimeout(resetTimer);
 	resetTimer = setTimeout(() => {

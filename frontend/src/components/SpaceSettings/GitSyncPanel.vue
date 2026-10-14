@@ -177,6 +177,7 @@
 </template>
 
 <script setup>
+import { copyText } from '@/lib/clipboard';
 import {
 	Badge,
 	Button,
@@ -215,7 +216,7 @@ const webhookUrl = computed(
 
 async function copyWebhookUrl() {
 	try {
-		await navigator.clipboard.writeText(webhookUrl.value);
+		if (!(await copyText(webhookUrl.value))) throw new Error('copy failed');
 		toast.success(__('Webhook URL copied'));
 	} catch {
 		toast.error(__('Could not copy URL'));

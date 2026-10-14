@@ -1,4 +1,5 @@
 import os
+from urllib.parse import unquote
 
 import frappe
 from frappe.translate import get_all_translations
@@ -79,8 +80,13 @@ def get_file_sizes(urls: list[str] | str) -> dict[str, str]:
 	if not urls:
 		return {}
 
-	rows = frappe.get_all("File", filters={"file_url": ("in", urls[:50])}, fields=["file_url", "file_size"])
-	return {row.file_url: format_file_size(row.file_size) for row in rows}
+	# Links are percent-encoded; the File record holds the plain name.
+	wanted = urls[:50]
+	lookup = {unquote(url): url for url in wanted} | {url: url for url in wanted}
+	rows = frappe.get_all(
+		"File", filters={"file_url": ("in", list(lookup))}, fields=["file_url", "file_size"]
+	)
+	return {lookup[row.file_url]: format_file_size(row.file_size) for row in rows}
 
 
 def _to_webp(path_or_url: str) -> str:

@@ -107,6 +107,7 @@
 </template>
 
 <script setup>
+import { copyText } from '@/lib/clipboard';
 import {
 	Button,
 	ContextMenu,
@@ -236,8 +237,11 @@ async function copySpaceLink(space) {
 		name: 'SpaceDetails',
 		params: { spaceId: space.name },
 	});
-	await navigator.clipboard.writeText(`${window.location.origin}${href}`);
-	toast.success(__('Link copied'));
+	if (await copyText(`${window.location.origin}${href}`)) {
+		toast.success(__('Link copied'));
+	} else {
+		toast.error(__('Failed to copy'));
+	}
 }
 
 const headerMenuItems = computed(() => [

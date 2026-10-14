@@ -187,14 +187,13 @@
             },
 
             copyMarkdown() {
-                navigator.clipboard.writeText(this.markdown).then(() => {
+                window.wikiCopyText(this.markdown).then((ok) => {
+                    if (!ok) return;
                     capturePageAction('copy');
                     this.copied = true;
                     setTimeout(() => {
                         this.copied = false;
                     }, 2000);
-                }).catch(err => {
-                    console.error('Failed to copy markdown:', err);
                 });
             },
 
@@ -423,7 +422,8 @@
                 anchor.textContent = '#';
                 anchor.addEventListener('click', () => {
                     const url = `${location.origin}${location.pathname}${location.search}#${heading.id}`;
-                    navigator.clipboard?.writeText(url).then(() => {
+                    window.wikiCopyText(url).then((ok) => {
+                        if (!ok) return;
                         anchor.textContent = '✓';
                         anchor.title = wikiT('Link copied');
                         setTimeout(() => {

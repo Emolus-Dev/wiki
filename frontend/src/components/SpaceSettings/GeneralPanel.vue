@@ -160,6 +160,7 @@
 </template>
 
 <script setup>
+import { copyText } from '@/lib/clipboard';
 import {
 	Button,
 	createResource,
@@ -287,7 +288,7 @@ function openDeleteDialog() {
 
 async function copySpaceName() {
 	try {
-		await navigator.clipboard.writeText(savedName.value);
+		if (!(await copyText(savedName.value))) throw new Error('copy failed');
 		toast.success(__('Space name copied'));
 	} catch {
 		toast.error(__('Could not copy the space name'));
