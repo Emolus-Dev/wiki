@@ -15,7 +15,7 @@
             <a href="{{ file.url | e }}" download
                class="wiki-attachment group/file flex items-center gap-3 rounded-5 border border-[var(--outline-gray-2)] bg-[var(--surface-base)] p-2.5 no-underline transition-colors hover:bg-[var(--surface-gray-1)]"
                {% if file.private %}title="{{ _('Private file: sign in to download it') }}"{% endif %}>
-                <span class="wiki-attachment-chip" data-kind="{{ file.kind }}">{{ (file.extension or "file")[:4] | upper }}</span>
+                <span class="wiki-attachment-chip" data-kind="{{ file.kind | e }}">{{ ((file.extension or "file")[:4] | upper) | e }}</span>
                 <span class="min-w-0 flex-1">
                     <span class="block truncate text-sm font-medium text-[var(--ink-gray-8)]">{{ file.name | e }}</span>
                     {% if file.size %}<span class="block text-xs text-[var(--ink-gray-5)]">{{ file.size }}</span>{% endif %}

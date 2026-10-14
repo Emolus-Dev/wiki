@@ -91,7 +91,7 @@
 											<span class="flex -space-x-1.5">
 												<Avatar
 													v-for="person in otherEditors.slice(0, 3)"
-													:key="person.user"
+													:key="person.id"
 													size="xs"
 													:label="person.full_name"
 													:image="person.image"

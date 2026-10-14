@@ -214,13 +214,13 @@ class TestImageCaptionSupport(unittest.TestCase):
 		self.assertNotIn("<script>alert", result)
 
 	def test_image_alt_and_title_preserve_non_script_html(self):
-		"""Keep non-script HTML in alt/title, but strip script tags only."""
+		"""Script tags are removed; any other markup in alt/title is kept as escaped text."""
 		result = render_markdown(
 			'![<b>Bold Alt</b><script>alert(1)</script>](/files/test.jpg "<i>Title</i><script>x</script>")'
 		)
 
-		self.assertIn('alt="<b>Bold Alt</b>"', result)
-		self.assertIn('title="<i>Title</i>"', result)
+		self.assertIn('alt="&lt;b&gt;Bold Alt&lt;/b&gt;"', result)
+		self.assertIn('title="&lt;i&gt;Title&lt;/i&gt;"', result)
 		self.assertNotIn("<script>", result)
 
 	def test_video_markdown_renders_as_block_not_inline_caption_pattern(self):

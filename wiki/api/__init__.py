@@ -84,9 +84,17 @@ def get_file_sizes(urls: list[str] | str) -> dict[str, str]:
 	wanted = urls[:50]
 	lookup = {unquote(url): url for url in wanted} | {url: url for url in wanted}
 	rows = frappe.get_all(
-		"File", filters={"file_url": ("in", list(lookup))}, fields=["file_url", "file_size"]
+		"File",
+		filters={"file_url": ("in", list(lookup))},
+		fields=["name", "file_url", "file_size", "is_private"],
 	)
-	return {lookup[row.file_url]: format_file_size(row.file_size) for row in rows}
+	# A public file's size is no secret. A private one is reported only to someone who
+	# may read that file, or the list would tell anyone the size of any private upload.
+	return {
+		lookup[row.file_url]: format_file_size(row.file_size)
+		for row in rows
+		if not row.is_private or frappe.has_permission("File", "read", doc=row.name)
+	}
 
 
 def _to_webp(path_or_url: str) -> str:
@@ -161,6 +169,19 @@ def convert_file_to_webp(file_doc) -> str:
 	return file_doc.file_url
 
 
+def _refuse_active_uploads():
+	"""Pages, scripts and scripted SVGs would run from the site's own origin; see upload_guard."""
+	from wiki.upload_guard import upload_problem
+
+	upload = (frappe.request.files or {}).get("file") if frappe.request else None
+	if upload is None:
+		return
+	head = upload.stream.read(2_000_000)
+	upload.stream.seek(0)
+	if problem := upload_problem(upload.filename, head):
+		frappe.throw(frappe._(problem), frappe.ValidationError)
+
+
 @frappe.whitelist()
 def upload_wiki_asset():
 	"""Upload handler for wiki editor assets.
@@ -171,6 +192,7 @@ def upload_wiki_asset():
 	"""
 	from frappe.handler import upload_file
 
+	_refuse_active_uploads()
 	file_doc = upload_file()
 	if (
 		file_doc

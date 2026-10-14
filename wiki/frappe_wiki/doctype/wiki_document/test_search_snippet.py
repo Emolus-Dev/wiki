@@ -29,6 +29,17 @@ class TestSearchSnippet(IntegrationTestCase):
 		self.assertIn("Configuración", plain)
 		self.assertIn("Identidad global", plain)
 
+	def test_page_text_cannot_become_markup_next_to_a_match(self):
+		# FTS wraps the match in <mark>; a half-written tag before it must stay text.
+		snippet = _clean_snippet("Intro <img src=x onerror=alert(1) <mark>match</mark> and more")
+
+		self.assertNotIn("<img", snippet)
+		self.assertIn("&lt;img", snippet)
+		self.assertIn("<mark>match</mark>", snippet)
+
+	def test_quotes_and_ampersands_in_page_text_are_escaped(self):
+		self.assertEqual(_clean_snippet('a "b" & <mark>c</mark>'), "a &quot;b&quot; &amp; <mark>c</mark>")
+
 	def test_query_tokens_drop_short_and_repeated_words_and_cap_the_count(self):
 		self.assertEqual(_query_tokens("a git Git  config"), ["git", "config"])
 		self.assertEqual(len(_query_tokens("aa bb cc dd ee ff gg")), 5)

@@ -15,8 +15,11 @@ FENCE = re.compile(r"(```|~~~).*?\1", re.S)
 # `[text](url)` and `![text](url)` where the url is one of this site's uploads.
 # The url may hold spaces and one level of parentheses, and may be wrapped in
 # <...> or followed by a "title".
+# Every part is bounded: with open-ended `*` and `\s*` a line of 20,000 spaces
+# after `[a](/files/` took seconds to scan (it grows with the square of the line).
 UPLOAD_LINK = re.compile(
-	r'(!?\[[^\]]*\]\(\s*)<?(/(?:private/)?files/(?:[^()\n<>]|\([^()\n]*\))*?)>?((?:\s+"[^"]*")?\s*\))'
+	r"(!?\[[^\]\n]{0,300}\]\(\s{0,5})<?(/(?:private/)?files/(?:[^()\n<>]|\([^()\n]{0,300}\)){0,500}?)>?"
+	r'((?:\s{1,5}"[^"\n]{0,300}")?\s{0,5}\))'
 )
 
 

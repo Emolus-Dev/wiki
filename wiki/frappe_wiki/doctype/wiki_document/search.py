@@ -1,4 +1,5 @@
 import re
+from html import escape
 
 import frappe
 
@@ -158,6 +159,11 @@ def _clean_snippet(text: str | None) -> str:
 	text = re.sub(r"\*{1,3}", "", text)
 	text = re.sub(r"(?:^|\s)[-*_]{3,}(?=\s|$)", " ", text)
 	text = re.sub(r"\s+", " ", text).strip()
+	# The reader shows a snippet with `x-html` so its <mark> tags work. Everything
+	# else in it is page text, so it is escaped first: left as it was, a stray
+	# `<img src=x onerror=...` in a page ahead of the matched word was closed by the
+	# `>` of the <mark> put back below, and ran for every visitor who searched.
+	text = escape(text, quote=True)
 	return text.replace(_MARK_OPEN, "<mark>").replace(_MARK_CLOSE, "</mark>")
 
 

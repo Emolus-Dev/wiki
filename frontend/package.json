@@ -101,8 +101,9 @@
 		"@shikijs/themes": "^3.23.0",
 		"prosemirror-model": "^1.25.9",
 		"prosemirror-state": "^1.4.4",
-		"prosemirror-view": "^1.41.8",
+		"prosemirror-view": "^1.42.3",
 		"prosemirror-transform": "^1.10.4",
+		"dompurify": "^3.4.16",
 		"reka-ui": "^2.10.1"
 	}
 }

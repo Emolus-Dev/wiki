@@ -14,6 +14,7 @@ Supported types: note, tip, caution, danger, warning (alias for caution)
 """
 
 import re
+from html import unescape as html_unescape
 
 from markdown_it import MarkdownIt
 from markdown_it.common.utils import escapeHtml
@@ -21,6 +22,7 @@ from markdown_it.token import Token
 from mdit_py_plugins.footnote import footnote_plugin
 from mdit_py_plugins.tasklists import tasklists_plugin
 
+from wiki.wiki.html_sanitizer import is_safe_url, sanitize_html
 from wiki.wiki.upload_links import encode_upload_links
 
 
@@ -79,7 +81,7 @@ CALLOUT_ICONS = {
 # Matches: :::type or :::type[title] or :::type\[title] (escaped bracket from editor)
 # Content continues until closing :::
 CALLOUT_PATTERN = re.compile(
-	r"^[ \t]*:::(?P<type>note|tip|caution|danger|warning|details)(?:\\?\[(?P<title>[^\]]*)\])?\s*\n(?P<content>[\s\S]*?)\n[ \t]*:::[ \t]*$",
+	r"^[ \t]*:::(?P<type>note|tip|caution|danger|warning|details)(?:\\?\[(?P<title>[^\]\n]{0,300})\])?\s*\n(?P<content>[\s\S]{0,100000}?)\n[ \t]*:::[ \t]*$",
 	re.MULTILINE,
 )
 
@@ -90,9 +92,9 @@ def _generate_callout_html(callout_type, title, inner_html):
 	if callout_type == "warning":
 		callout_type = "caution"
 
-	# Use default title if none provided or empty
-	if not title:
-		title = DEFAULT_TITLES.get(callout_type, callout_type.capitalize())
+	# Use default title if none provided or empty. The title is the author's text,
+	# shown as text: never as markup.
+	title = _attr(title) if title else DEFAULT_TITLES.get(callout_type, callout_type.capitalize())
 
 	icon = CALLOUT_ICONS.get(callout_type, CALLOUT_ICONS["note"])
 
@@ -144,6 +146,8 @@ def _process_callouts_with_placeholders(content):
 	"""
 	callouts = []
 	placeholder_prefix = "WIKICALLOUTPLACEHOLDER"
+	if _too_many_fences(content):
+		return content, callouts, placeholder_prefix
 
 	def replacer(match):
 		callout_type = match.group("type")
@@ -183,9 +187,19 @@ def _process_callouts_with_placeholders(content):
 #   ```
 #   :::
 CODE_GROUP_PATTERN = re.compile(
-	r"^[ \t]*:::code-group[ \t]*\n(?P<content>[\s\S]*?)\n[ \t]*:::[ \t]*$",
+	r"^[ \t]*:::code-group[ \t]*\n(?P<content>[\s\S]{0,100000}?)\n[ \t]*:::[ \t]*$",
 	re.MULTILINE,
 )
+
+
+# A page has a handful of callouts and code groups. A fence that never closes makes the
+# scan for its end read the rest of the page, so thousands of them are quadratic work;
+# past this many `:::` they are left as plain text.
+MAX_BLOCK_FENCES = 1000
+
+
+def _too_many_fences(content: str) -> bool:
+	return content.count(":::") > MAX_BLOCK_FENCES
 
 
 def _process_code_groups_with_placeholders(content):
@@ -193,6 +207,8 @@ def _process_code_groups_with_placeholders(content):
 	rendered on their own and wrapped afterwards."""
 	groups = []
 	placeholder_prefix = "WIKICODEGROUPPLACEHOLDER"
+	if _too_many_fences(content):
+		return content, groups, placeholder_prefix
 
 	def replacer(match):
 		idx = len(groups)
@@ -229,7 +245,9 @@ def _replace_callout_placeholders(html, callouts, placeholder_prefix, render_inn
 # URL allows one level of balanced parens so Frappe uploads named like
 # `/files/image (14).png` are matched whole.
 IMAGE_PATTERN = re.compile(
-	r'!\[([^\]]*)\]\(((?:[^()"]|\([^()"]*\))+?)(?:\s+"([^"]*)")?\)',
+	# Bounded: open-ended repeats made a line of 20,000 spaces after `![a](/files/x.png`
+	# take seconds to scan, and a page is public, so that is a way to tie up a worker.
+	r'!\[([^\]\n]{0,300})\]\(((?:[^()"\n]|\([^()"\n]{0,300}\)){1,500}?)(?:\s{1,5}"([^"\n]{0,300})")?\)',
 )
 
 VIDEO_EXTENSIONS = (
@@ -264,6 +282,16 @@ def _is_pdf_url(url: str) -> bool:
 SCRIPT_TAG_PATTERN = re.compile(r"(?is)<script\b[^>]*>.*?</script>|</?script\b[^>]*>")
 
 
+def _unescape_attr(value: str | None) -> str:
+	"""Undo the escaping of an attribute the editor wrote, so it is escaped exactly once."""
+	return html_unescape(value) if value else ""
+
+
+def _attr(value: str | None) -> str:
+	"""Escape text for an HTML attribute or element body: & < > and the double quote."""
+	return escapeHtml(_remove_script_tags(value)) if value else ""
+
+
 def _remove_script_tags(value: str | None) -> str:
 	"""Remove only <script> tags/content; keep all other HTML unchanged."""
 	if not value:
@@ -281,8 +309,12 @@ VIDEO_MARKDOWN_PATTERN = re.compile(
 
 def _generate_video_html(url: str, alt: str = "", title: str = "") -> str:
 	"""Generate HTML for a video block."""
-	safe_alt = _remove_script_tags(alt)
-	safe_title = _remove_script_tags(title)
+	if not is_safe_url(url):
+		# `javascript:...mp4` passes the extension check; it must not become a source.
+		return ""
+	url = _attr(url)
+	safe_alt = _attr(alt)
+	safe_title = _attr(title)
 	title_attr = f' title="{safe_title}"' if safe_title else ""
 	data_alt_attr = f' data-alt="{safe_alt}"' if safe_alt else ""
 	return (
@@ -356,7 +388,10 @@ _PDF_DOWNLOAD_ICON_SVG = (
 def _generate_pdf_html(url: str, filename: str = "") -> str:
 	"""Generate the PDF embed card. The first-page thumbnail and the full-screen
 	viewer are hydrated client-side by wiki/public/js/pdf-viewer.js (PDF.js)."""
-	safe_name = _remove_script_tags(filename) or "Document.pdf"
+	if not is_safe_url(url):
+		return ""
+	safe_name = _attr(filename) or "Document.pdf"
+	url = _attr(url)
 	return (
 		f'<div class="wiki-pdf-embed" data-type="pdf-block" data-src="{url}"'
 		f' data-filename="{safe_name}">'
@@ -592,23 +627,16 @@ def _build_markdown() -> MarkdownIt:
 	def image_render(tokens, idx, options, env):
 		tok = tokens[idx]
 		src = tok.attrGet("src") or ""
-		alt = _remove_script_tags(tok.content)
-		title = _remove_script_tags(tok.attrGet("title") or "")
+		raw_alt = tok.content
+		raw_title = tok.attrGet("title") or ""
 
 		if _is_video_url(src):
-			title_attr = f' title="{title}"' if title else ""
-			data_alt_attr = f' data-alt="{alt}"' if alt else ""
-			return (
-				f'<div data-type="video-block" data-src="{src}"{data_alt_attr}>'
-				f'<video src="{src}" controls preload="metadata"{title_attr}>'
-				f'<source src="{src}" />'
-				"</video></div>"
-			)
+			return _generate_video_html(src, raw_alt, raw_title)
 		if _is_pdf_url(src):
-			return _generate_pdf_html(src, alt)
-		s = f'<img src="{src}" alt="{alt}"'
-		if title:
-			s += f' title="{title}"'
+			return _generate_pdf_html(src, raw_alt)
+		s = f'<img src="{_attr(src)}" alt="{_attr(raw_alt)}"'
+		if raw_title:
+			s += f' title="{_attr(raw_title)}"'
 		return s + " />"
 
 	md.renderer.rules["image"] = image_render
@@ -621,22 +649,22 @@ def _build_markdown() -> MarkdownIt:
 		while position < len(content):
 			match = PICTURE_BLOCK_PATTERN.match(content, position)
 			if not match:
-				return "".join(pictures) + content[position:]
+				return "".join(pictures) + sanitize_html(content[position:])
 			pictures.append(render_picture(match))
 			position = match.end()
 		return "".join(pictures)
 
 	def render_picture(match):
 		# Same shape as a plain image with a caption, so the caption CSS is shared.
-		alt = _remove_script_tags(match["alt"])
-		title = _remove_script_tags(match["title"])
+		alt = _attr(_unescape_attr(match["alt"]))
+		title = _attr(_unescape_attr(match["title"]))
 		img_attrs = f' title="{title}"' if title else ""
 		if match["width"]:
 			img_attrs += f' width="{match["width"]}"'
 		if match["align"]:
 			img_attrs += f' data-align="{match["align"]}"'
 		source = (
-			f'<source srcset="{match["dark_src"]}" media="(prefers-color-scheme: dark)">'
+			f'<source srcset="{_attr(_unescape_attr(match["dark_src"]))}" media="(prefers-color-scheme: dark)">'
 			if match["dark_src"] is not None
 			else ""
 		)
@@ -645,11 +673,17 @@ def _build_markdown() -> MarkdownIt:
 		# On the <p> too, so the PDF renderer (no :has()) can align image and caption together.
 		paragraph_attrs = f' data-align="{match["align"]}"' if match["align"] else ""
 		return (
-			f'<p{paragraph_attrs}><picture>{source}<img src="{match["src"]}" alt="{alt}"{img_attrs} /></picture>'
+			f'<p{paragraph_attrs}><picture>{source}<img src="{_attr(_unescape_attr(match["src"]))}" alt="{alt}"{img_attrs} /></picture>'
 			f"{caption_html}</p>\n"
 		)
 
 	md.renderer.rules["html_block"] = html_block_render
+
+	def html_inline_render(tokens, idx, options, env):
+		# Raw HTML an author wrote in a line of text; see html_sanitizer.
+		return sanitize_html(tokens[idx].content)
+
+	md.renderer.rules["html_inline"] = html_inline_render
 
 	def softbreak_render(tokens, idx, options, env):
 		# No <br> before a caption, so the `img + em` caption CSS still matches.

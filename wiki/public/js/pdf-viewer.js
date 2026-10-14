@@ -168,9 +168,17 @@
 			await renderModalPages();
 		} catch (err) {
 			console.error('[wiki-pdf] viewer failed', err);
-			m.querySelector('.wiki-pdf-modal-scroll').innerHTML =
-				`<div class="wiki-pdf-modal-error">Unable to display this PDF. ` +
-				`<a href="${url}" target="_blank" rel="noopener">Download instead</a>.</div>`;
+			// Built from nodes, not a string: the url comes from the page.
+			const box = document.createElement('div');
+			box.className = 'wiki-pdf-modal-error';
+			box.append('Unable to display this PDF. ');
+			const link = document.createElement('a');
+			link.href = url;
+			link.target = '_blank';
+			link.rel = 'noopener';
+			link.textContent = 'Download instead';
+			box.append(link, '.');
+			m.querySelector('.wiki-pdf-modal-scroll').replaceChildren(box);
 		}
 	}
 

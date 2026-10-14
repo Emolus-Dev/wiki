@@ -41,6 +41,20 @@ class WikiFeedback(Document):
 		return "ok" if rating >= 0.5 else "bad"
 
 
+MAX_FEEDBACK_LENGTH = 2000
+
+
+def _check_page_is_public_to_this_visitor(wiki_document: str) -> None:
+	"""Feedback is for pages the visitor can read. One error for "no such page" and "not yours",
+	so the form cannot be used to find out which page names exist."""
+	not_found = (frappe._("Page not found"), frappe.DoesNotExistError)
+	if not isinstance(wiki_document, str) or not frappe.db.exists("Wiki Document", wiki_document):
+		frappe.throw(*not_found)
+	doc = frappe.get_cached_doc("Wiki Document", wiki_document)
+	doc.check_space_access("read")
+	doc.check_published()
+
+
 def get_feedback_limit():
 	wiki_settings = frappe.get_single("Wiki Settings")
 	return wiki_settings.feedback_submission_limit or 20
@@ -74,9 +88,12 @@ def submit_feedback(
 	    email: Optional email address
 	"""
 	email = validate_email_address(email) if email else None
+	# A visitor's comment is a line or two; this keeps the table from being used as storage.
+	feedback = (feedback or "")[:MAX_FEEDBACK_LENGTH] or None
 
 	# New API: Wiki Document with type
 	if wiki_document and type:
+		_check_page_is_public_to_this_visitor(wiki_document)
 		frappe.get_doc(
 			{
 				"doctype": "Wiki Feedback",

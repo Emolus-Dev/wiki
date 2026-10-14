@@ -119,9 +119,10 @@ def get_page_attachments(markdown: str) -> list[dict]:
 		filters={
 			"file_url": ("in", [a["url"] for a in attachments] + [unquote(a["url"]) for a in attachments])
 		},
-		fields=["file_url", "file_size"],
+		fields=["file_url", "file_size", "is_private"],
 	)
-	sizes = {row.file_url: row.file_size for row in rows}
+	# The page is public; the size of a private file is not part of it.
+	sizes = {row.file_url: row.file_size for row in rows if not row.is_private}
 	for attachment in attachments:
 		size = sizes.get(attachment["url"]) or sizes.get(unquote(attachment["url"]))
 		attachment["size"] = format_file_size(size)

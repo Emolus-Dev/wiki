@@ -35,11 +35,13 @@ class TestPresence(IntegrationTestCase):
 
 		self.as_user("presence_ben@example.com")
 		seen_by_ben = heartbeat(self.space.name, self.page)
-		self.assertEqual([p["user"] for p in seen_by_ben], ["presence_ana@example.com"])
+		self.assertEqual(len(seen_by_ben), 1)
+		self.assertNotIn("presence_ana@example.com", str(seen_by_ben))  # no email is handed out
 
 		self.as_user("presence_ana@example.com")
 		seen_by_ana = heartbeat(self.space.name, self.page)
-		self.assertEqual([p["user"] for p in seen_by_ana], ["presence_ben@example.com"])
+		self.assertEqual(len(seen_by_ana), 1)
+		self.assertNotIn("presence_ben@example.com", str(seen_by_ana))
 
 	def test_leaving_removes_the_user_at_once(self):
 		self.as_user("presence_ana@example.com")
@@ -60,3 +62,15 @@ class TestPresence(IntegrationTestCase):
 		heartbeat(self.space.name, self.page)
 		frappe.set_user("Guest")
 		self.assertEqual(heartbeat(self.space.name, self.page), [])
+
+	def test_a_page_key_of_its_own_making_is_ignored(self):
+		self.as_user("presence_ana@example.com")
+		for key in ("x" * 200, "a b", "../../etc", "", "a:b"):
+			self.assertEqual(heartbeat(self.space.name, key), [])
+		self.assertIsNone(frappe.cache().hget("wiki_presence", f"{self.space.name}:{'x' * 200}"))
+
+	def test_the_last_one_to_leave_leaves_no_key_behind(self):
+		self.as_user("presence_ana@example.com")
+		heartbeat(self.space.name, self.page)
+		leave(self.space.name, self.page)
+		self.assertIsNone(frappe.cache().hget("wiki_presence", f"{self.space.name}:{self.page}"))
