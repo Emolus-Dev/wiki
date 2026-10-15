@@ -11,6 +11,8 @@
      h4                1.125em (18px)
      body              1rem    (16px), line-height 1.6
      secondary         0.9375rem (15px): tables, callouts, captions
+     page chrome       13px: the tree, breadcrumbs and "On this page" share one
+                       size, so the side columns read as one tier below the body
      code              0.9rem  (14.4px), line-height 1.55; inline code 0.9em
      headings          line-height 1.2 to 1.35
 
@@ -109,6 +111,13 @@
   font-size: 0.9em;
   background-color: var(--wiki-inline-code-bg);
   color: var(--wiki-inline-code-fg);
+}
+
+/* Code in a heading is a chip inside a large line: at 0.9em of an h3 it outweighs
+   the words around it, so it steps down and stays at the heading's weight. */
+.prose-v3 :is(h1, h2, h3, h4) code {
+  font-size: 0.8em;
+  font-weight: 500;
 }
 
 .prose-v3 pre,

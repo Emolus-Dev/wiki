@@ -134,3 +134,12 @@ to turn ligatures off.
   (`wiki:reader-sidebar-width`, `wiki:editor-sidebar-width`); the reader applies it before first
   paint from `layout.html`. The reader's collapse toggle moved to the sidebar's outer edge so its
   hover zone no longer covers the handle.
+
+## Type harmony, second pass (follow-up)
+
+Measured in the reader: the content scale (36/27/21/18/16) was fine, but "On this page" and its links
+inherited the page's 16px, the size of the article body and larger than the tree (13px) and the
+breadcrumbs (13px). The side columns now share one 13px tier (`text-sm`), the label at medium weight;
+the SPA re-render in `includes/sidebar.html` mirrors `includes/toc.html`. Inline code inside a
+heading is 0.8em at weight 500 (it was 0.9em of an h3, heavier than the words around it); the editor
+shares the rule through `wiki-type-scale.css`.
