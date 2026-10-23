@@ -1,4 +1,5 @@
 import { useDraftWorkspaceStore } from '@/stores/draftWorkspace';
+import { countDeletion } from '@/lib/treeCounts';
 import { slugify } from '@/stores/draftWorkspace/utils';
 import { useDebounceFn } from '@vueuse/core';
 import { createResource, toast } from 'frappe-ui';
@@ -29,6 +30,7 @@ export function useTreeDialogs(
 	const showDeleteDialog = ref(false);
 	const deleteNode = ref(null);
 	const deleteChildCount = ref(0);
+	const deleteCounts = ref({ pages: 0, groups: 0 });
 
 	const showRenameDialog = ref(false);
 	const renameTitle = ref('');
@@ -125,17 +127,10 @@ export function useTreeDialogs(
 		showCreateDialog.value = true;
 	}
 
-	function countDescendants(node) {
-		if (!node?.children?.length) return 0;
-		return node.children.reduce(
-			(sum, child) => sum + 1 + countDescendants(child),
-			0,
-		);
-	}
-
 	function openDeleteDialog(node) {
 		deleteNode.value = node;
-		deleteChildCount.value = node?.is_group ? countDescendants(node) : 0;
+		deleteCounts.value = node?.is_group ? countDeletion(node) : { pages: 0, groups: 0 };
+		deleteChildCount.value = deleteCounts.value.pages + deleteCounts.value.groups;
 		showDeleteDialog.value = true;
 	}
 
@@ -321,6 +316,7 @@ export function useTreeDialogs(
 		showDeleteDialog,
 		deleteNode,
 		deleteChildCount,
+		deleteCounts,
 		showRenameDialog,
 		renameTitle,
 		renameNode,

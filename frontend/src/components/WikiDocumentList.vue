@@ -164,9 +164,7 @@
 							<div>
 								<p class="font-medium text-ink-orange-3">{{ __('Warning') }}</p>
 								<p class="text-sm text-ink-orange-2 mt-1">
-									{{ __('This group contains') }} {{ deleteChildCount }}
-									{{ deleteChildCount === 1 ? __('child document') : __('child documents') }}
-									{{ __('that will also be deleted.') }}
+									{{ deleteSummary }}
 								</p>
 							</div>
 						</div>
@@ -397,6 +395,7 @@ const {
 	showDeleteDialog,
 	deleteNode,
 	deleteChildCount,
+	deleteCounts,
 	showRenameDialog,
 	renameTitle,
 	renameNode,
@@ -426,6 +425,16 @@ const {
 	toRef(props, 'spaceRoute'),
 	toRef(props, 'rootNode'),
 );
+
+const deleteSummary = computed(() => {
+	const { pages, groups } = deleteCounts.value;
+	const parts = [];
+	if (pages) parts.push(`${pages} ${pages === 1 ? __('page') : __('pages')}`);
+	if (groups) {
+		parts.push(`${groups} ${groups === 1 ? __('sub-group') : __('sub-groups')}`);
+	}
+	return `${__('This will also delete')} ${parts.join(` ${__('and')} `)}.`;
+});
 
 // The empty content column offers "New page" too, but the dialog that makes one
 // lives here, with the route-computation it needs. Immediate, so a request made

@@ -450,20 +450,18 @@ function getDropdownOptions(node) {
 		});
 	}
 
-	const hasChildren = node.is_group && node.children?.length > 0;
-	if (!hasChildren) {
-		options.push({
-			group: __('Danger'),
-			options: [
-				{
-					label: __('Delete'),
-					icon: 'lucide-trash-2',
-					theme: 'red',
-					onClick: () => emit('delete', node),
-				},
-			],
-		});
-	}
+	// A group with pages in it can be deleted too: the dialog says how many go with it.
+	options.push({
+		group: __('Danger'),
+		options: [
+			{
+				label: __('Delete'),
+				icon: 'lucide-trash-2',
+				theme: 'red',
+				onClick: () => emit('delete', node),
+			},
+		],
+	});
 
 	return options;
 }

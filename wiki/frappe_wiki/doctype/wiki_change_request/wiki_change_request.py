@@ -2215,7 +2215,7 @@ def _save_remembering_route(doc: Document) -> None:
 	old_route = frappe.db.get_value("Wiki Document", doc.name, "route")
 	doc.save()
 	if old_route and doc.route and old_route != doc.route and not doc.is_external_link:
-		from wiki.wiki.route_titles import add_route_redirect
+		from wiki.wiki.route_redirects import add_route_redirect
 
 		add_route_redirect(old_route, doc.route)
 
