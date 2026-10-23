@@ -25,7 +25,7 @@
 :root {
   --prose-font-size: 16px;
   --wiki-text-small: 0.9375rem;
-  --wiki-text-code: 0.9rem;
+  --wiki-text-code: 0.8rem;
   --wiki-title-size: 2.25rem;
   --wiki-code-ligatures: normal;
   /* Inline code: a soft violet, apart from the grey of table headers and the
