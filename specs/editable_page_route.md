@@ -87,8 +87,8 @@ old links keep working. Accents are dropped from every slug, on the server and i
 
 Pages already out of step are fixed in bulk, one space at a time, dry run first:
 
-    bench --site <site> execute wiki.wiki.route_titles.fix_routes_from_titles --kwargs "{'space': '<name>'}"
-    bench --site <site> execute wiki.wiki.route_titles.fix_routes_from_titles --kwargs "{'space': '<name>', 'apply': 1}"
+    bench --site <site> execute wiki.wiki.route_titles.fix_routes_from_titles --kwargs "{'space': '<route or name>'}"
+    bench --site <site> execute wiki.wiki.route_titles.fix_routes_from_titles --kwargs "{'space': '<route or name>', 'apply': 1}"
 
 It recomputes every route in the space from titles and group slugs, skips the page served at the
 space route, external links and git-synced spaces, keeps each old address as a redirect and rewrites

@@ -9,9 +9,9 @@ would have if it were created today, and `fix_routes_from_titles` applies it.
 Run it as a dry run first; nothing is written until `apply` is set:
 
     bench --site <site> execute wiki.wiki.route_titles.fix_routes_from_titles \
-        --kwargs "{'space': '<space name>'}"
+        --kwargs "{'space': '<route or name of the space>'}"
     bench --site <site> execute wiki.wiki.route_titles.fix_routes_from_titles \
-        --kwargs "{'space': '<space name>', 'apply': 1}"
+        --kwargs "{'space': '<route or name of the space>', 'apply': 1}"
 """
 
 from collections import defaultdict
@@ -92,19 +92,39 @@ def _slugify(text):
 	return slugify_segment(text)
 
 
+def _find_space(identifier: str) -> str:
+	"""The Wiki Space's record name from its record name, route or display name.
+
+	The record name is an id, not what the sidebar shows, so "Emolus Docs" and
+	"emolus-docs" both have to find it.
+	"""
+	wanted = (identifier or "").strip()
+	if frappe.db.exists("Wiki Space", wanted):
+		return wanted
+	for field, value in (("route", wanted.strip("/")), ("space_name", wanted)):
+		name = frappe.db.get_value("Wiki Space", {field: value}, "name")
+		if name:
+			return name
+	available = ", ".join(
+		f"{row.space_name} (route {row.route})"
+		for row in frappe.get_all("Wiki Space", fields=["space_name", "route"], limit=0)
+	)
+	frappe.throw(_("No Wiki Space matches '{0}'. Available: {1}").format(identifier, available))
+
+
 @frappe.whitelist()
 def fix_routes_from_titles(space: str, apply: int | bool = 0) -> dict:
 	"""Dry-run (default) or apply the title-based routes of one Wiki Space."""
 	frappe.only_for("Wiki Manager")
 
-	space_doc = frappe.get_doc("Wiki Space", space)
+	space_doc = frappe.get_doc("Wiki Space", _find_space(space))
 	if space_doc.git_synced:
 		frappe.throw(_("The repository owns the routes of a git-synced space."))
 	if not space_doc.root_group:
 		frappe.throw(_("This Wiki Space has no root group."))
 
 	fields = ["name", "doc_key", "title", "slug", "route", "is_external_link", "sort_order", "parent_wiki_document"]
-	docs = frappe.get_all("Wiki Document", filters={"wiki_space": space}, fields=fields, limit=0)
+	docs = frappe.get_all("Wiki Document", filters={"wiki_space": space_doc.name}, fields=fields, limit=0)
 	for doc in docs:
 		doc["parent"] = doc.pop("parent_wiki_document")
 	by_name = {doc["name"]: doc for doc in docs}
@@ -112,7 +132,7 @@ def fix_routes_from_titles(space: str, apply: int | bool = 0) -> dict:
 	reserved = set(
 		frappe.get_all(
 			"Wiki Document",
-			filters={"wiki_space": ["!=", space], "is_group": 0},
+			filters={"wiki_space": ["!=", space_doc.name], "is_group": 0},
 			pluck="route",
 			limit=0,
 		)
@@ -123,7 +143,7 @@ def fix_routes_from_titles(space: str, apply: int | bool = 0) -> dict:
 
 	if apply:
 		_apply(changes)
-	return {"space": space, "applied": bool(apply), "count": len(changes), "changes": changes}
+	return {"space": space_doc.name, "applied": bool(apply), "count": len(changes), "changes": changes}
 
 
 def _apply(changes: list[dict]):
