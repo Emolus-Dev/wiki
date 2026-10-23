@@ -74,3 +74,22 @@ The route **prefix** is derived in the frontend rather than through a backend en
 - Backend unit tests (`test_wiki_change_request.py`): explicit route honoured; messy route sanitised; **regression** — `test_apply_cr_operations_update_node_keeps_route` (the former `..._recomputes_route`, inverted) confirms a title rename leaves the route untouched, verified by temp-reverting the fix; `check_route_available` catches both a live duplicate and a CR-only duplicate. All four pass; the module's remaining errors are local `QueryDeadlockError` flake present on `develop` too.
 - e2e (`e2e/tests/page-route-editable.spec.ts`): create a page inside a nested group → the Route field prefills with the hierarchy path and tracks the title → overwrite it → save → the custom route is what the tree and the panel report.
 - Manual: rename the page afterwards and confirm the URL does not move.
+
+## Revisit: a rename follows the title when the URL was never chosen
+
+The "never recompute on rename" rule left pages like "Banderas de configuración" served at
+`/docs/verificador-integrado`. A rename now moves the route when, and only when, the page's route
+still ended in the slug of its old title (so nobody typed it); a custom route, a group, a tab and an
+external link keep theirs, and an explicit `route` in the same call wins. A clash gets `-2`. Merging a
+route change adds a permanent redirect from the old address (Website Settings route redirects), so
+old links keep working. Accents are dropped from every slug, on the server and in the editor's
+`slugify`.
+
+Pages already out of step are fixed in bulk, one space at a time, dry run first:
+
+    bench --site <site> execute wiki.wiki.route_titles.fix_routes_from_titles --kwargs "{'space': '<name>'}"
+    bench --site <site> execute wiki.wiki.route_titles.fix_routes_from_titles --kwargs "{'space': '<name>', 'apply': 1}"
+
+It recomputes every route in the space from titles and group slugs, skips the page served at the
+space route, external links and git-synced spaces, keeps each old address as a redirect and rewrites
+the same route in the revision snapshots so an open change request does not put the old one back.

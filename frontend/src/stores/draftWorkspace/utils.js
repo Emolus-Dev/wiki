@@ -1,13 +1,28 @@
 // Shared pure helpers for the draft workspace store. Kept dependency-free
 // so any sub-module can import them without pulling in Vue or Pinia.
 
+// Accents come off first (`configuración` -> `configuracion`), as on the server:
+// `\w` is ASCII-only, so without this the accented letter was simply dropped
+// (`configuracin`).
 export function slugify(text) {
 	return String(text || '')
+		.normalize('NFKD')
+		.replace(/[\u0300-\u036f]/g, '')
 		.toLowerCase()
 		.trim()
 		.replace(/[^\w\s-]/g, '')
 		.replace(/[\s_-]+/g, '-')
 		.replace(/^-+|-+$/g, '');
+}
+
+// The route a page would have if its title were its address: the same parent
+// path, the title's slug at the end.
+export function routeForTitle(currentRoute, title) {
+	const slug = slugify(title);
+	if (!slug) return currentRoute || '';
+	const parts = String(currentRoute || '').split('/');
+	parts[parts.length - 1] = slug;
+	return parts.join('/');
 }
 
 export function errorMessage(err) {

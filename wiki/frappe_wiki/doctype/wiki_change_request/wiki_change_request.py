@@ -10,10 +10,9 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 from frappe.utils import now_datetime
-from frappe.website.utils import cleanup_page_name
 
 from wiki.api.wiki_space import flush_pending_revision_syncs
-from wiki.frappe_wiki.doctype.wiki_document.wiki_document import sanitize_route
+from wiki.frappe_wiki.doctype.wiki_document.wiki_document import sanitize_route, slugify_segment
 from wiki.frappe_wiki.doctype.wiki_revision.wiki_revision import (
 	build_tree_order,
 	create_overlay_revision,
@@ -366,7 +365,7 @@ def _create_cr_item(
 	item.revision = head_revision
 	item.doc_key = frappe.generate_hash(length=12)
 	item.title = title
-	item.slug = slug or cleanup_page_name(title)
+	item.slug = slug or slugify_segment(title)
 	item.is_group = 1 if is_group else 0
 	item.is_tab = 1 if is_tab else 0
 	item.tab_icon = tab_icon
@@ -381,6 +380,36 @@ def _create_cr_item(
 	item.route = sanitize_route(route) if route else _compute_cr_route(cr, parent_key, item.slug, item_map)
 	item.insert()
 	return item.doc_key
+
+
+def _route_following_title(cr: Document, item: Document, updates: dict[str, Any]) -> str | None:
+	"""The new route for a renamed page whose URL was still its title's, else None.
+
+	A page whose route ends in the slug of its old title has not had its URL chosen
+	by hand, so renaming it renames the URL too. A custom route stays as typed, and
+	so does the route of a group: its children carry its slug in their own routes
+	and would be left pointing into a path nothing owns.
+	"""
+	new_title = updates.get("title")
+	if not new_title or "route" in updates or item.is_group or item.is_external_link or item.is_tab:
+		return None
+	if not item.route or new_title == item.title:
+		return None
+	own_segment = item.route.rsplit("/", 1)[-1]
+	if own_segment != slugify_segment(item.title):
+		return None
+	new_slug = slugify_segment(new_title)
+	if not new_slug or new_slug == own_segment:
+		return None
+
+	prefix = item.route.rsplit("/", 1)[0] + "/" if "/" in item.route else ""
+	base, suffix = prefix + new_slug, 2
+	candidate = base
+	# The merge refuses a route another page already holds, so a clash takes a number.
+	while not check_route_available(cr.wiki_space, candidate, cr.name, item.doc_key)["available"]:
+		candidate = f"{base}-{suffix}"
+		suffix += 1
+	return candidate
 
 
 def _update_cr_item(
@@ -412,6 +441,10 @@ def _update_cr_item(
 	)
 	if fields.get("content") is not None:
 		updates["content_blob"] = get_or_create_content_blob(fields["content"])
+	new_route = _route_following_title(cr, item, updates)
+	if new_route:
+		updates["route"] = new_route
+		updates["slug"] = new_route.rsplit("/", 1)[-1]
 	item.update(updates)
 
 	# Re-check against the post-update item rather than the incoming fields: one
@@ -419,10 +452,6 @@ def _update_cr_item(
 	# existing tab has to be rejected just as hard as setting is_tab on a leaf.
 	if item.is_tab:
 		_assert_valid_tab(cr, parent_key=item.parent_key, is_group=bool(item.is_group))
-
-	# A route is never recomputed from a renamed title: the author picks the URL
-	# when the page is created and owns it from then on. Moving it is an explicit
-	# `route` edit, never a side effect of renaming.
 
 	item.save()
 	return item.doc_key
@@ -2148,7 +2177,7 @@ def _apply_merge_changes_only(
 					doc.doc_key = doc_key
 
 			doc.title = item.get("title")
-			doc.slug = item.get("slug") or cleanup_page_name(item.get("title") or "")
+			doc.slug = item.get("slug") or slugify_segment(item.get("title") or "")
 			if item.get("route"):
 				doc.route = item["route"]
 			doc.is_group = item.get("is_group")
@@ -2170,7 +2199,7 @@ def _apply_merge_changes_only(
 				doc.insert()
 				key_to_name[doc_key] = doc.name
 			else:
-				doc.save()
+				_save_remembering_route(doc)
 
 	# Delete AFTER saves — children must be reparented before parents are deleted
 	_delete_wiki_documents(deleted_keys, key_to_name, root_doc_key)
@@ -2179,6 +2208,16 @@ def _apply_merge_changes_only(
 	_reconcile_sort_order(new_items, key_to_name, changed_keys)
 
 	frappe.db.set_value("Wiki Space", space.name, "main_revision", merge_revision.name)
+
+
+def _save_remembering_route(doc: Document) -> None:
+	"""Save a page; when its route moved, leave a redirect from the old address."""
+	old_route = frappe.db.get_value("Wiki Document", doc.name, "route")
+	doc.save()
+	if old_route and doc.route and old_route != doc.route and not doc.is_external_link:
+		from wiki.wiki.route_titles import add_route_redirect
+
+		add_route_redirect(old_route, doc.route)
 
 
 def _finalize_merge(cr: Document, merge_revision: Document) -> None:
@@ -2584,7 +2623,7 @@ def _apply_merge_revision(space: Document, revision: Document) -> None:
 				doc.doc_key = doc_key
 
 		doc.title = item.get("title")
-		doc.slug = item.get("slug") or cleanup_page_name(item.get("title") or "")
+		doc.slug = item.get("slug") or slugify_segment(item.get("title") or "")
 		if item.get("route"):
 			doc.route = item["route"]
 		doc.is_group = item.get("is_group")
@@ -2608,7 +2647,7 @@ def _apply_merge_revision(space: Document, revision: Document) -> None:
 			doc.insert()
 			key_to_name[doc_key] = doc.name
 		else:
-			doc.save()
+			_save_remembering_route(doc)
 
 	# Delete AFTER saves — children must be reparented before parents are deleted
 	_delete_wiki_documents(delete_doc_keys, key_to_name, root_doc_key)

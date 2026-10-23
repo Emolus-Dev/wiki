@@ -111,6 +111,12 @@ Whole batch is one transaction. `_resolve_temp_key` substitutes temp keys in
 `None`/`null` values are **silently dropped**, so you cannot clear a field with
 `null`. Use `""`. `route` is passed through `sanitize_route`.
 
+**Renaming moves the URL.** A `title` change on a leaf page whose route still ends in the
+slug of its old title also sets `route` and `slug` from the new title (accents dropped,
+`-2` on a clash). Pass `route` yourself to pin it; a custom route, a group, a tab and an
+external link are left as they are. Merging a route change leaves a redirect from the old
+address.
+
 `update_content` differs from `update_node` with a `content` field only in that it registers
 the key in `content_doc_keys`, so the response echoes content back in `items[]`.
 

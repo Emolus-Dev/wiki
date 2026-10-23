@@ -20,6 +20,7 @@ from wiki.telemetry import capture, reader_config
 from wiki.utils import apply_public_language, fingerprint_js_url, reader_lang
 from wiki.wiki.related import clear_backlinks_cache, render_related
 from wiki.wiki.markdown import render_markdown, render_markdown_with_toc
+from wiki.wiki.slug_text import strip_accents
 
 WIKI_DOCUMENT_PRINT_FORMAT = "Standard Wiki Document"
 
@@ -92,8 +93,12 @@ def process_navbar_items(navbar_items: list) -> list:
 
 
 def slugify_segment(text: str) -> str:
-	"""Slugify a single route segment using the app-wide slug rule."""
-	return frappe.website.utils.cleanup_page_name(text or "").replace("_", "-")
+	"""Slugify a single route segment using the app-wide slug rule.
+
+	Accents are dropped first (`configuración` -> `configuracion`), the same as the
+	editor does when it suggests a route, so both give one address for one title.
+	"""
+	return frappe.website.utils.cleanup_page_name(strip_accents(text)).replace("_", "-")
 
 
 def sanitize_route(route: str | None) -> str:

@@ -4,6 +4,8 @@ import test from 'node:test';
 import { normalizeNode } from './treeModel.js';
 import {
 	restoredDraftBuffer,
+	routeForTitle,
+	slugify,
 	serverNeedsContent,
 	shouldDropPersistedDraft,
 	toPublished,
@@ -97,4 +99,23 @@ test('the server needs content when it differs from what the buffer shows', () =
 test('nothing is written when the buffer is empty of state or the server is unreadable', () => {
 	assert.equal(serverNeedsContent({ body: null, serverContent: 'a' }), false);
 	assert.equal(serverNeedsContent({ body: 'a', serverContent: null }), false);
+});
+
+test('slugify drops accents instead of the letter', () => {
+	assert.equal(slugify('Banderas de configuración'), 'banderas-de-configuracion');
+	assert.equal(slugify('Operación y Administración'), 'operacion-y-administracion');
+	assert.equal(slugify('Año Pingüino'), 'ano-pinguino');
+});
+
+test('routeForTitle keeps the parent path and replaces the last segment', () => {
+	assert.equal(
+		routeForTitle('emolus-docs/apps/verificador-integrado', 'Banderas de configuración'),
+		'emolus-docs/apps/banderas-de-configuracion',
+	);
+	assert.equal(routeForTitle('inicio', 'Bienvenida'), 'bienvenida');
+});
+
+test('routeForTitle leaves the route alone when the title has no letters', () => {
+	assert.equal(routeForTitle('docs/a', '???'), 'docs/a');
+	assert.equal(routeForTitle('', 'Hola'), 'hola');
 });

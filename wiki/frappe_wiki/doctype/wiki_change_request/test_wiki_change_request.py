@@ -3,6 +3,7 @@
 
 import glob
 import os
+import re
 from unittest.mock import patch
 
 import frappe
@@ -1953,32 +1954,62 @@ class TestWikiChangeRequest(FrappeTestCase):
 		child_page = get_cr_page(cr.name, child_key)
 		self.assertEqual(child_page["parent_key"], parent_key)
 
-	def test_apply_cr_operations_update_node_keeps_route(self):
-		"""The author owns the URL once the page exists — a rename must not move it."""
-		space = create_test_wiki_space()
-		page = create_test_wiki_document(space.root_group, title="Old Name", content="x")
-		cr = create_change_request(space.name, "Batch CR 4")
+	def _rename_item(self, space, page, fields):
+		cr = create_change_request(space.name, f"Rename {frappe.generate_hash(length=5)}")
 		page_key = frappe.get_value("Wiki Document", page.name, "doc_key")
-
 		result = apply_cr_operations(
 			cr.name,
 			base_version=0,
-			operations=[
-				{
-					"id": "op-1",
-					"type": "update_node",
-					"doc_key": page_key,
-					"fields": {"title": "Renamed", "slug": "renamed"},
-				},
-			],
+			operations=[{"id": "op-1", "type": "update_node", "doc_key": page_key, "fields": fields}],
 		)
-
 		self.assertTrue(result["ok"])
-		self.assertEqual(len(result["items"]), 1)
-		item = result["items"][0]
-		self.assertEqual(item["title"], "Renamed")
-		self.assertEqual(item["slug"], "renamed")
-		self.assertEqual(item["route"], page.route)
+		return result["items"][0]
+
+	def test_renaming_a_page_on_its_title_route_moves_the_route(self):
+		space = create_test_wiki_space()
+		page = create_test_wiki_document(space.root_group, title="Old Name", content="x")
+
+		item = self._rename_item(space, page, {"title": "Renombrada con acción"})
+
+		self.assertEqual(item["title"], "Renombrada con acción")
+		self.assertEqual(item["slug"], "renombrada-con-accion")
+		self.assertEqual(item["route"], page.route.rsplit("/", 1)[0] + "/renombrada-con-accion")
+
+	def test_renaming_a_page_with_a_custom_route_keeps_the_route(self):
+		"""A URL the author chose by hand is theirs: only a route that was still the title's follows it."""
+		space = create_test_wiki_space()
+		page = create_test_wiki_document(space.root_group, title="Old Name", content="x")
+		frappe.db.set_value("Wiki Document", page.name, "route", page.route.rsplit("/", 1)[0] + "/custom-url")
+
+		item = self._rename_item(space, page, {"title": "Renamed"})
+
+		self.assertTrue(item["route"].endswith("/custom-url"))
+
+	def test_renaming_a_group_keeps_its_route(self):
+		space = create_test_wiki_space()
+		group = create_test_wiki_document(space.root_group, title="Old Group", is_group=1)
+
+		item = self._rename_item(space, group, {"title": "New Group"})
+
+		self.assertEqual(item["route"], group.route)
+
+	def test_an_explicit_route_wins_over_the_title(self):
+		space = create_test_wiki_space()
+		page = create_test_wiki_document(space.root_group, title="Old Name", content="x")
+		route = page.route.rsplit("/", 1)[0] + "/pinned"
+
+		item = self._rename_item(space, page, {"title": "Renamed", "route": route})
+
+		self.assertEqual(item["route"], route)
+
+	def test_a_renamed_title_that_clashes_takes_a_number(self):
+		space = create_test_wiki_space()
+		create_test_wiki_document(space.root_group, title="Taken", content="x")
+		page = create_test_wiki_document(space.root_group, title="Other", content="x")
+
+		item = self._rename_item(space, page, {"title": "Taken"})
+
+		self.assertTrue(item["route"].endswith("/taken-2"))
 
 	def test_apply_cr_operations_delete_group_cascades_to_descendants(self):
 		space = create_test_wiki_space()
@@ -2561,6 +2592,26 @@ class TestWikiChangeRequestOGWarmup(FrappeTestCase):
 		self.assertEqual(len(stale), 1)
 		self.assertEqual(len(fresh), 1)
 		self.assertNotEqual(stale, fresh)
+
+	def test_merging_a_rename_redirects_the_old_address(self):
+		space = create_test_wiki_space()
+		page = create_test_wiki_document(space.root_group, title="Old Title")
+		old_route = page.route
+
+		with (
+			patch("wiki.api.og_image.get_preview_from_html", return_value=b"\xff\xd8\xff"),
+			patch("frappe.enqueue"),
+		):
+			self._rename_via_merge(page, "New Title")
+
+		new_route = frappe.db.get_value("Wiki Document", page.name, "route")
+		self.assertNotEqual(new_route, old_route)
+		rows = frappe.get_all(
+			"Website Route Redirect",
+			filters={"parent": "Website Settings", "target": f"/{new_route}"},
+			pluck="source",
+		)
+		self.assertIn(re.escape(old_route), rows)
 
 	def test_content_only_merge_enqueues_no_warmup(self):
 		space = create_test_wiki_space()
