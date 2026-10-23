@@ -90,6 +90,11 @@ Pages already out of step are fixed in bulk, one space at a time, dry run first:
     bench --site <site> execute wiki.wiki.route_titles.fix_routes_from_titles --kwargs "{'space': '<route or name>'}"
     bench --site <site> execute wiki.wiki.route_titles.fix_routes_from_titles --kwargs "{'space': '<route or name>', 'apply': 1}"
 
-It recomputes every route in the space from titles and group slugs, skips the page served at the
-space route, external links and git-synced spaces, keeps each old address as a redirect and rewrites
-the same route in the revision snapshots so an open change request does not put the old one back.
+Only the last segment of each route is replaced by the slug of its title; the path before it is left
+alone (a first version also rebuilt the path from the tree, which turned every flat `space/page` route
+into `space/group/subgroup/page`; it was withdrawn). Groups, external links, git-synced spaces and the
+page at the space route are skipped. A new route is never one another page holds today, so the redirect
+that keeps each old address cannot hide a page. The same route is rewritten in the revision snapshots so
+an open change request does not put the old one back.
+
+`undo_route_fixes(since)` reverses it from the redirects created since a given time.

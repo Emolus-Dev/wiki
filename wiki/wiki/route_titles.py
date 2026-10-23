@@ -1,19 +1,26 @@
-"""Bring page URLs back in line with page titles.
+"""Bring page URLs back in line with page titles, and undo it.
 
-A page's route is fixed when it is created and, by design, never follows a
-rename: authors own their URLs. The cost is a page renamed later keeps the old
-words in its address ("Banderas de configuración" served at
-`/docs/verificador-integrado`). `plan_route_fixes` works out the route each page
-would have if it were created today, and `fix_routes_from_titles` applies it.
+A page's route is fixed when it is created and did not follow a rename, so a
+page renamed later kept the old words in its address ("Banderas de
+configuración" at `/docs/verificador-integrado`). `plan_route_fixes` works out,
+for each page, the route with the last segment taken from its title and
+everything before it left alone: a flat `space/page` route stays flat, a nested
+one keeps its path. Groups, external links and the page served at the space
+route are not touched.
 
-Run it as a dry run first; nothing is written until `apply` is set:
+Both commands are a dry run until `apply` is set:
 
     bench --site <site> execute wiki.wiki.route_titles.fix_routes_from_titles \
         --kwargs "{'space': '<route or name of the space>'}"
-    bench --site <site> execute wiki.wiki.route_titles.fix_routes_from_titles \
-        --kwargs "{'space': '<route or name of the space>', 'apply': 1}"
+
+    bench --site <site> execute wiki.wiki.route_titles.undo_route_fixes \
+        --kwargs "{'since': '2026-10-23 18:00:00'}"
+
+`undo_route_fixes` puts back every route that has a redirect created since the given
+time, using the redirect itself as the record of where the page used to be.
 """
 
+import re
 from collections import defaultdict
 
 import frappe
@@ -22,68 +29,49 @@ from frappe import _
 
 def plan_route_fixes(
 	space_route: str,
-	root_name: str,
 	docs: list[dict],
 	reserved: set[str] | None = None,
 	slugify=None,
 ) -> list[dict]:
-	"""Return the pages whose route differs from the one their title gives.
+	"""The pages whose last route segment differs from the slug of their title.
 
-	`docs` are the space's Wiki Documents (name, parent, title, slug, route,
-	is_external_link, sort_order). A route is the space route, then the new slug of
-	each ancestor group below the root, then the page's own slug, so a renamed
-	group moves its whole branch. Pages are visited in tree order, and a slug that
-	another page already holds gets `-2`, `-3`... Skipped on purpose: the root
-	group, the page served at the space route itself, and external links.
+	A new route is never one that another page holds today, whether or not that
+	page is moving too: the old address of a moved page is turned into a redirect,
+	and a redirect from an address that belongs to another page would hide it. A
+	slug that is taken gets `-2`, `-3`...
 	"""
 	slugify = slugify or _slugify
-	reserved = set(reserved or ())
-	children = defaultdict(list)
-	for doc in docs:
-		children[doc.get("parent")].append(doc)
-	for siblings in children.values():
-		siblings.sort(key=lambda d: (d.get("sort_order") or 0, d["name"]))
-
-	# Routes this pass leaves alone still belong to somebody.
-	kept = {
-		doc["route"]
-		for doc in docs
-		if doc.get("route") and (doc.get("is_external_link") or doc["route"] == space_route)
-	}
-	taken = reserved | kept
+	current = {doc.get("route") for doc in docs if doc.get("route")}
+	claimed = set(reserved or ())
 	changes = []
 
-	def visit(parent_name, prefix):
-		for doc in children.get(parent_name, []):
-			if doc.get("is_external_link") or doc.get("route") == space_route:
-				continue
-			slug = slugify(doc.get("title")) or doc.get("slug") or slugify(doc["name"])
-			route = _free_route(prefix, slug, taken)
-			taken.add(route)
-			if route != doc.get("route") or slug != doc.get("slug"):
-				changes.append(
-					{
-						"name": doc["name"],
-						"title": doc.get("title"),
-						"old_route": doc.get("route"),
-						"new_route": route,
-						"old_slug": doc.get("slug"),
-						"new_slug": route.rsplit("/", 1)[-1],
-					}
-				)
-			visit(doc["name"], route)
-
-	visit(root_name, space_route.strip("/"))
+	for doc in sorted(docs, key=lambda d: (d.get("sort_order") or 0, d["name"])):
+		route = doc.get("route") or ""
+		if doc.get("is_group") or doc.get("is_external_link") or not route or route == space_route:
+			continue
+		slug = slugify(doc.get("title"))
+		if not slug:
+			continue
+		prefix = route.rsplit("/", 1)[0] + "/" if "/" in route else ""
+		if route == prefix + slug:
+			claimed.add(route)
+			continue
+		candidate, n = prefix + slug, 2
+		while candidate in claimed or (candidate in current and candidate != route):
+			candidate = f"{prefix}{slug}-{n}"
+			n += 1
+		claimed.add(candidate)
+		changes.append(
+			{
+				"name": doc["name"],
+				"title": doc.get("title"),
+				"old_route": route,
+				"new_route": candidate,
+				"old_slug": doc.get("slug"),
+				"new_slug": candidate.rsplit("/", 1)[-1],
+			}
+		)
 	return changes
-
-
-def _free_route(prefix: str, slug: str, taken: set[str]) -> str:
-	base = f"{prefix}/{slug}" if prefix else slug
-	candidate, n = base, 2
-	while candidate in taken:
-		candidate = f"{base}-{n}"
-		n += 1
-	return candidate
 
 
 def _slugify(text):
@@ -116,6 +104,7 @@ def _find_space(identifier: str) -> str:
 def fix_routes_from_titles(space: str, apply: int | bool = 0) -> dict:
 	"""Dry-run (default) or apply the title-based routes of one Wiki Space."""
 	frappe.only_for("Wiki Manager")
+	from frappe.utils.nestedset import get_descendants_of
 
 	space_doc = frappe.get_doc("Wiki Space", _find_space(space))
 	if space_doc.git_synced:
@@ -123,21 +112,15 @@ def fix_routes_from_titles(space: str, apply: int | bool = 0) -> dict:
 	if not space_doc.root_group:
 		frappe.throw(_("This Wiki Space has no root group."))
 
-	fields = ["name", "doc_key", "title", "slug", "route", "is_external_link", "sort_order", "parent_wiki_document"]
-	docs = frappe.get_all("Wiki Document", filters={"wiki_space": space_doc.name}, fields=fields, limit=0)
-	for doc in docs:
-		doc["parent"] = doc.pop("parent_wiki_document")
+	names = [space_doc.root_group, *get_descendants_of("Wiki Document", space_doc.root_group, ignore_permissions=True)]
+	fields = ["name", "doc_key", "title", "slug", "route", "is_group", "is_external_link", "sort_order"]
+	docs = frappe.get_all("Wiki Document", filters={"name": ["in", names]}, fields=fields, limit=0)
 	by_name = {doc["name"]: doc for doc in docs}
 
 	reserved = set(
-		frappe.get_all(
-			"Wiki Document",
-			filters={"wiki_space": ["!=", space_doc.name], "is_group": 0},
-			pluck="route",
-			limit=0,
-		)
+		frappe.get_all("Wiki Document", filters={"name": ["not in", names]}, pluck="route", limit=0)
 	)
-	changes = plan_route_fixes(space_doc.route, space_doc.root_group, docs, reserved)
+	changes = plan_route_fixes(space_doc.route, docs, reserved)
 	for change in changes:
 		change["doc_key"] = by_name[change["name"]]["doc_key"]
 
@@ -147,40 +130,45 @@ def fix_routes_from_titles(space: str, apply: int | bool = 0) -> dict:
 
 
 def _apply(changes: list[dict]):
-	from wiki.frappe_wiki.doctype.wiki_document.wiki_document import clear_wiki_tree_cache
 	from frappe.website.utils import clear_cache as clear_website_cache
 
-	for change in changes:
-		frappe.db.set_value(
-			"Wiki Document",
-			change["name"],
-			{"route": change["new_route"], "slug": change["new_slug"]},
-			update_modified=False,
-		)
-		# Snapshots carry their own copy of the route: a change request opened before this
-		# would put the old one back when it merges.
-		frappe.db.set_value(
-			"Wiki Revision Item",
-			{"doc_key": change["doc_key"], "route": change["old_route"]},
-			{"route": change["new_route"], "slug": change["new_slug"]},
-			update_modified=False,
-		)
+	from wiki.frappe_wiki.doctype.wiki_document.wiki_document import clear_wiki_tree_cache
 
-	_redirect_old_routes([c for c in changes if c["old_route"] and c["old_route"] != c["new_route"]])
+	for change in changes:
+		_move_route(change["name"], change["doc_key"], change["old_route"], change["new_route"], change["new_slug"])
+
+	_redirect_old_routes([c for c in changes if c["old_route"] != c["new_route"]])
 	clear_website_cache()
 	frappe.db.after_commit.add(clear_website_cache)
 	clear_wiki_tree_cache()
 
 
+def _move_route(name: str, doc_key: str, old_route: str, new_route: str, new_slug: str):
+	frappe.db.set_value(
+		"Wiki Document", name, {"route": new_route, "slug": new_slug}, update_modified=False
+	)
+	# Snapshots carry their own copy of the route: a change request opened before this
+	# would put the old one back when it merges.
+	frappe.db.set_value(
+		"Wiki Revision Item",
+		{"doc_key": doc_key, "route": old_route},
+		{"route": new_route, "slug": new_slug},
+		update_modified=False,
+	)
+
+
 def _redirect_old_routes(changes: list[dict]):
 	"""Keep old addresses working (permanent redirects) through Website Settings."""
-	import re
-
+	changes = [c for c in changes if c["old_route"] and c["old_route"] != c["new_route"]]
 	if not changes:
 		return
+	live = set(frappe.get_all("Wiki Document", pluck="route", limit=0))
 	settings = frappe.get_doc("Website Settings")
-	existing = {row.source: row for row in settings.get("route_redirects") or []}
+	existing = {row.source for row in settings.get("route_redirects") or []}
 	for change in changes:
+		# A redirect from an address that is a page's own today would hide that page.
+		if change["old_route"] in live:
+			continue
 		new_target = "/" + change["new_route"]
 		# A redirect that pointed at the old address now follows the page.
 		for row in settings.route_redirects:
@@ -188,11 +176,11 @@ def _redirect_old_routes(changes: list[dict]):
 				row.target = new_target
 		source = re.escape(change["old_route"])
 		if source not in existing:
-			row = settings.append(
+			settings.append(
 				"route_redirects",
 				{"source": source, "target": new_target, "redirect_http_status": 301},
 			)
-			existing[source] = row
+			existing.add(source)
 	settings.save(ignore_permissions=True)
 
 
@@ -202,3 +190,81 @@ def add_route_redirect(old_route: str, new_route: str) -> None:
 		_redirect_old_routes([{"old_route": old_route, "new_route": new_route}])
 	except Exception:
 		frappe.log_error(title="Wiki route redirect failed")
+
+
+def plan_undo(rows: list[dict], holders: dict[str, str]) -> tuple[list[dict], list[dict]]:
+	"""Which redirects can be reversed, in an order that never puts two pages on one route.
+
+	`rows` are `{old_route, new_route}` pairs read from the redirects, `holders` maps each
+	route today to the page that has it. A move is ready when its old route is free; moving
+	one page frees its current route, which can make another ready, so it repeats until
+	nothing more can move. Returns (moves, stuck).
+	"""
+	holders = dict(holders)
+	pending = list(rows)
+	moves = []
+	progressed = True
+	while pending and progressed:
+		progressed = False
+		for row in list(pending):
+			page = holders.get(row["new_route"])
+			if not page:
+				continue
+			if row["old_route"] in holders:
+				continue
+			holders.pop(row["new_route"])
+			holders[row["old_route"]] = page
+			moves.append({**row, "name": page})
+			pending.remove(row)
+			progressed = True
+	return moves, pending
+
+
+@frappe.whitelist()
+def undo_route_fixes(since: str, apply: int | bool = 0) -> dict:
+	"""Dry-run (default) or apply the reversal of every redirect created since `since`.
+
+	`since` is a date and time such as '2026-10-23 18:00:00', server time, a little before
+	the fix was run.
+	"""
+	frappe.only_for("Wiki Manager")
+	from frappe.website.utils import clear_cache as clear_website_cache
+
+	from wiki.frappe_wiki.doctype.wiki_document.wiki_document import clear_wiki_tree_cache
+
+	redirect_rows = frappe.get_all(
+		"Website Route Redirect",
+		filters={"parent": "Website Settings", "creation": [">=", since]},
+		fields=["name", "source", "target"],
+		limit=0,
+	)
+	rows = [
+		{
+			"old_route": re.sub(r"\\(.)", r"\1", row["source"]).strip("/"),
+			"new_route": (row["target"] or "").strip("/"),
+			"redirect": row["name"],
+		}
+		for row in redirect_rows
+	]
+	pages = frappe.get_all("Wiki Document", fields=["name", "doc_key", "route"], limit=0)
+	holders = {page["route"]: page["name"] for page in pages if page["route"]}
+	doc_keys = {page["name"]: page["doc_key"] for page in pages}
+
+	moves, stuck = plan_undo(rows, holders)
+	for move in moves:
+		move["doc_key"] = doc_keys[move["name"]]
+
+	if apply:
+		for move in moves:
+			_move_route(move["name"], move["doc_key"], move["new_route"], move["old_route"], move["old_route"].rsplit("/", 1)[-1])
+		undone = {move["redirect"] for move in moves}
+		# Rows with no page at their target go too: the page they pointed at is already back.
+		undone |= {row["redirect"] for row in stuck if row["new_route"] not in holders}
+		settings = frappe.get_doc("Website Settings")
+		settings.route_redirects = [row for row in settings.route_redirects if row.name not in undone]
+		settings.save(ignore_permissions=True)
+		clear_website_cache()
+		frappe.db.after_commit.add(clear_website_cache)
+		clear_wiki_tree_cache()
+
+	return {"applied": bool(apply), "restored": moves, "not_restored": stuck}
