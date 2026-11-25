@@ -702,18 +702,20 @@ Final text."""
 		self.assertEqual(headings[1]["level"], 3)
 		self.assertEqual(headings[2]["level"], 3)
 
-	def test_toc_excludes_h1_and_h4_plus(self):
-		"""Test that h1 and h4+ headings are NOT included in TOC."""
+	def test_toc_includes_h2_to_h6_and_excludes_h1(self):
+		"""Every heading level a page can use, h2 to h6, is in the TOC; h1 is the title tier."""
 		content = """# Title (h1 - excluded)
-## Section (h2 - included)
-### Subsection (h3 - included)
-#### Deep Section (h4 - excluded)
-##### Even Deeper (h5 - excluded)"""
+## Section
+### Subsection
+#### Deep Section
+##### Even Deeper
+###### Deepest"""
 		html, headings = render_markdown_with_toc(content)
 
-		self.assertEqual(len(headings), 2)
-		self.assertEqual(headings[0]["text"], "Section (h2 - included)")
-		self.assertEqual(headings[1]["text"], "Subsection (h3 - included)")
+		self.assertEqual(
+			[(h["text"], h["level"]) for h in headings],
+			[("Section", 2), ("Subsection", 3), ("Deep Section", 4), ("Even Deeper", 5), ("Deepest", 6)],
+		)
 
 	def test_toc_empty_for_no_headings(self):
 		"""Test that empty list is returned when no h2/h3 headings."""

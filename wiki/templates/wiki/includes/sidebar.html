@@ -341,13 +341,14 @@
                 // the server-render / SPA-render halves of the same component.
                 let html = '<nav class="sticky top-[calc(var(--wiki-chrome-h)+24px)] max-h-[calc(100vh-var(--wiki-chrome-h)-4rem)] overflow-y-auto no-scrollbar flex flex-col text-sm leading-relaxed">';
                 html += '<span class="text-sm-medium whitespace-nowrap pl-4 pb-1 border-l border-transparent">' + escapeHtml({{ _("On this page") | tojson }}) + '</span>';
-                // Same rule as the Jinja half: h3s only indent when the page
-                // also has an h2 (frappe-ui docs' `h3 && h2Exists`).
-                const hasH2 = headings.some(heading => heading.level === 2);
+                // Same rule as the Jinja half: indent by depth below the
+                // shallowest heading on the page.
+                const indents = ['pl-4', 'pl-7', 'pl-10', 'pl-13', 'pl-16'];
+                const minLevel = Math.min(...headings.map(heading => heading.level));
                 headings.forEach(heading => {
                     const safeId = escapeHtml(heading.id);
                     const safeText = escapeHtml(heading.text);
-                    const indent = heading.level >= 3 && hasH2 ? 'pl-7' : 'pl-4';
+                    const indent = indents[Math.min(heading.level - minLevel, indents.length - 1)];
                     html += `<a href="#${safeId}" data-toc-link="${safeId}" class="toc-link ${indent} py-1 border-l border-[var(--outline-gray-1)] text-[var(--ink-gray-6)] hover:text-[var(--ink-gray-9)]">${safeText}</a>`;
                 });
                 html += '</nav>';

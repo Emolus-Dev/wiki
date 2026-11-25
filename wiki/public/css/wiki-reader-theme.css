@@ -1,0 +1,270 @@
+/* Reader theme: one accent colour and a rem-based chrome type tier.
+
+   Why rem: frappe-ui's tokens size the chrome in px (13px tree, 14px search)
+   while the page content is in rem/em. Any browser font-size preference (or
+   zoom mode that honours it) then grows the content but not the side columns,
+   and the three columns drift apart. Re-declaring the scale in rem keeps the
+   same sizes at a 16px root and makes every column scale together.
+
+   This file is unlayered and imported last, so it wins over the generated
+   token utilities (which live in Tailwind's layers) without !important. */
+
+/* ---------- Type scale in rem (same values as frappe-ui at 16px) ---------- */
+:root {
+  --text-2xs: 0.6875rem;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.875rem;
+  --text-md: 0.9375rem;
+  --text-lg: 1rem;
+  --text-xl: 1.0625rem;
+  --text-2xl: 1.125rem;
+  --text-p-sm: 0.8125rem;
+  --text-p-base: 0.875rem;
+
+  /* Chrome tier: tree and TOC sit one step under the 16px body (0.875), the
+     meta line (breadcrumbs, counts) one more. */
+  --wiki-chrome-text: 0.875rem;
+  --wiki-meta-text: 0.8125rem;
+  --wiki-micro-text: 0.6875rem;
+}
+
+.text-xs-medium { font-size: var(--text-xs); }
+.text-sm-medium { font-size: var(--text-sm); }
+.text-base-medium { font-size: var(--text-base); }
+.text-lg-medium,
+.text-lg-semibold { font-size: var(--text-lg); }
+
+/* ---------- Palette ---------- */
+:root {
+  --wiki-accent: oklch(0.52 0.19 268);
+  --wiki-accent-strong: oklch(0.44 0.18 268);
+  --wiki-accent-soft: oklch(0.95 0.03 268);
+  --wiki-accent-softer: oklch(0.975 0.014 268);
+  --wiki-accent-line: oklch(0.86 0.07 268);
+  --wiki-chrome-bg: oklch(0.982 0.006 268);
+  --wiki-chrome-border: oklch(0.92 0.012 268);
+  --wiki-heading: oklch(0.24 0.035 268);
+  --wiki-body: oklch(0.36 0.02 268);
+  --wiki-muted: oklch(0.55 0.02 268);
+}
+
+[data-theme='dark'] {
+  --wiki-accent: oklch(0.74 0.13 268);
+  --wiki-accent-strong: oklch(0.83 0.1 268);
+  --wiki-accent-soft: oklch(0.32 0.07 268);
+  --wiki-accent-softer: oklch(0.26 0.04 268);
+  --wiki-accent-line: oklch(0.45 0.1 268);
+  --wiki-chrome-bg: oklch(0.185 0.01 268);
+  --wiki-chrome-border: oklch(0.28 0.015 268);
+  --wiki-heading: oklch(0.97 0.008 268);
+  --wiki-body: oklch(0.82 0.012 268);
+  --wiki-muted: oklch(0.65 0.015 268);
+}
+
+/* ---------- Navbar ---------- */
+body > header {
+  border-bottom-color: var(--wiki-chrome-border);
+  box-shadow: inset 0 2px 0 var(--wiki-accent);
+}
+
+/* ---------- Sidebar ---------- */
+.wiki-sidebar {
+  background-color: var(--wiki-chrome-bg);
+  border-right-color: var(--wiki-chrome-border);
+}
+
+.wiki-sidebar .wiki-title {
+  font-size: var(--wiki-chrome-text);
+  line-height: 1.4;
+}
+
+.wiki-sidebar .wiki-item-content {
+  color: var(--wiki-body);
+}
+
+.wiki-sidebar .is-group > .wiki-item-content {
+  color: var(--wiki-heading);
+}
+
+.wiki-sidebar .is-group > .wiki-item-content .wiki-title {
+  font-weight: 550;
+}
+
+/* Folder icons carry the accent so groups read apart from pages at a glance. */
+.wiki-sidebar .is-group > .wiki-item-content svg.size-3\.5:not(.transition-transform) {
+  color: var(--wiki-accent);
+}
+
+.wiki-sidebar .wiki-item-content:hover {
+  background-color: var(--wiki-accent-softer);
+  color: var(--wiki-heading);
+}
+
+.wiki-sidebar .wiki-item-content.is-current {
+  background-color: var(--wiki-accent-soft);
+  color: var(--wiki-accent-strong);
+  box-shadow: inset 2px 0 0 var(--wiki-accent);
+}
+
+.wiki-sidebar .wiki-item-content.is-current svg {
+  color: var(--wiki-accent);
+}
+
+.wiki-sidebar .wiki-current-dot {
+  background-color: var(--wiki-accent);
+}
+
+.wiki-sidebar .wiki-children {
+  border-color: var(--wiki-chrome-border);
+}
+
+.wiki-sidebar .wiki-item:hover > .wiki-children {
+  border-color: var(--wiki-accent-line);
+}
+
+.wiki-count {
+  font-size: var(--wiki-micro-text);
+  min-width: 1.25rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background-color: var(--surface-gray-2);
+  color: var(--wiki-muted);
+  text-align: center;
+  line-height: 1.35rem;
+}
+
+/* ---------- Table of contents ---------- */
+#wiki-toc nav {
+  font-size: var(--wiki-meta-text);
+}
+
+#wiki-toc nav > span {
+  font-size: var(--wiki-micro-text);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--wiki-muted);
+  padding-bottom: 0.5rem;
+}
+
+#wiki-toc .toc-link {
+  color: var(--wiki-muted);
+  border-color: var(--wiki-chrome-border);
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+#wiki-toc .toc-link:hover {
+  color: var(--wiki-heading);
+}
+
+/* ---------- Page header ---------- */
+#wiki-breadcrumbs ol {
+  font-size: var(--wiki-meta-text);
+  color: var(--wiki-muted);
+}
+
+#wiki-breadcrumbs a:hover {
+  color: var(--wiki-accent);
+}
+
+#wiki-breadcrumbs li:last-child {
+  color: var(--wiki-accent-strong);
+  font-weight: 500;
+}
+
+#wiki-page-title {
+  color: var(--wiki-heading);
+}
+
+.wiki-edit-link {
+  color: var(--wiki-accent-strong);
+  background-color: var(--wiki-accent-softer);
+}
+
+.wiki-edit-link:hover {
+  background-color: var(--wiki-accent-soft);
+}
+
+/* ---------- Content ---------- */
+#wiki-content {
+  --tw-prose-body: var(--wiki-body);
+  --tw-prose-bold: var(--wiki-heading);
+  --tw-prose-headings: var(--wiki-heading);
+  color: var(--wiki-body);
+}
+
+#wiki-content :is(h1, h2, h3, h4) {
+  color: var(--wiki-heading);
+}
+
+#wiki-content h2 {
+  padding-bottom: 0.4em;
+  border-bottom: 1px solid var(--outline-gray-1);
+}
+
+#wiki-content h3::before {
+  content: '';
+  display: inline-block;
+  width: 0.25em;
+  height: 0.9em;
+  margin-right: 0.45em;
+  vertical-align: -0.08em;
+  border-radius: 2px;
+  background-color: var(--wiki-accent);
+}
+
+#wiki-content strong {
+  color: var(--wiki-heading);
+}
+
+#wiki-content a:not(.heading-anchor) {
+  color: var(--wiki-accent-strong);
+  border-bottom-color: var(--wiki-accent-line);
+}
+
+#wiki-content a:not(.heading-anchor):hover {
+  color: var(--wiki-accent);
+  border-bottom-color: var(--wiki-accent);
+}
+
+#wiki-content .heading-anchor:hover {
+  color: var(--wiki-accent);
+}
+
+#wiki-content :is(ul, ol) > li::marker {
+  color: var(--wiki-accent);
+}
+
+#wiki-content ol > li::marker {
+  font-weight: 600;
+}
+
+#wiki-content blockquote {
+  border-left-color: var(--wiki-accent-line);
+  background-color: var(--wiki-accent-softer);
+  border-radius: 0 0.5rem 0.5rem 0;
+  padding: 0.5rem 1rem;
+}
+
+#wiki-content th {
+  background-color: var(--wiki-accent-softer);
+  color: var(--wiki-heading);
+}
+
+/* Callouts: a tinted surface and a coloured edge per type, instead of one grey. */
+#wiki-content .callout {
+  border-left: 3px solid var(--callout-edge, var(--outline-gray-3));
+  background-color: var(--callout-bg, var(--surface-gray-1));
+}
+
+.callout-note { --callout-bg: var(--surface-blue-1); --callout-edge: var(--outline-blue-4); }
+.callout-tip { --callout-bg: var(--surface-green-1); --callout-edge: var(--outline-green-4); }
+.callout-caution { --callout-bg: var(--surface-amber-1); --callout-edge: var(--outline-amber-4); }
+.callout-danger { --callout-bg: var(--surface-red-1); --callout-edge: var(--outline-red-4); }
+
+/* Prev / next */
+#wiki-nav-buttons a:hover {
+  background-color: var(--wiki-accent-soft);
+  color: var(--wiki-accent-strong);
+}

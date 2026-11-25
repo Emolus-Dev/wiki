@@ -740,7 +740,7 @@ def _inline_plain_text(children) -> str:
 def _apply_heading_slugs_and_toc(tokens) -> list[dict]:
 	"""
 	Walk parsed tokens, assign unique slug IDs to every heading, and collect
-	h2/h3 entries for the table of contents.
+	h2–h6 entries for the table of contents (h1 is the page-title tier).
 	"""
 	used: set[str] = set()
 	headings: list[dict] = []
@@ -760,7 +760,7 @@ def _apply_heading_slugs_and_toc(tokens) -> list[dict]:
 		tok.attrSet("id", slug)
 
 		level = int(tok.tag[1])  # "h2" -> 2
-		if level in (2, 3):
+		if level >= 2:
 			# Plain text (markdown syntax dropped) but keeping inline-code labels.
 			text = _inline_plain_text(inline.children)
 			headings.append({"id": slug, "text": text, "level": level})

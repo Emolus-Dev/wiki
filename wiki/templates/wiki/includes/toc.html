@@ -2,13 +2,15 @@
 {#- Mirrors frappe-ui docs' OnThisPage (vitepress/components/Docs/OnThisPage.vue):
     a faint left rail per link, the active heading darkening its own segment.
 
-    h3s are indented only when the page also has an h2 — that's the docs' own
-    `'pl-7': x.type == 'h3' && h2Exists` rule. On an all-h3 page every link
-    stays at pl-4, which is what keeps the "On this page" label lined up with
-    the rail. Indenting unconditionally misaligns the label; not indenting at
-    all throws away the hierarchy on mixed pages. -#}
-{% set has_h2 = toc_headings and (toc_headings | selectattr('level', 'equalto', 2) | list | length) > 0 %}
-<aside id="wiki-toc" class="hidden lg:block flex-shrink-0 py-6 pr-6 {% if toc_headings and toc_headings|length > 0 %}w-[300px]{% else %}w-0 !p-0{% endif %}">
+    Links indent by their depth below the shallowest heading on the page, not
+    by absolute level — the frappe-ui docs' `h3 && h2Exists` rule, extended to
+    h6. On an all-h3 page every link stays at pl-4, which keeps the "On this
+    page" label lined up with the rail; on mixed pages each level steps in.
+    The indent classes are spelled out (not built) so Tailwind emits them;
+    the SPA re-render in includes/sidebar.html uses the same list. -#}
+{% set toc_indents = ['pl-4', 'pl-7', 'pl-10', 'pl-13', 'pl-16'] %}
+{% set toc_min_level = (toc_headings | map(attribute='level') | min) if toc_headings else 2 %}
+<aside id="wiki-toc" class="hidden lg:block flex-shrink-0 py-6 pr-6 {% if toc_headings and toc_headings|length > 0 %}w-[18.75rem]{% else %}w-0 !p-0{% endif %}">
 {% if toc_headings and toc_headings|length > 0 %}
     {# Sticks 24px under the chrome (navbar + tab row); see --wiki-chrome-h in main.css.
        Mirrored by the nav-store's SPA re-render in includes/sidebar.html — edit both. #}
@@ -18,7 +20,7 @@
         {% for heading in toc_headings %}
         <a href="#{{ heading.id }}"
            data-toc-link="{{ heading.id }}"
-           class="toc-link {{ 'pl-7' if heading.level >= 3 and has_h2 else 'pl-4' }} py-1 border-l border-[var(--outline-gray-1)] text-[var(--ink-gray-6)] hover:text-[var(--ink-gray-9)]">
+           class="toc-link {{ toc_indents[[heading.level - toc_min_level, 4] | min] }} py-1 border-l border-[var(--outline-gray-1)] text-[var(--ink-gray-6)] hover:text-[var(--ink-gray-9)]">
             {{ heading.text }}
         </a>
         {% endfor %}
@@ -27,10 +29,11 @@
 </aside>
 
 <style>
-    /* Active TOC link: darken its rail segment + text (frappe-ui outline-gray-7). */
+    /* Active TOC link: the accent marks its rail segment + text (see wiki-reader-theme.css). */
     .toc-link.active {
-        border-color: var(--outline-gray-7) !important;
-        color: var(--ink-gray-9) !important;
+        border-color: var(--wiki-accent, var(--outline-gray-7)) !important;
+        color: var(--wiki-accent-strong, var(--ink-gray-9)) !important;
+        font-weight: 500;
     }
 </style>
 
