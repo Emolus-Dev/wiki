@@ -1,7 +1,6 @@
 import { expect, test } from '../fixtures';
 import type { SeededSpace } from '../helpers/factory';
 import { getList } from '../helpers/frappe';
-import { CHANGE_REQUEST_URL_RE } from '../helpers/routes';
 import {
 	currentDraftDocKey,
 	openNewPageDialog,
@@ -87,7 +86,7 @@ async function createAndPublishPage(
 	await expect(submitButton).toBeEnabled({ timeout: 10000 });
 	await submitButton.click();
 	await page.getByRole('button', { name: 'Submit' }).click();
-	await expect(page).toHaveURL(CHANGE_REQUEST_URL_RE, {
+	await expect(page.getByTestId('review-dialog')).toBeVisible({
 		timeout: 10000,
 	});
 	await publishChangeRequestFromReview(page);

@@ -14,6 +14,11 @@ import { useSpaceStore } from '../stores/space';
  * the page — so the actions moved out of the component tree entirely. They read
  * everything they need from the stores and the route.
  */
+// Where the author was when the review opened: shared across every caller of
+// the composable, because submit and the dialog that reports the merge are
+// different component instances.
+let reviewReturn = null;
+
 export function useChangeRequestActions() {
 	const crStore = useChangeRequestStore();
 	const draftStore = useDraftWorkspaceStore();
@@ -81,10 +86,11 @@ export function useChangeRequestActions() {
 			const result = await crStore.submitForReview();
 			toast.success(__('Change request submitted for review'));
 			if (result?.name) {
-				router.push({
-					name: 'ChangeRequestReview',
-					params: { changeRequestId: result.name },
-				});
+				reviewReturn = {
+					spaceId: spaceStore.spaceId,
+					docKey: spaceStore.selectedDraftKey,
+				};
+				crStore.reviewDialogName = result.name;
 			}
 		} catch (error) {
 			toast.error(error.messages?.[0] || __('Error submitting for review'));
@@ -145,47 +151,16 @@ export function useChangeRequestActions() {
 		try {
 			await crStore.approveAndMergeChangeRequest();
 			toast.success(__('Change request merged'));
-			crStore.currentChangeRequest = null;
-			crStore.clearChanges();
-			// The CR's drafts are now merged into the published doc — clear them so a
-			// stale local copy can't resurrect after the merge.
-			await draftStore.discardPersistedDraftsForCr(changeRequestName);
-			// Keep the tree on screen: the merged tree is all but identical to the one
-			// already rendered, so blanking it to a skeleton for a round trip is pure
-			// loss. hydrate() swaps in the new one in a single paint.
-			draftStore.reset({ keepTree: true });
-
-			// Leave the draft route before the rehydrate, not after: the draft the
-			// URL points at no longer exists, so waiting would park the editor on
-			// "Draft not found" for the length of the round trip. The tree is still
-			// on screen (keepTree), so the published page is resolvable now — except
-			// for a page created in this CR, which only gets a document_name once
-			// the merge lands, so that one is resolved again afterwards.
-			const openMergedPage = () => {
-				if (!docKey) return true;
-				const node = findNodeByDocKey(spaceStore.treeData?.children, docKey);
-				if (!node?.document_name) return false;
-				router.push({
-					name: 'SpacePage',
-					params: { spaceId, pageId: node.document_name },
-				});
-				return true;
-			};
-
-			const opened = openMergedPage();
-			await draftStore.hydrate(spaceId);
-			if (!opened) openMergedPage();
+			await returnToEditorAfterMerge({ spaceId, docKey, changeRequestName });
 		} catch (error) {
-			// A merge conflict leaves the CR Approved; the conflict-resolution UI
-			// lives on the review page, so send the author there to resolve it.
+			// A merge conflict leaves the CR Approved; conflict resolution lives in
+			// the review, so open it over the editor.
 			if (error.exc_type === 'ValidationError' && changeRequestName) {
 				toast.error(
 					error.messages?.[0] || __('Merge conflict — resolve it to continue'),
 				);
-				router.push({
-					name: 'ChangeRequestReview',
-					params: { changeRequestId: changeRequestName },
-				});
+				reviewReturn = { spaceId, docKey };
+				crStore.reviewDialogName = changeRequestName;
 				return;
 			}
 			toast.error(error.messages?.[0] || __('Error merging change request'));
@@ -194,5 +169,79 @@ export function useChangeRequestActions() {
 		}
 	}
 
-	return { submitForReview, discardChangeRequest, mergeChangeRequest };
+	/**
+	 * Put the editor back on its feet after a merge, wherever the merge ran
+	 * (the editor's own Merge, or the review dialog): drop the merged CR and
+	 * its local drafts, rehydrate the published tree and reopen the page the
+	 * author was on.
+	 */
+	async function returnToEditorAfterMerge({
+		spaceId,
+		docKey,
+		changeRequestName,
+	}) {
+		crStore.currentChangeRequest = null;
+		crStore.clearChanges();
+		// The CR's drafts are now merged into the published doc — clear them so a
+		// stale local copy can't resurrect after the merge.
+		await draftStore.discardPersistedDraftsForCr(changeRequestName);
+		// Keep the tree on screen: the merged tree is all but identical to the one
+		// already rendered, so blanking it to a skeleton for a round trip is pure
+		// loss. hydrate() swaps in the new one in a single paint.
+		draftStore.reset({ keepTree: true });
+
+		// Leave the draft route before the rehydrate, not after: the draft the
+		// URL points at no longer exists, so waiting would park the editor on
+		// "Draft not found" for the length of the round trip. The tree is still
+		// on screen (keepTree), so the published page is resolvable now — except
+		// for a page created in this CR, which only gets a document_name once
+		// the merge lands, so that one is resolved again afterwards.
+		const openMergedPage = () => {
+			if (!docKey) return true;
+			const node = findNodeByDocKey(spaceStore.treeData?.children, docKey);
+			if (!node?.document_name) return false;
+			router.push({
+				name: 'SpacePage',
+				params: { spaceId, pageId: node.document_name },
+			});
+			return true;
+		};
+
+		const opened = openMergedPage();
+		await draftStore.hydrate(spaceId);
+		if (!opened) openMergedPage();
+	}
+
+	// The review dialog reports a merge; the editor recovers where the author
+	// left it when they submitted.
+	async function onReviewMerged(changeRequestName) {
+		const target = reviewReturn || {
+			spaceId: spaceStore.spaceId,
+			docKey: spaceStore.selectedDraftKey,
+		};
+		reviewReturn = null;
+		crStore.reviewDialogName = null;
+		crStore.finalizing = 'merging';
+		try {
+			await returnToEditorAfterMerge({ ...target, changeRequestName });
+		} finally {
+			crStore.finalizing = null;
+		}
+	}
+
+	// Withdraw, request changes or reject leave the CR alive; the editor just
+	// needs its current status.
+	async function onReviewClosed() {
+		reviewReturn = null;
+		crStore.reviewDialogName = null;
+		await crStore.refreshChangeRequest();
+	}
+
+	return {
+		submitForReview,
+		discardChangeRequest,
+		mergeChangeRequest,
+		onReviewMerged,
+		onReviewClosed,
+	};
 }

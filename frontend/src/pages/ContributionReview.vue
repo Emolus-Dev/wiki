@@ -1,11 +1,20 @@
 <template>
-	<div class="flex flex-col h-full">
-		<!-- Renders into the shell's PageHeaderTarget on all breakpoints (the
-		     action cluster needs the full row even on a phone). -->
-		<PageHeader>
+	<div class="flex flex-col" :class="inDialog ? 'max-h-[85vh]' : 'h-full'">
+		<!-- As a page it renders into the shell's PageHeaderTarget on all
+		     breakpoints (the action cluster needs the full row even on a phone).
+		     PageHeader teleports, so inside the dialog it is a plain header row. -->
+		<component
+			:is="inDialog ? 'header' : PageHeader"
+			:class="inDialog ? 'flex shrink-0 items-center justify-between gap-4 border-b border-outline-gray-2 px-4 py-3' : ''"
+		>
 			<div class="flex min-w-0 items-center gap-4">
-				<Button variant="ghost" icon-left="lucide-arrow-left" @click="goBack">
-					{{ __('Back') }}
+				<Button
+					variant="ghost"
+					:icon-left="inDialog ? 'lucide-x' : 'lucide-arrow-left'"
+					data-testid="review-back"
+					@click="goBack"
+				>
+					{{ inDialog ? __('Back to editor') : __('Back') }}
 				</Button>
 				<div v-if="changeRequest.doc" class="min-w-0">
 					<div class="flex items-center gap-2">
@@ -73,7 +82,7 @@
 					{{ __('Withdraw') }}
 				</Button>
 			</div>
-		</PageHeader>
+		</component>
 
 		<div class="flex-1 overflow-auto p-4">
 			<!-- Conflict resolution banner -->
@@ -452,7 +461,14 @@ const props = defineProps({
 		type: String,
 		required: true,
 	},
+	inDialog: {
+		type: Boolean,
+		default: false,
+	},
 });
+
+// In the dialog the review never navigates: it tells the editor what happened.
+const emit = defineEmits(['merged', 'close']);
 
 const showApproveMergeDialog = ref(false);
 const showRequestChangesDialog = ref(false);
@@ -688,7 +704,17 @@ function goBackInFlow(fallback) {
 }
 
 function goBack() {
+	if (props.inDialog) {
+		emit('close');
+		return;
+	}
 	goBackInFlow({ name: 'ChangeRequests' });
+}
+
+// Once a decision hands the CR back (withdrawn, changes requested, rejected),
+// a dialog has nothing left to show; a page stays put.
+function closeIfInDialog() {
+	if (props.inDialog) emit('close');
 }
 
 // Reorder display: a breadcrumb of ancestor titles ending in the page itself.
@@ -738,6 +764,10 @@ async function mergeNow() {
 	try {
 		await mergeResource.submit({ name: props.changeRequestId });
 		toast.success(__('Change request merged'));
+		if (props.inDialog) {
+			emit('merged', props.changeRequestId);
+			return true;
+		}
 		if (crStore.currentChangeRequest?.name === props.changeRequestId) {
 			crStore.currentChangeRequest = null;
 		}
@@ -802,6 +832,7 @@ async function handleRequestChanges(close) {
 		requestChangesComment.value = '';
 		close?.();
 		changeRequest.reload();
+		closeIfInDialog();
 	} catch (error) {
 		toast.error(error.messages?.[0] || __('Error requesting changes'));
 	}
@@ -828,6 +859,10 @@ async function handleResolveAndMerge() {
 		toast.success(__('Conflicts resolved and change request merged'));
 		hasConflicts.value = false;
 		conflicts.value = [];
+		if (props.inDialog) {
+			emit('merged', props.changeRequestId);
+			return;
+		}
 		if (crStore.currentChangeRequest?.name === props.changeRequestId) {
 			crStore.currentChangeRequest = null;
 		}
@@ -854,6 +889,7 @@ async function handleReject(close) {
 		rejectComment.value = '';
 		close?.();
 		changeRequest.reload();
+		closeIfInDialog();
 	} catch (error) {
 		toast.error(error.messages?.[0] || __('Error rejecting change request'));
 	}
@@ -869,6 +905,7 @@ async function handleWithdraw() {
 		const { clearDraftsForCr } = await import('@/stores/draftPersistence');
 		await clearDraftsForCr(props.changeRequestId);
 		changeRequest.reload();
+		closeIfInDialog();
 	} catch (error) {
 		toast.error(error.messages?.[0] || __('Error withdrawing change request'));
 	}

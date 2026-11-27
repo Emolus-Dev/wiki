@@ -3,7 +3,6 @@ import { uniqueRoute } from '../helpers/factory';
 import { getList } from '../helpers/frappe';
 import {
 	APP_BASE,
-	CHANGE_REQUEST_URL_RE,
 	SPACE_URL_RE,
 	appUrl,
 	spaceLinkSelector,
@@ -213,7 +212,7 @@ test.describe('Wiki Editor', () => {
 		// Submit for review and merge
 		await page.getByRole('button', { name: 'Submit for Review' }).click();
 		await page.getByRole('button', { name: 'Submit' }).click();
-		await expect(page).toHaveURL(CHANGE_REQUEST_URL_RE, {
+		await expect(page.getByTestId('review-dialog')).toBeVisible({
 			timeout: 10000,
 		});
 		await publishChangeRequestFromReview(page);

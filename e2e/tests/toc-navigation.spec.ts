@@ -1,6 +1,5 @@
 import { expect, test } from '../fixtures';
 import { getList } from '../helpers/frappe';
-import { CHANGE_REQUEST_URL_RE } from '../helpers/routes';
 import {
 	clickSidebarAddOption,
 	currentDraftDocKey,
@@ -155,7 +154,7 @@ Epsilon content here.`;
 		// Submit and merge both pages
 		await page.getByRole('button', { name: 'Submit for Review' }).click();
 		await page.getByRole('button', { name: 'Submit' }).click();
-		await expect(page).toHaveURL(CHANGE_REQUEST_URL_RE, {
+		await expect(page.getByTestId('review-dialog')).toBeVisible({
 			timeout: 10000,
 		});
 		await publishChangeRequestFromReview(page);

@@ -132,9 +132,9 @@ import { computed, ref, watch } from 'vue';
 
 import { rollSpaceAvatar } from '../lib/spaceAvatar.js';
 import {
+	SPACE_COLORS,
 	generatedIdentityPatch,
 	resolveSpaceIdentity,
-	SPACE_COLORS,
 } from '../lib/spaceIdentity.js';
 import IconGrid from './IconGrid.vue';
 import SpaceAvatar from './SpaceAvatar.vue';

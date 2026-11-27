@@ -1,6 +1,5 @@
 import { expect, test } from '../fixtures';
 import { getList } from '../helpers/frappe';
-import { CHANGE_REQUEST_URL_RE } from '../helpers/routes';
 import {
 	clickSidebarAddOption,
 	currentDraftDocKey,
@@ -67,7 +66,7 @@ test.describe('Public Sidebar', () => {
 			// Submit for review and merge the page
 			await page.getByRole('button', { name: 'Submit for Review' }).click();
 			await page.getByRole('button', { name: 'Submit' }).click();
-			await expect(page).toHaveURL(CHANGE_REQUEST_URL_RE, {
+			await expect(page.getByTestId('review-dialog')).toBeVisible({
 				timeout: 10000,
 			});
 			await publishChangeRequestFromReview(page);
@@ -192,7 +191,7 @@ test.describe('Public Sidebar', () => {
 			// Merge both pages
 			await page.getByRole('button', { name: 'Submit for Review' }).click();
 			await page.getByRole('button', { name: 'Submit' }).click();
-			await expect(page).toHaveURL(CHANGE_REQUEST_URL_RE, {
+			await expect(page.getByTestId('review-dialog')).toBeVisible({
 				timeout: 10000,
 			});
 			await publishChangeRequestFromReview(page);
@@ -313,7 +312,7 @@ test.describe('Public Sidebar', () => {
 			// Submit for review and merge both pages
 			await page.getByRole('button', { name: 'Submit for Review' }).click();
 			await page.getByRole('button', { name: 'Submit' }).click();
-			await expect(page).toHaveURL(CHANGE_REQUEST_URL_RE, {
+			await expect(page.getByTestId('review-dialog')).toBeVisible({
 				timeout: 10000,
 			});
 			await publishChangeRequestFromReview(page);

@@ -13,6 +13,9 @@ export const useChangeRequestStore = defineStore('changeRequest', () => {
 	// user already asked for. Owned by whoever runs the flow (SpaceDetails),
 	// because it has to outlive the call itself.
 	const finalizing = ref(null);
+	// The change request whose review dialog is open over the editor, so
+	// reviewing and merging never take the author out of the page they edit.
+	const reviewDialogName = ref(null);
 	let initChangeRequestPromise = null;
 	let loadChangesPromise = null;
 
@@ -313,6 +316,7 @@ export const useChangeRequestStore = defineStore('changeRequest', () => {
 		currentChangeRequest,
 		isLoadingChangeRequest,
 		finalizing,
+		reviewDialogName,
 		isChangeRequestMode,
 		hasActiveChangeRequest,
 		changes,

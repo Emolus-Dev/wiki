@@ -2,12 +2,7 @@ import type { Page } from '@playwright/test';
 import { expect, test } from '../fixtures';
 import type { WikiFactory } from '../helpers/factory';
 import { callMethod, getList } from '../helpers/frappe';
-import {
-	APP_BASE,
-	CHANGE_REQUEST_URL_RE,
-	SPACE_URL_RE,
-	appUrl,
-} from '../helpers/routes';
+import { APP_BASE, SPACE_URL_RE, appUrl } from '../helpers/routes';
 import {
 	clickSidebarAddOption,
 	createSpaceViaDialog,
@@ -37,6 +32,8 @@ const CR_METHOD =
  * lives in the three-dots menu (the header primary button is Approve-only). It
  * opens a confirm dialog whose action button is also "Approve & Merge".
  */
+const CHANGE_REQUEST_PAGE_RE = new RegExp(`${APP_BASE}/change-requests/`);
+
 async function approveAndMergeFromReview(page: Page) {
 	await clickReviewMenuItem(page, 'Approve & Merge');
 	await page
@@ -100,10 +97,12 @@ async function submitForReviewFromEditor(page: Page) {
 		.getByRole('dialog')
 		.getByRole('button', { name: 'Submit', exact: true })
 		.click();
-	await expect(page).toHaveURL(CHANGE_REQUEST_URL_RE, {
+	await expect(page.getByTestId('review-dialog')).toBeVisible({
 		timeout: 10000,
 	});
-	return decodeURIComponent(page.url().split('/').pop() as string);
+	return (await page
+		.getByTestId('review-dialog')
+		.getAttribute('data-change-request')) as string;
 }
 
 test.describe('Change Request Flow', () => {
@@ -156,7 +155,7 @@ test.describe('Change Request Flow', () => {
 		// Submit for review and merge
 		await page.getByRole('button', { name: 'Submit for Review' }).click();
 		await page.getByRole('button', { name: 'Submit' }).click();
-		await expect(page).toHaveURL(CHANGE_REQUEST_URL_RE, {
+		await expect(page.getByTestId('review-dialog')).toBeVisible({
 			timeout: 10000,
 		});
 
@@ -194,7 +193,7 @@ test.describe('Change Request Flow', () => {
 
 		await page.getByRole('button', { name: 'Submit for Review' }).click();
 		await page.getByRole('button', { name: 'Submit' }).click();
-		await expect(page).toHaveURL(CHANGE_REQUEST_URL_RE, {
+		await expect(page.getByTestId('review-dialog')).toBeVisible({
 			timeout: 10000,
 		});
 
@@ -907,6 +906,45 @@ test.describe('Change Request Flow', () => {
 		// The language picker is an editing affordance — it must not leak into the
 		// read-only preview.
 		await expect(page.getByText('auto', { exact: true })).toHaveCount(0);
+	});
+
+	test('review opens over the editor and a merge lands back on the edited page', async ({
+		page,
+		wiki,
+	}) => {
+		const content = `Review dialog content ${Date.now()}`;
+		await createSpaceWithDraftPage(page, wiki, 'CR Review Dialog');
+		await setEditorContentAndSave(page, content);
+		await submitForReviewFromEditor(page);
+
+		const review = page.getByTestId('review-dialog');
+		await expect(page).not.toHaveURL(CHANGE_REQUEST_PAGE_RE);
+
+		// Static: neither Escape nor a click on the backdrop drops the review.
+		await page.keyboard.press('Escape');
+		await page.mouse.click(5, 5);
+		await expect(review).toBeVisible();
+
+		await approveAndMergeFromReview(page);
+
+		await expect(review).toBeHidden({ timeout: 15000 });
+		await page.waitForURL(/\/spaces\/[^/]+\/page\//, { timeout: 10000 });
+		await expect(page.getByText(content)).toBeVisible({ timeout: 10000 });
+	});
+
+	test('back to editor closes the review and keeps the draft open', async ({
+		page,
+		wiki,
+	}) => {
+		const content = `Review back content ${Date.now()}`;
+		await createSpaceWithDraftPage(page, wiki, 'CR Review Back');
+		await setEditorContentAndSave(page, content);
+		await submitForReviewFromEditor(page);
+
+		await page.getByTestId('review-back').click();
+
+		await expect(page.getByTestId('review-dialog')).toBeHidden();
+		await expect(page.getByText(content)).toBeVisible();
 	});
 
 	test('back from review returns to the originating tab', async ({

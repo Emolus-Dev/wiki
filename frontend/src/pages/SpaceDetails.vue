@@ -71,6 +71,8 @@
             @open-clone="openCloneSpaceDialog"
         />
 
+        <ChangeRequestReviewDialog />
+
         <Dialog v-model:open="showUpdateRoutesDialog">
             <template #title>
                 <h3 class="text-2xl-semibold text-ink-gray-9">
@@ -149,6 +151,7 @@ import {
 } from 'frappe-ui';
 import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import ChangeRequestReviewDialog from '../components/ChangeRequestReviewDialog.vue';
 import MobileDrawer from '../components/MobileDrawer.vue';
 import SpaceModeStrip from '../components/SpaceModeStrip.vue';
 import SpaceSettings from '../components/SpaceSettings/SpaceSettings.vue';

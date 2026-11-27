@@ -2,7 +2,6 @@ import type { Page } from '@playwright/test';
 import { expect, test } from '../fixtures';
 import { deleteDoc, getList } from '../helpers/frappe';
 import { makeUniquePng } from '../helpers/png';
-import { CHANGE_REQUEST_URL_RE } from '../helpers/routes';
 import {
 	createDraftAndOpenEditor,
 	currentDraftDocKey,
@@ -123,7 +122,9 @@ test.describe('Theme-aware images', () => {
 		await expect(submitButton).toBeEnabled({ timeout: 10000 });
 		await submitButton.click();
 		await page.getByRole('button', { name: 'Submit' }).click();
-		await expect(page).toHaveURL(CHANGE_REQUEST_URL_RE, { timeout: 10000 });
+		await expect(page.getByTestId('review-dialog')).toBeVisible({
+			timeout: 10000,
+		});
 		await publishChangeRequestFromReview(page);
 
 		const [published] = await getList<{ route: string }>(
@@ -296,7 +297,9 @@ test.describe('Theme-aware images', () => {
 		await expect(submitButton).toBeEnabled({ timeout: 10000 });
 		await submitButton.click();
 		await page.getByRole('button', { name: 'Submit' }).click();
-		await expect(page).toHaveURL(CHANGE_REQUEST_URL_RE, { timeout: 10000 });
+		await expect(page.getByTestId('review-dialog')).toBeVisible({
+			timeout: 10000,
+		});
 		await publishChangeRequestFromReview(page);
 
 		const [published] = await getList<{ route: string }>(
