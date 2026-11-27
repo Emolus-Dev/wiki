@@ -7,6 +7,7 @@ import json
 import math
 import os
 import re
+import shutil
 import typing
 import unittest
 from threading import Thread
@@ -2138,6 +2139,27 @@ class TestWikiDocumentPdfDownload(WikiDocumentTestBase):
 			download_pdf(route="pdf-renamed-space/new-route")
 
 		self.assertEqual(frappe.local.response.filename, "new-route.pdf")
+
+	@unittest.skipUnless(shutil.which("wkhtmltopdf"), "needs wkhtmltopdf")
+	def test_download_pdf_renders_a_page_with_a_blockquote(self):
+		# CSS `quotes` / `open-quote` crash wkhtmltopdf's QtWebKit with a segfault,
+		# so the real renderer runs here: a mocked get_print can't catch it.
+		root_group = create_test_wiki_document(self, "Root PDF Quote", is_group=True)
+		page = create_test_wiki_document(
+			self,
+			"Quoted Page",
+			parent=root_group.name,
+			content="## Intro\n\n> First quoted paragraph.\n>\n> Second quoted paragraph.\n\nAfter.",
+			slug="quoted-page",
+		)
+		create_test_wiki_space(
+			self, "PDF Quote Space", "pdf-quote-space", root_group.name, roles=[("Guest", "Read")]
+		)
+		frappe.local.response = frappe._dict()
+
+		download_pdf(route=page.route)
+
+		self.assertTrue(frappe.local.response.filecontent.startswith(b"%PDF"))
 
 	def test_download_pdf_blocks_private_page_for_guest(self):
 		# A space with no role rows is open to logged-in users only; an anonymous

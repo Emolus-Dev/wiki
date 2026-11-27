@@ -100,19 +100,19 @@
 		font-style: italic;
 		font-weight: 500;
 		color: #383838;
-		quotes: "\201C" "\201D" "\2018" "\2019";
 	}
 
 	.wiki-document-content blockquote p {
 		margin: 0.5em 0;
 	}
 
+	/* Literal marks, not `quotes` + open-quote: wkhtmltopdf's QtWebKit segfaults on those. */
 	.wiki-document-content blockquote p:first-of-type::before {
-		content: open-quote;
+		content: "\201C";
 	}
 
 	.wiki-document-content blockquote p:last-of-type::after {
-		content: close-quote;
+		content: "\201D";
 	}
 
 	/* Callouts — mirror the public-page treatment: the frappe-ui Alert banner,

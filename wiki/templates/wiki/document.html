@@ -225,10 +225,8 @@
                     capturePageAction('download');
                 } catch (err) {
                     console.error('Failed to download PDF:', err);
-                    window.frappe?.show_alert?.({
-                        message: __('Unable to download this page right now.'),
-                        indicator: 'red'
-                    });
+                    // The reader has no frappe.show_alert or __(), so this used to throw and stay silent.
+                    window.alert(wikiT('Unable to download this page right now.'));
                 } finally {
                     this.downloadInProgress = false;
                 }
