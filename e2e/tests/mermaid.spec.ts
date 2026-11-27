@@ -129,4 +129,61 @@ test.describe('Mermaid diagrams', () => {
 			page.locator('#wiki-content .mermaid svg').first(),
 		).toBeVisible({ timeout: 15000 });
 	});
+
+	test('opens a diagram full screen, zooms, fits and closes', async ({
+		page,
+		wiki,
+	}) => {
+		const space = await wiki.space({
+			pages: [{ title: 'Mermaid Zoom', content: MERMAID_MARKDOWN }],
+		});
+		await page.goto(`/${space.page('Mermaid Zoom').route}`);
+
+		const diagram = page.locator('#wiki-content .mermaid').first();
+		await expect(diagram.locator('svg').first()).toBeVisible({
+			timeout: 15000,
+		});
+
+		await diagram.hover();
+		await diagram.getByRole('button', { name: 'Full screen' }).click();
+
+		const viewer = page.getByRole('dialog', { name: 'Diagram' });
+		await expect(viewer).toBeVisible();
+		await expect(viewer.locator('svg').first()).toBeVisible();
+
+		const zoom = viewer.locator('.wiki-mermaid-viewer-zoom');
+		const fitted = await zoom.textContent();
+		await viewer.getByRole('button', { name: 'Zoom in' }).click();
+		await expect(zoom).not.toHaveText(fitted as string);
+		await viewer.getByRole('button', { name: 'Fit to screen' }).click();
+		await expect(zoom).toHaveText(fitted as string);
+
+		await page.keyboard.press('Escape');
+		await expect(viewer).toBeHidden();
+	});
+
+	test('downloads a diagram as a standalone SVG', async ({ page, wiki }) => {
+		const space = await wiki.space({
+			pages: [{ title: 'Mermaid Download', content: MERMAID_MARKDOWN }],
+		});
+		await page.goto(`/${space.page('Mermaid Download').route}`);
+
+		const diagram = page.locator('#wiki-content .mermaid').first();
+		await expect(diagram.locator('svg').first()).toBeVisible({
+			timeout: 15000,
+		});
+
+		await diagram.hover();
+		const [download] = await Promise.all([
+			page.waitForEvent('download'),
+			diagram.getByRole('button', { name: 'Download SVG' }).click(),
+		]);
+
+		expect(download.suggestedFilename()).toMatch(/-diagram-1\.svg$/);
+		const path = await download.path();
+		const { readFile } = await import('node:fs/promises');
+		const markup = await readFile(path as string, 'utf8');
+		expect(markup).toContain('xmlns="http://www.w3.org/2000/svg"');
+		expect(markup).toContain('Start');
+	});
 });

@@ -2,6 +2,13 @@
   let renderSeq = 0;
   let themeObserverAttached = false;
 
+  // Every render replaces the element's content, so the zoom / full screen /
+  // download toolbar (mermaid-viewer.js) is added back after each one.
+  function showSvg(el, svg) {
+    el.innerHTML = svg;
+    window.wikiMermaidViewer?.decorate(el);
+  }
+
   // Mermaid sizes each node from the label's measured width. If it measures
   // before the web font (Inter) has loaded, it sizes against a narrower fallback
   // and the real font then overflows — the last glyph clips ("Load Balance|r").
@@ -39,7 +46,7 @@
     const id = `wiki-mermaid-${++renderSeq}`;
     try {
       const { svg } = await mermaid.render(id, source);
-      el.innerHTML = svg;
+      showSvg(el, svg);
     } finally {
       // mermaid.render() leaves its temporary "d<id>" container on <body> when
       // the source is invalid (the error "bomb"); drop it so it never lingers.
@@ -100,7 +107,7 @@
       const id = `wiki-mermaid-${++renderSeq}`;
       try {
         const { svg } = await mermaid.render(id, source);
-        el.innerHTML = svg;
+        showSvg(el, svg);
       } catch (error) {
         console.error("Failed to re-render Mermaid diagram:", error);
       } finally {

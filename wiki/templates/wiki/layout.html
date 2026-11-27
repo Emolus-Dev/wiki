@@ -151,6 +151,13 @@
             "Link copied": _("Link copied"),
             "Link to {0}": _("Link to {0}"),
             "Unable to download this page right now.": _("Unable to download this page right now."),
+            "Diagram": _("Diagram"),
+            "Full screen": _("Full screen"),
+            "Download SVG": _("Download SVG"),
+            "Zoom in": _("Zoom in"),
+            "Zoom out": _("Zoom out"),
+            "Fit to screen": _("Fit to screen"),
+            "Close": _("Close"),
         } | tojson }};
         window.wikiT = function (text, args) {
             let out = (window.WIKI_I18N && window.WIKI_I18N[text]) || text;
@@ -169,6 +176,7 @@
     <script src="/assets/wiki/js/image-viewer.js?v={{ get_asset_hash('public/js/image-viewer.js') }}"></script>
     <script defer src="/assets/wiki/js/pdf-viewer.js?v={{ get_asset_hash('public/js/pdf-viewer.js') }}"></script>
     <script src="/assets/wiki/js/mermaid-loader.js?v={{ get_asset_hash('public/js/mermaid-loader.js') }}"></script>
+    <script defer src="/assets/wiki/js/mermaid-viewer.js?v={{ get_asset_hash('public/js/mermaid-viewer.js') }}"></script>
     <script defer src="/assets/wiki/js/mermaid-renderer.js?v={{ get_asset_hash('public/js/mermaid-renderer.js') }}"></script>
     {% if enable_view_tracking %}{% include "templates/wiki/includes/page_view.html" %}{% endif %}
 </body>
