@@ -13,7 +13,6 @@
             <div class="relative" :class="showTocRail ? 'pr-60' : ''">
                 <div class="mx-auto w-full max-w-[var(--wiki-content-width)] px-8">
                     <slot name="title" />
-                    <EditorAttachments :editor="editor" :readonly="readonly" :default-private="uploadsArePrivate" @attach="openAttachPicker" @attach-files="attachFiles" />
                     <EditorContent :editor="editor" :class="contentClass" />
                 </div>
                 <EditorTableOfContents v-if="showTocRail" :editor="editor" variant="rail" />
@@ -97,7 +96,6 @@ import {
 	useEditor,
 } from 'frappe-ui/editor';
 import { markdownSafeUrl } from '@/lib/fileUrl';
-import EditorAttachments from './EditorAttachments.vue';
 import EditorTableOfContents from './EditorTableOfContents.vue';
 import LinkPopup from './tiptap-extensions/LinkPopup.vue';
 import PageLinkList from './tiptap-extensions/PageLinkList.vue';
