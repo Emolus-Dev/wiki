@@ -1,37 +1,15 @@
-"""Every event Wiki sends to Pulse, with the properties `docs/telemetry.md`
-puts on all of them."""
+"""Telemetry is off in this fork: nothing is sent to Pulse.
 
-from contextlib import suppress
-
-from frappe.utils import telemetry as frappe_telemetry
-
-import wiki
+The call sites keep calling `capture()` so they stay close to upstream and
+merge cleanly; this module is the one place that decides nothing leaves."""
 
 
 def default_properties() -> dict:
-	return {"app_version": wiki.__version__}
-
-
-def reader_config() -> dict:
-	"""Pulse client config for the reader, which has no SPA boot to carry it."""
-	with suppress(Exception):
-		from frappe.utils.telemetry.pulse.client import boot_config
-
-		config = boot_config()
-		if config.get("enabled"):
-			return {**config, **default_properties()}
-	return {"enabled": False}
+	return {}
 
 
 def capture(event: str, interval: str | None = None, **props):
-	"""Send one event. Telemetry never fails the action it reports on."""
-	with suppress(Exception):
-		frappe_telemetry.capture(
-			event,
-			"wiki",
-			properties={**default_properties(), **props},
-			interval=interval,
-		)
+	return None
 
 
 def error_kind(exception: BaseException) -> str:

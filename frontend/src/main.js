@@ -1,5 +1,4 @@
 import { createApp, watchEffect } from 'vue';
-import { telemetryPlugin } from '../vendor/framework-ui/src/telemetry/index.ts';
 
 import App from './App.vue';
 import { watchLongTasks } from './lib/freezeTrace';
@@ -10,7 +9,6 @@ import { pinia } from './stores';
 import { useSessionStore } from './stores/session';
 import { useUserStore } from './stores/user';
 
-import { trackPageviews } from './telemetry';
 import translationPlugin from './translation';
 
 import {
@@ -52,15 +50,12 @@ app.use(router);
 app.use(translationPlugin);
 app.use(resourcesPlugin);
 
-// Telemetry is for signed-in app users; the Jinja reader sends nothing.
 const session = useSessionStore();
-let telemetryStarted = false;
+let draftPruneScheduled = false;
 watchEffect(() => {
-	if (!session.isLoggedIn || telemetryStarted) return;
-	telemetryStarted = true;
+	if (!session.isLoggedIn || draftPruneScheduled) return;
+	draftPruneScheduled = true;
 	schedulePruneFinishedDrafts();
-	app.use(telemetryPlugin, { app_name: 'wiki' });
-	trackPageviews(router);
 });
 
 const socket = initSocket();

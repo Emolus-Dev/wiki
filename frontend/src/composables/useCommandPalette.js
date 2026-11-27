@@ -1,26 +1,23 @@
 import { ref } from 'vue';
 
-import { useTelemetry } from '../telemetry';
-
 const showCommandPalette = ref(false);
 
-function show(trigger) {
+function show() {
 	showCommandPalette.value = true;
-	useTelemetry().capture('command_palette_opened', { trigger });
 }
 
 export function useCommandPalette() {
-	function open(trigger = 'click') {
-		show(trigger);
+	function open() {
+		show();
 	}
 
 	function close() {
 		showCommandPalette.value = false;
 	}
 
-	function toggle(trigger = 'shortcut') {
+	function toggle() {
 		if (showCommandPalette.value) close();
-		else show(trigger);
+		else show();
 	}
 
 	return { showCommandPalette, open, close, toggle };
